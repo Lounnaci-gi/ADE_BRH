@@ -64,7 +64,16 @@ router.get('/', (req, res) => {
 
 // POST /api/users - créer un utilisateur
 router.post('/', (req, res) => {
-  const { username, email, role = 'Utilisateur', password } = req.body || {};
+  const roleHeader = (req.headers['x-role'] || '').toString();
+  if (roleHeader !== 'Administrateur') {
+    return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+  }
+  const { username, email, role: roleRaw = 'Standard', password } = req.body || {};
+
+  // Normaliser le rôle reçu depuis le front
+  const role = (roleRaw || '').toString().trim();
+  const normalizedRole =
+    role.toLowerCase() === 'admin' || role === 'Administrateur' ? 'Administrateur' : 'Standard';
 
   if (!username || !password || !email) {
     return res.status(400).json({ message: 'username, email et password sont requis' });
@@ -83,15 +92,20 @@ router.post('/', (req, res) => {
       }
 
       const query = `
-        IF EXISTS (SELECT 1 FROM dbo.DIM_UTILISATEUR WHERE Nom_Utilisateur = @username)
+        DECLARE @wantAdmin BIT = CASE WHEN @role = 'Administrateur' THEN 1 ELSE 0 END;
+        IF (@wantAdmin = 1 AND EXISTS (SELECT 1 FROM dbo.DIM_UTILISATEUR WHERE [Role] = 'Administrateur' AND IsActive = 1))
         BEGIN
-          SELECT CAST(1 AS INT) AS AlreadyExists;
+          SELECT CAST(1 AS INT) AS AdminExists, CAST(0 AS INT) AS AlreadyExists;
+        END
+        ELSE IF EXISTS (SELECT 1 FROM dbo.DIM_UTILISATEUR WHERE Nom_Utilisateur = @username)
+        BEGIN
+          SELECT CAST(0 AS INT) AS AdminExists, CAST(1 AS INT) AS AlreadyExists;
         END
         ELSE
         BEGIN
           INSERT INTO dbo.DIM_UTILISATEUR (Nom_Utilisateur, Mot_de_Passe_Hash, FK_Agence, [Role], Email, IsActive)
           VALUES (@username, @hash, NULL, @role, @email, 1);
-          SELECT CAST(0 AS INT) AS AlreadyExists;
+          SELECT CAST(0 AS INT) AS AdminExists, CAST(0 AS INT) AS AlreadyExists;
         END
       `;
 
@@ -103,10 +117,11 @@ router.post('/', (req, res) => {
       });
 
       let alreadyExists = null;
+      let adminExists = null;
 
       request.addParameter('username', TYPES.NVarChar, username);
       request.addParameter('hash', TYPES.VarBinary, Buffer.from(hash));
-      request.addParameter('role', TYPES.NVarChar, role);
+      request.addParameter('role', TYPES.NVarChar, normalizedRole);
       request.addParameter('email', TYPES.NVarChar, email);
 
       request.on('row', (columns) => {
@@ -114,10 +129,16 @@ router.post('/', (req, res) => {
           if (c.metadata.colName === 'AlreadyExists') {
             alreadyExists = c.value;
           }
+          if (c.metadata.colName === 'AdminExists') {
+            adminExists = c.value;
+          }
         });
       });
 
       request.on('requestCompleted', () => {
+        if (adminExists === 1) {
+          return res.status(409).json({ message: 'Un administrateur existe déjà' });
+        }
         if (alreadyExists === 1) {
           return res.status(409).json({ message: 'Cet utilisateur existe déjà' });
         }

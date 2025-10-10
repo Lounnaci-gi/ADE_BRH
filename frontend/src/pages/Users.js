@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import UsersAddModal from '../components/UsersAddModal';
+import Toast from '../components/Toast';
 import userService from '../services/userService';
+import authService from '../services/authService';
 
 function Users() {
   const [users, setUsers] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({ open: false, type: 'success', message: '' });
+  const user = authService.getCurrentUser();
+  const isAdmin = (user?.role || '').toString() === 'Administrateur';
 
   const loadUsers = async () => {
     try {
@@ -28,8 +33,10 @@ function Users() {
       await userService.create(payload);
       setOpen(false);
       await loadUsers();
+      setToast({ open: true, type: 'success', message: 'Utilisateur créé avec succès.' });
     } catch (e) {
-      console.error(e);
+      const msg = e?.response?.data?.message || 'Une erreur est survenue lors de la création.';
+      setToast({ open: true, type: 'error', message: msg });
     }
   };
 
@@ -37,10 +44,12 @@ function Users() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">👥 Gestion des utilisateurs</h1>
-        <button onClick={() => setOpen(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white px-4 py-2 rounded-xl shadow-md transition inline-flex items-center gap-2">
-          <span>➕</span>
-          <span className="font-medium">Nouvel utilisateur</span>
-        </button>
+        {isAdmin && (
+          <button onClick={() => setOpen(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white px-4 py-2 rounded-xl shadow-md transition inline-flex items-center gap-2">
+            <span>➕</span>
+            <span className="font-medium">Nouvel utilisateur</span>
+          </button>
+        )}
       </div>
 
       <table className="min-w-full bg-white rounded-lg shadow">
@@ -58,14 +67,23 @@ function Users() {
           {!loading && users.map((u, i) => (
             <tr key={i} className="border-b hover:bg-gray-100">
               <td className="p-3">{u.username}</td>
-              <td className="p-3 capitalize">{u.role}</td>
+              <td className="p-3">{u.role}</td>
               <td className="p-3">{u.email}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <UsersAddModal open={open} onClose={() => setOpen(false)} onSubmit={handleCreate} />
+      {isAdmin && (
+        <UsersAddModal open={open} onClose={() => setOpen(false)} onSubmit={handleCreate} />
+      )}
+
+      <Toast
+        open={toast.open}
+        type={toast.type}
+        message={toast.message}
+        onClose={() => setToast({ ...toast, open: false })}
+      />
     </div>
   );
 }

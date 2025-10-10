@@ -67,6 +67,10 @@ router.get('/', (req, res) => {
 
 // ✅ Ajouter une nouvelle agence
 router.post('/', (req, res) => {
+    const roleHeader = (req.headers['x-role'] || '').toString();
+    if (roleHeader !== 'Administrateur') {
+        return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+    }
     const { 
         Nom_Agence, 
         Adresse, 
@@ -148,6 +152,10 @@ router.post('/', (req, res) => {
 
 // ✅ Modifier une agence existante
 router.put('/:id', (req, res) => {
+    const roleHeader = (req.headers['x-role'] || '').toString();
+    if (roleHeader !== 'Administrateur') {
+        return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+    }
     const { id } = req.params;
     const { 
         Nom_Agence, 

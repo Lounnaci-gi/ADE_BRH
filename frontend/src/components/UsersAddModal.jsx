@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 
 export default function UsersAddModal({ open, onClose, onSubmit }) {
-  const [formData, setFormData] = useState({ username: '', email: '', role: 'user', password: '' });
+  const [formData, setFormData] = useState({ username: '', email: '', role: 'Standard', password: '' });
 
   useEffect(() => {
-    if (open) setFormData({ username: '', email: '', role: 'user', password: '' });
+    if (open) setFormData({ username: '', email: '', role: 'Standard', password: '' });
   }, [open]);
 
   if (!open) return null;
@@ -44,8 +44,8 @@ export default function UsersAddModal({ open, onClose, onSubmit }) {
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             >
-              <option value="user">Utilisateur</option>
-              <option value="admin">Administrateur</option>
+              <option value="Standard">Standard</option>
+              <option value="Administrateur">Administrateur</option>
             </select>
             <input
               type="password"

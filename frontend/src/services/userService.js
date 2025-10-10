@@ -1,4 +1,5 @@
 import axios from 'axios';
+import authService from './authService';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -8,7 +9,8 @@ const userService = {
     return res.data || [];
   },
   async create(payload) {
-    const res = await axios.post(`${API_URL}/users`, payload);
+    const user = authService.getCurrentUser();
+    const res = await axios.post(`${API_URL}/users`, payload, { headers: { 'X-Role': user?.role || '' } });
     return res.data;
   },
   async me() {

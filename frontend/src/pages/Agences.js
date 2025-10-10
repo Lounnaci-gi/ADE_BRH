@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import AddAgencyModal from "../components/AddAgencyModal";
 import Toast from "../components/Toast";
 import agenceService from "../services/agenceService";
+import authService from "../services/authService";
 
 export default function Agences() {
   const [agences, setAgences] = useState([]);
@@ -10,6 +11,8 @@ export default function Agences() {
   const [modalOpen, setModalOpen] = useState(false);
   const [initialValues, setInitialValues] = useState(null);
   const [toast, setToast] = useState({ open: false, type: "success", message: "" });
+  const user = authService.getCurrentUser();
+  const isAdmin = (user?.role || '').toString() === 'Administrateur';
 
   // Charger la liste des agences
   const loadAgences = async () => {
@@ -100,19 +103,21 @@ export default function Agences() {
           Gestion des Agences Commerciales
         </h1>
 
-        {/* ✅ Bouton Ajouter (ouvre le modal) */}
-        <div className="relative group">
-          <button
-            onClick={openCreateModal}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl shadow-md transition duration-200 inline-flex items-center gap-2"
-          >
-            <span className="inline-block">➕</span>
-            <span className="font-medium">Ajouter une agence</span>
-          </button>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 mt-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-            Ouvrir la boîte de dialogue d’ajout
+        {/* ✅ Bouton Ajouter (admin uniquement) */}
+        {isAdmin && (
+          <div className="relative group">
+            <button
+              onClick={openCreateModal}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl shadow-md transition duration-200 inline-flex items-center gap-2"
+            >
+              <span className="inline-block">➕</span>
+              <span className="font-medium">Ajouter une agence</span>
+            </button>
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 mt-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+              Ouvrir la boîte de dialogue d’ajout
+            </div>
           </div>
-        </div>
+        )}
       </div>
       {/* ✅ Modal d'ajout / modification */}
       <AddAgencyModal
@@ -140,12 +145,14 @@ export default function Agences() {
                   <td key={col} className="py-2 px-4 whitespace-nowrap">{String(row[col] ?? '')}</td>
                 ))}
                 <td className="py-2 px-4 text-center">
-                  <button
-                    onClick={() => handleEdit(row)}
-                    className="text-blue-600 hover:underline"
-                  >
-                    ✏️ Modifier
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleEdit(row)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      ✏️ Modifier
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
