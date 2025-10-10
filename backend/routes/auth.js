@@ -1,6 +1,60 @@
 const { Connection, Request, TYPES } = require('tedious');
 const bcrypt = require('bcryptjs');
 
+// Basic in-memory rate limiter for login attempts per user+IP
+const loginAttempts = new Map();
+const MAX_ATTEMPTS = 3; // after 3 failed attempts
+const BLOCK_WINDOW_MS = 15 * 60 * 1000; // block for 15 minutes
+
+function getClientIp(req) {
+    const fwd = req.headers['x-forwarded-for'];
+    const real = req.headers['x-real-ip'];
+    let ip = (Array.isArray(fwd) ? fwd[0] : (fwd || '')).split(',')[0].trim()
+      || (typeof real === 'string' ? real.trim() : '')
+      || (req.ip || '')
+      || (req.connection?.remoteAddress || '')
+      || (req.socket?.remoteAddress || '')
+      || 'unknown';
+    // Normalize IPv6/IPv4-mapped addresses
+    if (ip.startsWith('::ffff:')) ip = ip.substring(7);
+    if (ip === '::1') ip = '127.0.0.1';
+    return ip;
+}
+
+function getAttemptKey(username, ip) {
+    // Lock by client IP to block access regardless of username during window
+    return `${ip || 'unknown'}`;
+}
+
+function getAttempts(username, ip) {
+    const key = getAttemptKey(username, ip);
+    const entry = loginAttempts.get(key) || { count: 0, until: 0 };
+    return { key, entry };
+}
+
+function recordFailure(username, ip) {
+    const { key, entry } = getAttempts(username, ip);
+    const now = Date.now();
+    // Conserver le compteur existant (ne jamais le remettre à 0 hors blocage)
+    let count = typeof entry.count === 'number' ? entry.count : 0;
+    count += 1;
+    if (count >= MAX_ATTEMPTS) {
+        loginAttempts.set(key, { count: MAX_ATTEMPTS, until: now + BLOCK_WINDOW_MS });
+        return { blocked: true, remainingMs: BLOCK_WINDOW_MS };
+    }
+    loginAttempts.set(key, { count, until: 0 });
+    return { blocked: false, remaining: MAX_ATTEMPTS - count };
+}
+
+function clearAttempts(username, ip) {
+    const key = getAttemptKey(username, ip);
+    const entry = loginAttempts.get(key);
+    const now = Date.now();
+    // Do not clear if currently blocked
+    if (entry && entry.until && now < entry.until) return;
+    loginAttempts.delete(key);
+}
+
 // Configuration de connexion (à importer depuis server.js ou .env)
 const getConfig = () => ({
     server: process.env.DB_SERVER || 'localhost',
@@ -23,9 +77,19 @@ const getConfig = () => ({
 // Route de login
 const login = (req, res) => {
     const { username, password } = req.body;
+    const clientIp = getClientIp(req);
 
     if (!username || !password) {
         return res.status(400).json({ error: 'Username et password requis' });
+    }
+
+    // Check lockout state before hitting DB
+    const { entry } = getAttempts(username, clientIp);
+    const now = Date.now();
+    if (entry.until && now < entry.until) {
+        const retryAfterSec = Math.ceil((entry.until - now) / 1000);
+        res.setHeader('Retry-After', retryAfterSec);
+        return res.status(429).json({ error: 'Trop de tentatives. Réessayez plus tard.', retryAfterSec });
     }
 
     const connection = new Connection(getConfig());
@@ -58,7 +122,11 @@ const login = (req, res) => {
 
             if (users.length === 0) {
                 connection.close();
-                return res.status(401).json({ error: 'Utilisateur non trouvé ou inactif' });
+                const result = recordFailure(username, clientIp);
+                if (result.blocked) {
+                    return res.status(429).json({ error: 'Compte temporairement bloqué suite aux tentatives.', retryAfterSec: Math.ceil(BLOCK_WINDOW_MS / 1000) });
+                }
+                return res.status(401).json({ error: 'Utilisateur non trouvé ou inactif', remainingAttempts: Math.max(0, MAX_ATTEMPTS - (loginAttempts.get(getAttemptKey(username, clientIp))?.count || 0)) });
             }
 
             const user = users[0];
@@ -72,7 +140,8 @@ const login = (req, res) => {
                 }
 
                 if (isMatch) {
-                    // Connexion réussie
+                    // Connexion réussie => reset attempts
+                    clearAttempts(username, clientIp);
                     return res.json({
                         success: true,
                         message: 'Connexion réussie',
@@ -85,7 +154,11 @@ const login = (req, res) => {
                         }
                     });
                 } else {
-                    return res.status(401).json({ error: 'Mot de passe incorrect' });
+                    const result = recordFailure(username, clientIp);
+                    if (result.blocked) {
+                        return res.status(429).json({ error: 'Compte temporairement bloqué suite aux tentatives.', retryAfterSec: Math.ceil(BLOCK_WINDOW_MS / 1000) });
+                    }
+                    return res.status(401).json({ error: 'Mot de passe incorrect', remainingAttempts: Math.max(0, MAX_ATTEMPTS - (loginAttempts.get(getAttemptKey(username, clientIp))?.count || 0)) });
                 }
             });
         });

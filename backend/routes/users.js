@@ -68,7 +68,7 @@ router.post('/', (req, res) => {
   if (roleHeader !== 'Administrateur') {
     return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
   }
-  const { username, email, role: roleRaw = 'Standard', password } = req.body || {};
+  const { username, email, role: roleRaw = 'Standard', password, agenceId } = req.body || {};
 
   // Normaliser le rôle reçu depuis le front
   const role = (roleRaw || '').toString().trim();
@@ -77,6 +77,9 @@ router.post('/', (req, res) => {
 
   if (!username || !password || !email) {
     return res.status(400).json({ message: 'username, email et password sont requis' });
+  }
+  if (normalizedRole !== 'Administrateur' && (agenceId === undefined || agenceId === null)) {
+    return res.status(400).json({ message: 'agenceId est requis pour les utilisateurs Standard' });
   }
 
   bcrypt.hash(password, 10, (hashErr, hash) => {
@@ -104,7 +107,7 @@ router.post('/', (req, res) => {
         ELSE
         BEGIN
           INSERT INTO dbo.DIM_UTILISATEUR (Nom_Utilisateur, Mot_de_Passe_Hash, FK_Agence, [Role], Email, IsActive)
-          VALUES (@username, @hash, NULL, @role, @email, 1);
+          VALUES (@username, @hash, @agenceId, @role, @email, 1);
           SELECT CAST(0 AS INT) AS AdminExists, CAST(0 AS INT) AS AlreadyExists;
         END
       `;
@@ -123,6 +126,7 @@ router.post('/', (req, res) => {
       request.addParameter('hash', TYPES.VarBinary, Buffer.from(hash));
       request.addParameter('role', TYPES.NVarChar, normalizedRole);
       request.addParameter('email', TYPES.NVarChar, email);
+      request.addParameter('agenceId', TYPES.Int, normalizedRole === 'Administrateur' ? null : parseInt(agenceId, 10));
 
       request.on('row', (columns) => {
         columns.forEach((c) => {

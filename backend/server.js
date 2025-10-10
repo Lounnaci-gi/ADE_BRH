@@ -5,6 +5,8 @@ require('dotenv').config();
 const { login, updateAdminPassword, createAdmin } = require('./routes/auth');
 const agenceRoutes = require('./routes/agence.js');
 const userRoutes = require('./routes/users.js');
+const notificationsRoutes = require('./routes/notifications.js');
+const meRoutes = require('./routes/me.js');
 
 const app = express();
 const PORT = 5000;
@@ -12,6 +14,8 @@ const PORT = 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+// Ensure correct client IP detection behind proxies
+app.set('trust proxy', true);
 
 // Configuration SQL Server
 const config = {
@@ -80,6 +84,8 @@ app.post('/api/login', login);
 app.get('/api/setup-admin', createAdmin);
 app.use("/api/agences", agenceRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/notifications", notificationsRoutes);
+app.use("/api/me", meRoutes);
 
 
 // Lancement du serveur

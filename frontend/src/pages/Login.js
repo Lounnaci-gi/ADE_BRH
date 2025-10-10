@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import './Login.css';
@@ -8,6 +8,7 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [lockRemaining, setLockRemaining] = useState(0); // seconds
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -25,10 +26,30 @@ const Login = () => {
                 setError(response.error || 'Erreur de connexion');
             }
         } catch (err) {
-            setError(err.error || 'Erreur de connexion au serveur');
+            if (err && typeof err.retryAfterSec === 'number') {
+                setLockRemaining(Math.max(0, Math.floor(err.retryAfterSec)));
+                setError('Trop de tentatives. Réessayez dans quelques instants.');
+            } else {
+                setError(err.error || 'Erreur de connexion au serveur');
+            }
         } finally {
             setLoading(false);
         }
+    };
+
+    // countdown for lockRemaining
+    useEffect(() => {
+        if (!lockRemaining) return;
+        const id = setInterval(() => {
+            setLockRemaining((s) => (s > 0 ? s - 1 : 0));
+        }, 1000);
+        return () => clearInterval(id);
+    }, [lockRemaining]);
+
+    const formatSeconds = (s) => {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
     };
 
     return (
@@ -42,7 +63,11 @@ const Login = () => {
                 <form onSubmit={handleSubmit} className="login-form">
                     {error && (
                         <div className="error-message">
-                            {error}
+                            {lockRemaining > 0 ? (
+                                <span>Compte temporairement bloqué. Réessayez dans {formatSeconds(lockRemaining)}.</span>
+                            ) : (
+                                error
+                            )}
                         </div>
                     )}
 
@@ -55,7 +80,7 @@ const Login = () => {
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="Entrez votre nom d'utilisateur"
                             required
-                            disabled={loading}
+                            disabled={loading || lockRemaining > 0}
                         />
                     </div>
 
@@ -68,16 +93,16 @@ const Login = () => {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Entrez votre mot de passe"
                             required
-                            disabled={loading}
+                            disabled={loading || lockRemaining > 0}
                         />
                     </div>
 
                     <button 
                         type="submit" 
                         className="login-button"
-                        disabled={loading}
+                        disabled={loading || lockRemaining > 0}
                     >
-                        {loading ? 'Connexion...' : 'Se connecter'}
+                        {lockRemaining > 0 ? `Réessayez dans ${formatSeconds(lockRemaining)}` : (loading ? 'Connexion...' : 'Se connecter')}
                     </button>
                 </form>
 

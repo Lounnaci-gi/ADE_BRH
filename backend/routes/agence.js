@@ -22,7 +22,17 @@ const getConfig = () => ({
     }
 });
 
-// ✅ Récupérer toutes les agences
+// Helpers role/agency from headers (since no auth middleware/token yet)
+function getRole(req) {
+    return (req.headers['x-role'] || '').toString();
+}
+function getUserAgenceId(req) {
+    const val = req.headers['x-user-agence'] || req.headers['x-agence-id'] || '';
+    const n = parseInt(val, 10);
+    return Number.isNaN(n) ? null : n;
+}
+
+// ✅ Récupérer les agences (Standard => uniquement son agence; Admin => toutes)
 router.get('/', (req, res) => {
     const connection = new Connection(getConfig());
 
@@ -34,9 +44,19 @@ router.get('/', (req, res) => {
             });
         }
 
-        let agences = [];
+        const role = getRole(req);
+        const userAgenceId = getUserAgenceId(req);
 
-        const query = 'SELECT * FROM DIM_AGENCE ORDER BY AgenceId';
+        let agences = [];
+        let query = 'SELECT * FROM DIM_AGENCE';
+        if (role !== 'Administrateur') {
+            if (!userAgenceId) {
+                connection.close();
+                return res.status(403).json({ message: 'Agence de l’utilisateur non fournie' });
+            }
+            query = `SELECT * FROM DIM_AGENCE WHERE AgenceId = ${userAgenceId}`;
+        }
+        query += ' ORDER BY AgenceId';
 
         const request = new Request(query, (err, rowCount) => {
             connection.close();
