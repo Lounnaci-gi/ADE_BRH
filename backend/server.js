@@ -3,7 +3,8 @@ const { Connection, Request } = require('tedious');
 const cors = require('cors');
 require('dotenv').config();
 const { login, updateAdminPassword, createAdmin } = require('./routes/auth');
-const agenceRoutes = require('./routes/agence.js'); // ✅ remplacé import par require
+const agenceRoutes = require('./routes/agence.js');
+const userRoutes = require('./routes/users.js');
 
 const app = express();
 const PORT = 5000;
@@ -78,6 +79,7 @@ app.get('/api/test', (req, res) => {
 app.post('/api/login', login);
 app.get('/api/setup-admin', createAdmin);
 app.use("/api/agences", agenceRoutes);
+app.use("/api/users", userRoutes);
 
 
 // Lancement du serveur

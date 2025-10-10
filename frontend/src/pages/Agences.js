@@ -1,86 +1,96 @@
 import React, { useEffect, useState } from "react";
+import AddAgencyModal from "../components/AddAgencyModal";
+import Toast from "../components/Toast";
+import agenceService from "../services/agenceService";
 
 export default function Agences() {
   const [agences, setAgences] = useState([]);
-  const [formData, setFormData] = useState({
-    Nom_Agence: "",
-    Adresse: "",
-    Telephone: "",
-    Email: "",
-    Fax: "",
-    Nom_Banque: "",
-    Compte_Bancaire: "",
-    NIF: "",
-    NCI: "",
-  });
+  const [columns, setColumns] = useState([]);
   const [editId, setEditId] = useState(null);
-  const [showForm, setShowForm] = useState(false); // 👈 visibilité du formulaire
-
-  const API_URL = "http://localhost:5000/api/agences"; // ⚙️ à adapter si besoin
+  const [modalOpen, setModalOpen] = useState(false);
+  const [initialValues, setInitialValues] = useState(null);
+  const [toast, setToast] = useState({ open: false, type: "success", message: "" });
 
   // Charger la liste des agences
   const loadAgences = async () => {
-    const res = await fetch(API_URL);
-    const data = await res.json();
+    const data = await agenceService.list();
     setAgences(data);
+    // Déduire dynamiquement les colonnes à partir des objets retournés
+    const keys = Array.from(
+      data.reduce((acc, row) => {
+        Object.keys(row || {}).forEach((k) => acc.add(k));
+        return acc;
+      }, new Set())
+    );
+    // Ordonner: champs principaux d'abord, puis le reste trié alpha
+    const preferred = [
+      'AgenceId',
+      'Nom_Agence',
+      'Adresse',
+      'Telephone',
+      'Email',
+      'Fax',
+      'Nom_Banque',
+      'Compte_Bancaire',
+      'NIF',
+      'NCI',
+      'CreatedAt',
+      'UpdatedAt'
+    ];
+    const preferredSet = new Set(preferred);
+    const orderedAll = [
+      ...preferred.filter((k) => keys.includes(k)),
+      ...keys.filter((k) => !preferredSet.has(k)).sort((a, b) => a.localeCompare(b))
+    ];
+    // Masquer certains champs
+    const hidden = new Set(['NIF', 'NCI', 'CreatedAt']);
+    const ordered = orderedAll.filter((k) => !hidden.has(k));
+    setColumns(ordered);
   };
 
   useEffect(() => {
     loadAgences();
   }, []);
 
-  // Soumission du formulaire
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const method = editId ? "PUT" : "POST";
-    const url = editId ? `${API_URL}/${editId}` : API_URL;
-
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
-    const result = await res.json();
-    console.log(result);
-
-    setFormData({
-      Nom_Agence: "",
-      Adresse: "",
-      Telephone: "",
-      Email: "",
-      Fax: "",
-      Nom_Banque: "",
-      Compte_Bancaire: "",
-      NIF: "",
-      NCI: "",
-    });
-
-    setEditId(null);
-    setShowForm(false); // 👈 cacher le formulaire après enregistrement
-    loadAgences();
+  // Soumission depuis le modal
+  const handleSubmitModal = async (data) => {
+    try {
+      // Vérif doublon côté client (nom agence, insensible à la casse/espaces)
+      const normalized = (s) => String(s || '').trim().toLowerCase();
+      if (!editId) {
+        const exists = agences.some((a) => normalized(a.Nom_Agence) === normalized(data.Nom_Agence));
+        if (exists) {
+          setToast({ open: true, type: "error", message: "Cette agence existe déjà." });
+          return;
+        }
+      }
+      if (editId) {
+        await agenceService.update(editId, data);
+        setToast({ open: true, type: "success", message: "Agence modifiée avec succès." });
+      } else {
+        await agenceService.create(data);
+        setToast({ open: true, type: "success", message: "Agence enregistrée avec succès." });
+      }
+      setModalOpen(false);
+      setEditId(null);
+      setInitialValues(null);
+      loadAgences();
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Une erreur est survenue lors de l'enregistrement.";
+      setToast({ open: true, type: "error", message: msg });
+    }
   };
 
   const handleEdit = (agence) => {
-    setFormData(agence);
+    setInitialValues(agence);
     setEditId(agence.AgenceId);
-    setShowForm(true); // 👈 afficher le formulaire
+    setModalOpen(true);
   };
 
-  const handleCancel = () => {
+  const openCreateModal = () => {
+    setInitialValues(null);
     setEditId(null);
-    setShowForm(false);
-    setFormData({
-      Nom_Agence: "",
-      Adresse: "",
-      Telephone: "",
-      Email: "",
-      Fax: "",
-      Nom_Banque: "",
-      Compte_Bancaire: "",
-      NIF: "",
-      NCI: "",
-    });
+    setModalOpen(true);
   };
 
   return (
@@ -90,165 +100,48 @@ export default function Agences() {
           Gestion des Agences Commerciales
         </h1>
 
-        {/* ✅ Bouton Ajouter */}
-        <button
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditId(null);
-            setFormData({
-              Nom_Agence: "",
-              Adresse: "",
-              Telephone: "",
-              Email: "",
-              Fax: "",
-              Nom_Banque: "",
-              Compte_Bancaire: "",
-              NIF: "",
-              NCI: "",
-            });
-          }}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
-        >
-          {showForm ? "Fermer le formulaire" : "➕ Ajouter une agence"}
-        </button>
+        {/* ✅ Bouton Ajouter (ouvre le modal) */}
+        <div className="relative group">
+          <button
+            onClick={openCreateModal}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl shadow-md transition duration-200 inline-flex items-center gap-2"
+          >
+            <span className="inline-block">➕</span>
+            <span className="font-medium">Ajouter une agence</span>
+          </button>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 mt-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+            Ouvrir la boîte de dialogue d’ajout
+          </div>
+        </div>
       </div>
+      {/* ✅ Modal d'ajout / modification */}
+      <AddAgencyModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setEditId(null); setInitialValues(null); }}
+        onSubmit={handleSubmitModal}
+        initialValues={initialValues}
+      />
 
-      {/* ✅ Formulaire masqué/affiché */}
-      {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white shadow-md rounded-xl p-6 mb-8 max-w-4xl transition-all duration-300 border border-blue-100"
-        >
-          <h2 className="text-xl font-medium text-blue-700 mb-4">
-            {editId ? "Modifier l’agence" : "Nouvelle agence commerciale"}
-          </h2>
-
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Nom de l'agence"
-              className="border p-2 rounded-lg"
-              value={formData.Nom_Agence}
-              onChange={(e) =>
-                setFormData({ ...formData, Nom_Agence: e.target.value })
-              }
-              required
-            />
-            <input
-              type="text"
-              placeholder="Adresse"
-              className="border p-2 rounded-lg"
-              value={formData.Adresse}
-              onChange={(e) =>
-                setFormData({ ...formData, Adresse: e.target.value })
-              }
-              required
-            />
-            <input
-              type="text"
-              placeholder="Téléphone"
-              className="border p-2 rounded-lg"
-              value={formData.Telephone}
-              onChange={(e) =>
-                setFormData({ ...formData, Telephone: e.target.value })
-              }
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              className="border p-2 rounded-lg"
-              value={formData.Email}
-              onChange={(e) =>
-                setFormData({ ...formData, Email: e.target.value })
-              }
-            />
-            <input
-              type="text"
-              placeholder="Fax"
-              className="border p-2 rounded-lg"
-              value={formData.Fax}
-              onChange={(e) =>
-                setFormData({ ...formData, Fax: e.target.value })
-              }
-            />
-            <input
-              type="text"
-              placeholder="Nom de la banque"
-              className="border p-2 rounded-lg"
-              value={formData.Nom_Banque}
-              onChange={(e) =>
-                setFormData({ ...formData, Nom_Banque: e.target.value })
-              }
-            />
-            <input
-              type="text"
-              placeholder="Compte bancaire"
-              className="border p-2 rounded-lg"
-              value={formData.Compte_Bancaire}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  Compte_Bancaire: e.target.value,
-                })
-              }
-            />
-            <input
-              type="text"
-              placeholder="NIF"
-              className="border p-2 rounded-lg"
-              value={formData.NIF}
-              onChange={(e) => setFormData({ ...formData, NIF: e.target.value })}
-            />
-            <input
-              type="text"
-              placeholder="NCI"
-              className="border p-2 rounded-lg"
-              value={formData.NCI}
-              onChange={(e) => setFormData({ ...formData, NCI: e.target.value })}
-            />
-          </div>
-
-          <div className="mt-6 flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition duration-300"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition duration-300"
-            >
-              {editId ? "Modifier" : "Enregistrer"}
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* ✅ Tableau des agences */}
+      {/* ✅ Tableau des agences (colonnes dynamiques) */}
       <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100">
         <table className="min-w-full border-collapse">
           <thead className="bg-blue-100 text-blue-800">
             <tr>
-              <th className="py-2 px-4 text-left">Nom</th>
-              <th className="py-2 px-4 text-left">Téléphone</th>
-              <th className="py-2 px-4 text-left">Email</th>
-              <th className="py-2 px-4 text-left">Banque</th>
+              {columns.map((col) => (
+                <th key={col} className="py-2 px-4 text-left whitespace-nowrap">{col}</th>
+              ))}
               <th className="py-2 px-4 text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {agences.map((a) => (
-              <tr key={a.AgenceId} className="border-t hover:bg-blue-50">
-                <td className="py-2 px-4">{a.Nom_Agence}</td>
-                <td className="py-2 px-4">{a.Telephone}</td>
-                <td className="py-2 px-4">{a.Email}</td>
-                <td className="py-2 px-4">{a.Nom_Banque}</td>
+            {agences.map((row) => (
+              <tr key={row.AgenceId || JSON.stringify(row)} className="border-t hover:bg-blue-50">
+                {columns.map((col) => (
+                  <td key={col} className="py-2 px-4 whitespace-nowrap">{String(row[col] ?? '')}</td>
+                ))}
                 <td className="py-2 px-4 text-center">
                   <button
-                    onClick={() => handleEdit(a)}
+                    onClick={() => handleEdit(row)}
                     className="text-blue-600 hover:underline"
                   >
                     ✏️ Modifier
@@ -259,6 +152,14 @@ export default function Agences() {
           </tbody>
         </table>
       </div>
+
+    {/* ✅ Messages bulle (toasts) */}
+    <Toast
+      open={toast.open}
+      type={toast.type}
+      message={toast.message}
+      onClose={() => setToast({ ...toast, open: false })}
+    />
     </div>
   );
 }
