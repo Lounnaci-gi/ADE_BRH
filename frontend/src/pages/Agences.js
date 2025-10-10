@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Pencil, Trash2, Printer } from 'lucide-react';
 import AddAgencyModal from "../components/AddAgencyModal";
 import Toast from "../components/Toast";
 import agenceService from "../services/agenceService";
@@ -33,8 +34,6 @@ export default function Agences() {
       'Telephone',
       'Email',
       'Fax',
-      'Nom_Banque',
-      'Compte_Bancaire',
       'NIF',
       'NCI',
       'CreatedAt',
@@ -46,7 +45,7 @@ export default function Agences() {
       ...keys.filter((k) => !preferredSet.has(k)).sort((a, b) => a.localeCompare(b))
     ];
     // Masquer certains champs
-    const hidden = new Set(['NIF', 'NCI', 'CreatedAt']);
+    const hidden = new Set(['NIF', 'NCI', 'CreatedAt', 'Nom_Banque', 'Compte_Bancaire']);
     const ordered = orderedAll.filter((k) => !hidden.has(k));
     setColumns(ordered);
   };
@@ -144,14 +143,19 @@ export default function Agences() {
                 {columns.map((col) => (
                   <td key={col} className="py-2 px-4 whitespace-nowrap">{String(row[col] ?? '')}</td>
                 ))}
-                <td className="py-2 px-4 text-center">
+                <td className="py-2 px-4 text-center space-x-2">
                   {isAdmin && (
-                    <button
-                      onClick={() => handleEdit(row)}
-                      className="text-blue-600 hover:underline"
-                    >
-                      ✏️ Modifier
-                    </button>
+                    <>
+                      <button title="Modifier" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-blue-50" onClick={() => handleEdit(row)}>
+                        <Pencil className="h-4 w-4 text-blue-600" />
+                      </button>
+                      <button title="Supprimer" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-red-50" onClick={() => {/* implement delete with confirm & service */}}>
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </button>
+                      <button title="Imprimer" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-100" onClick={() => window.print()}>
+                        <Printer className="h-4 w-4 text-gray-700" />
+                      </button>
+                    </>
                   )}
                 </td>
               </tr>

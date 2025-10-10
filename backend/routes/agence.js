@@ -259,3 +259,40 @@ router.put('/:id', (req, res) => {
 });
 
 module.exports = router;
+ 
+// ✅ Supprimer une agence (admin uniquement)
+router.delete('/:id', (req, res) => {
+    const roleHeader = (req.headers['x-role'] || '').toString();
+    if (roleHeader !== 'Administrateur') {
+        return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+    }
+    const { id } = req.params;
+
+    const connection = new Connection(getConfig());
+
+    connection.on('connect', (err) => {
+        if (err) {
+            return res.status(500).json({ 
+                message: 'Erreur de connexion à la base de données', 
+                error: err.message 
+            });
+        }
+
+        const request = new Request('DELETE FROM DIM_AGENCE WHERE AgenceId = @AgenceId', (err, rowCount) => {
+            connection.close();
+            if (err) {
+                return res.status(500).json({ message: 'Erreur lors de la suppression de l\'agence', error: err.message });
+            }
+            if (rowCount === 0) {
+                return res.status(404).json({ message: 'Agence non trouvée' });
+            }
+            res.json({ message: 'Agence supprimée avec succès' });
+        });
+
+        request.addParameter('AgenceId', TYPES.Int, parseInt(id, 10));
+
+        connection.execSql(request);
+    });
+
+    connection.connect();
+});

@@ -24,6 +24,9 @@ const getConfig = () => ({
 
 // GET /api/users - liste des utilisateurs
 router.get('/', (req, res) => {
+  const roleHeader = (req.headers['x-role'] || '').toString();
+  const userIdHeader = req.headers['x-user-id'] || null;
+
   const connection = new Connection(getConfig());
 
   connection.on('connect', (err) => {
@@ -32,23 +35,50 @@ router.get('/', (req, res) => {
     }
 
     const users = [];
-    const query = `
-      SELECT 
-        Nom_Utilisateur AS username,
-        [Role] AS role,
-        Email AS email
-      FROM dbo.DIM_UTILISATEUR
-      WHERE IsActive = 1
-      ORDER BY Nom_Utilisateur
-    `;
+    let query;
+    let request;
 
-    const request = new Request(query, (err) => {
-      connection.close();
-      if (err) {
-        return res.status(500).json({ message: 'Erreur lors de la lecture des utilisateurs', error: err.message });
-      }
-      res.json(users);
-    });
+    if (roleHeader === 'Administrateur') {
+      // Admin voit tous les utilisateurs
+      query = `
+        SELECT 
+          UtilisateurId,
+          Nom_Utilisateur AS username,
+          [Role] AS role,
+          Email AS email,
+          FK_Agence AS agenceId
+        FROM dbo.DIM_UTILISATEUR
+        WHERE IsActive = 1
+        ORDER BY Nom_Utilisateur
+      `;
+      request = new Request(query, (err) => {
+        connection.close();
+        if (err) {
+          return res.status(500).json({ message: 'Erreur lors de la lecture des utilisateurs', error: err.message });
+        }
+        res.json(users);
+      });
+    } else {
+      // Standard user ne voit que son propre profil
+      query = `
+        SELECT 
+          UtilisateurId,
+          Nom_Utilisateur AS username,
+          [Role] AS role,
+          Email AS email,
+          FK_Agence AS agenceId
+        FROM dbo.DIM_UTILISATEUR
+        WHERE IsActive = 1 AND UtilisateurId = @userId
+      `;
+      request = new Request(query, (err) => {
+        connection.close();
+        if (err) {
+          return res.status(500).json({ message: 'Erreur lors de la lecture des utilisateurs', error: err.message });
+        }
+        res.json(users);
+      });
+      request.addParameter('userId', TYPES.Int, parseInt(userIdHeader, 10));
+    }
 
     request.on('row', (columns) => {
       const row = {};
@@ -96,11 +126,14 @@ router.post('/', (req, res) => {
 
       const query = `
         DECLARE @wantAdmin BIT = CASE WHEN @role = 'Administrateur' THEN 1 ELSE 0 END;
-        IF (@wantAdmin = 1 AND EXISTS (SELECT 1 FROM dbo.DIM_UTILISATEUR WHERE [Role] = 'Administrateur' AND IsActive = 1))
+        DECLARE @existingAdminCount INT = (SELECT COUNT(*) FROM dbo.DIM_UTILISATEUR WHERE [Role] = 'Administrateur' AND IsActive = 1);
+        DECLARE @existingUserCount INT = (SELECT COUNT(*) FROM dbo.DIM_UTILISATEUR WHERE Nom_Utilisateur = @username AND IsActive = 1);
+        
+        IF (@wantAdmin = 1 AND @existingAdminCount > 0)
         BEGIN
           SELECT CAST(1 AS INT) AS AdminExists, CAST(0 AS INT) AS AlreadyExists;
         END
-        ELSE IF EXISTS (SELECT 1 FROM dbo.DIM_UTILISATEUR WHERE Nom_Utilisateur = @username)
+        ELSE IF (@existingUserCount > 0)
         BEGIN
           SELECT CAST(0 AS INT) AS AdminExists, CAST(1 AS INT) AS AlreadyExists;
         END
@@ -156,6 +189,168 @@ router.post('/', (req, res) => {
   });
 });
 
+// PUT /api/users/:id - modifier un utilisateur (email, role, agence)
+router.put('/:id', (req, res) => {
+  const roleHeader = (req.headers['x-role'] || '').toString();
+  if (roleHeader !== 'Administrateur') {
+    return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+  }
+  const { id } = req.params;
+  const { email, role, agenceId } = req.body || {};
+
+  const connection = new Connection(getConfig());
+
+  connection.on('connect', (err) => {
+    if (err) return res.status(500).json({ message: 'Erreur de connexion', error: err.message });
+
+    const normalizedRole = (role === 'Administrateur') ? 'Administrateur' : 'Standard';
+    const finalAgenceId = normalizedRole === 'Administrateur' ? null : parseInt(agenceId ?? 0, 10);
+
+    const request = new Request(`
+      UPDATE dbo.DIM_UTILISATEUR
+      SET Email = @email,
+          [Role] = @role,
+          FK_Agence = @agenceId
+      WHERE UtilisateurId = @id
+    `, (err, rowCount) => {
+      connection.close();
+      if (err) return res.status(500).json({ message: 'Erreur lors de la mise à jour', error: err.message });
+      if (rowCount === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      res.json({ message: 'Utilisateur mis à jour' });
+    });
+
+    request.addParameter('email', TYPES.NVarChar, email || null);
+    request.addParameter('role', TYPES.NVarChar, normalizedRole);
+    request.addParameter('agenceId', TYPES.Int, finalAgenceId);
+    request.addParameter('id', TYPES.Int, parseInt(id, 10));
+
+    connection.execSql(request);
+  });
+
+  connection.connect();
+});
+
+// DELETE /api/users/:id - désactiver un utilisateur
+router.delete('/:id', (req, res) => {
+  const roleHeader = (req.headers['x-role'] || '').toString();
+  if (roleHeader !== 'Administrateur') {
+    return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+  }
+  const { id } = req.params;
+
+  const connection = new Connection(getConfig());
+
+  connection.on('connect', (err) => {
+    if (err) return res.status(500).json({ message: 'Erreur de connexion', error: err.message });
+
+    const request = new Request(`
+      UPDATE dbo.DIM_UTILISATEUR
+      SET IsActive = 0
+      WHERE UtilisateurId = @id
+    `, (err, rowCount) => {
+      connection.close();
+      if (err) return res.status(500).json({ message: 'Erreur lors de la suppression', error: err.message });
+      if (rowCount === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      res.json({ message: 'Utilisateur désactivé' });
+    });
+
+    request.addParameter('id', TYPES.Int, parseInt(id, 10));
+    connection.execSql(request);
+  });
+
+  connection.connect();
+});
+
+// PUT /api/users/profile - modifier son propre profil (Standard users)
+router.put('/profile', (req, res) => {
+  const roleHeader = (req.headers['x-role'] || '').toString();
+  const userIdHeader = req.headers['x-user-id'] || null;
+  const { username, email, currentPassword, newPassword } = req.body || {};
+
+  if (!userIdHeader) {
+    return res.status(401).json({ message: 'Utilisateur non identifié' });
+  }
+
+  const connection = new Connection(getConfig());
+
+  connection.on('connect', (err) => {
+    if (err) return res.status(500).json({ message: 'Erreur de connexion', error: err.message });
+
+    // Vérifier le mot de passe actuel si un nouveau mot de passe est fourni
+    if (newPassword) {
+      const checkPasswordQuery = `
+        SELECT Mot_de_Passe_Hash FROM dbo.DIM_UTILISATEUR 
+        WHERE UtilisateurId = @userId AND IsActive = 1
+      `;
+      
+      const checkRequest = new Request(checkPasswordQuery, (err) => {
+        connection.close();
+        if (err) return res.status(500).json({ message: 'Erreur lors de la vérification', error: err.message });
+      });
+
+      checkRequest.addParameter('userId', TYPES.Int, parseInt(userIdHeader, 10));
+
+      checkRequest.on('row', async (columns) => {
+        const hashColumn = columns.find(c => c.metadata.colName === 'Mot_de_Passe_Hash');
+        if (!hashColumn) {
+          return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+
+        const storedHash = Buffer.from(hashColumn.value).toString('hex');
+        const isValidPassword = await bcrypt.compare(currentPassword, storedHash);
+        
+        if (!isValidPassword) {
+          return res.status(400).json({ message: 'Mot de passe actuel incorrect' });
+        }
+
+        // Mettre à jour le profil avec le nouveau mot de passe
+        const newHash = await bcrypt.hash(newPassword, 10);
+        updateProfile(newHash);
+      });
+
+      checkRequest.on('requestCompleted', () => {
+        if (!newPassword) {
+          updateProfile(null);
+        }
+      });
+
+      connection.execSql(checkRequest);
+    } else {
+      updateProfile(null);
+    }
+
+    function updateProfile(passwordHash) {
+      let updateQuery = `
+        UPDATE dbo.DIM_UTILISATEUR 
+        SET Nom_Utilisateur = @username, Email = @email
+      `;
+      
+      if (passwordHash) {
+        updateQuery += `, Mot_de_Passe_Hash = @passwordHash`;
+      }
+      
+      updateQuery += ` WHERE UtilisateurId = @userId`;
+
+      const updateRequest = new Request(updateQuery, (err, rowCount) => {
+        connection.close();
+        if (err) return res.status(500).json({ message: 'Erreur lors de la mise à jour', error: err.message });
+        if (rowCount === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        res.json({ message: 'Profil mis à jour avec succès' });
+      });
+
+      updateRequest.addParameter('username', TYPES.NVarChar, username);
+      updateRequest.addParameter('email', TYPES.NVarChar, email);
+      updateRequest.addParameter('userId', TYPES.Int, parseInt(userIdHeader, 10));
+      
+      if (passwordHash) {
+        updateRequest.addParameter('passwordHash', TYPES.VarBinary, Buffer.from(passwordHash));
+      }
+
+      connection.execSql(updateRequest);
+    }
+  });
+
+  connection.connect();
+});
+
 module.exports = router;
-
-
