@@ -13,6 +13,8 @@ import Agences from './pages/Agences'; // ✅ importe la page agences
 import NavBar from './components/NavBar';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import Categories from './pages/Categories';
+import KPI from './pages/KPI';
 
 // 🔒 Composant de route protégée
 const PrivateRoute = ({ children }) => {
@@ -73,6 +75,26 @@ function App() {
           element={
             <PrivateRoute>
               <Agences />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 📂 Gestion des catégories */}
+        <Route
+          path="/categories"
+          element={
+            <PrivateRoute>
+              <Categories />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 📊 Gestion des KPIs */}
+        <Route
+          path="/kpi"
+          element={
+            <PrivateRoute>
+              <KPI />
             </PrivateRoute>
           }
         />

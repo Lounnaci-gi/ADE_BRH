@@ -3,7 +3,13 @@ import authService from './authService';
 
 const userService = {
   async list() {
-    const res = await api.get('/users');
+    const user = authService.getCurrentUser();
+    const res = await api.get('/users', { 
+      headers: { 
+        'X-Role': user?.role || '', 
+        'X-User-Id': user?.id || ''
+      } 
+    });
     return res.data || [];
   },
   async create(payload) {
@@ -20,7 +26,13 @@ const userService = {
     return res.data;
   },
   async updateOwnProfile(payload) {
-    const res = await api.put('/users/profile', payload);
+    const user = authService.getCurrentUser();
+    const res = await api.put('/users/profile', payload, { 
+      headers: { 
+        'X-Role': user?.role || '', 
+        'X-User-Id': user?.id || ''
+      } 
+    });
     return res.data;
   },
   async updatePassword(payload) {
@@ -28,11 +40,17 @@ const userService = {
     return res.data;
   },
   async update(id, payload) {
-    const res = await api.put(`/users/${id}`, payload);
+    const user = authService.getCurrentUser();
+    const res = await api.put(`/users/${id}`, payload, { 
+      headers: { 'X-Role': user?.role || '' } 
+    });
     return res.data;
   },
   async remove(id) {
-    const res = await api.delete(`/users/${id}`);
+    const user = authService.getCurrentUser();
+    const res = await api.delete(`/users/${id}`, { 
+      headers: { 'X-Role': user?.role || '' } 
+    });
     return res.data;
   }
 };

@@ -76,7 +76,17 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
           </div>
 
           <div className="mt-2 flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition">Annuler</button>
+            <button 
+              type="button" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+              }} 
+              className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition"
+            >
+              Annuler
+            </button>
             <button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-xl shadow">Enregistrer</button>
           </div>
         </form>

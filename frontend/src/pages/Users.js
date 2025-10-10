@@ -19,6 +19,10 @@ function Users() {
     newPassword: '',
     confirmPassword: ''
   });
+  const [originalProfileData, setOriginalProfileData] = useState({
+    username: '',
+    email: ''
+  });
   const [profileLoading, setProfileLoading] = useState(false);
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
@@ -32,19 +36,33 @@ function Users() {
       // Si c'est un utilisateur standard, remplir le formulaire de profil avec les données de l'utilisateur connecté
       if (!isAdmin) {
         const currentUser = authService.getCurrentUser();
-        setProfileForm({
+        const userData = {
           username: currentUser?.username || '',
-          email: currentUser?.email || '',
+          email: currentUser?.email || ''
+        };
+        setProfileForm({
+          ...userData,
           currentPassword: '',
           newPassword: '',
           confirmPassword: ''
         });
+        setOriginalProfileData(userData);
       }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleProfileCancel = () => {
+    setProfileForm({
+      username: originalProfileData.username,
+      email: originalProfileData.email,
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
   };
 
   const handleProfileUpdate = async (e) => {
@@ -91,13 +109,17 @@ function Users() {
     // Initialiser le formulaire de profil pour les utilisateurs standard
     if (!isAdmin) {
       const currentUser = authService.getCurrentUser();
-      setProfileForm({
+      const userData = {
         username: currentUser?.username || '',
-        email: currentUser?.email || '',
+        email: currentUser?.email || ''
+      };
+      setProfileForm({
+        ...userData,
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
+      setOriginalProfileData(userData);
     }
   }, [isAdmin]);
 
@@ -282,7 +304,14 @@ function Users() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={handleProfileCancel}
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg shadow-md transition inline-flex items-center gap-2"
+                >
+                  Annuler
+                </button>
                 <button
                   type="submit"
                   disabled={profileLoading}
