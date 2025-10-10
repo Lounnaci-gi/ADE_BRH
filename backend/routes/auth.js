@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 // Configuration de connexion (à importer depuis server.js ou .env)
 const getConfig = () => ({
-    server: 'user-PC',
+    server: process.env.DB_SERVER || 'localhost',
     authentication: {
         type: 'default',
         options: {

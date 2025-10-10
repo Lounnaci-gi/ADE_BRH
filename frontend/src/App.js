@@ -10,6 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users"; // ✅ Import de la page utilisateurs
 import authService from "./services/authService";
 import Agences from './pages/Agences'; // ✅ importe la page agences
+import NavBar from './components/NavBar';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 
 // 🔒 Composant de route protégée
 const PrivateRoute = ({ children }) => {
@@ -19,7 +22,10 @@ const PrivateRoute = ({ children }) => {
 function App() {
   return (
     <Router>
-      <Routes>
+      <div className="min-h-screen water-surface">
+        <NavBar />
+        <div className="mx-auto max-w-7xl px-4 pb-8 pt-4">
+          <Routes>
         {/* 🧠 Page de connexion */}
         <Route path="/login" element={<Login />} />
 
@@ -43,6 +49,24 @@ function App() {
           }
         />
 
+            {/* Profil & Paramètres */}
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <Profile />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <PrivateRoute>
+                  <Settings />
+                </PrivateRoute>
+              }
+            />
+
         {/* ✅ Route pour la gestion des agences */}
         <Route
           path="/dashboard/agences"
@@ -54,8 +78,10 @@ function App() {
         />
 
         {/* 🌍 Redirection par défaut */}
-        <Route path="/" element={<Navigate to="/login" />} />
-      </Routes>
+            <Route path="/" element={<Navigate to="/login" />} />
+          </Routes>
+        </div>
+      </div>
     </Router>
   );
 }

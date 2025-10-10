@@ -3,18 +3,24 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: transparent;
     padding: 20px;
 }
 
 .login-card {
-    background: white;
+    background: rgba(255, 255, 255, 0.9);
     border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 25px -10px rgba(2, 132, 199, 0.35);
+    border: 1px solid #e0f2fe;
     width: 100%;
     max-width: 420px;
     padding: 40px;
     animation: slideIn 0.3s ease-out;
+}
+
+.dark .login-card {
+    background: rgba(2, 6, 23, 0.85);
+    border-color: #075985;
 }
 
 @keyframes slideIn {
@@ -74,8 +80,8 @@
 
 .form-group input:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
 }
 
 .form-group input:disabled {
@@ -93,7 +99,7 @@
 }
 
 .login-button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #0ea5e9;
     color: white;
     border: none;
     padding: 14px;
@@ -107,7 +113,7 @@
 
 .login-button:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 25px rgba(14, 165, 233, 0.3);
 }
 
 .login-button:active:not(:disabled) {

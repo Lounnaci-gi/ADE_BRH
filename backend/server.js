@@ -14,7 +14,7 @@ app.use(express.json());
 
 // Configuration SQL Server
 const config = {
-    server: 'user-PC',
+    server: process.env.DB_SERVER,
     authentication: {
         type: 'default',
         options: {
@@ -78,6 +78,7 @@ app.get('/api/test', (req, res) => {
 app.post('/api/login', login);
 app.get('/api/setup-admin', createAdmin);
 app.use("/api/agences", agenceRoutes);
+
 
 // Lancement du serveur
 app.listen(PORT, () => {

@@ -5,7 +5,7 @@ const router = express.Router();
 
 // Configuration de connexion (identique à auth.js)
 const getConfig = () => ({
-    server: 'user-PC',
+    server: process.env.DB_SERVER || 'localhost',
     authentication: {
         type: 'default',
         options: {
