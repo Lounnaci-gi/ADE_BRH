@@ -48,15 +48,32 @@ router.get('/', (req, res) => {
         const userAgenceId = getUserAgenceId(req);
 
         let agences = [];
-        let query = 'SELECT * FROM DIM_AGENCE';
+        let query = `
+            SELECT 
+                a.AgenceId,
+                a.FK_Centre,
+                a.Nom_Agence,
+                a.Adresse,
+                a.Telephone,
+                a.Email,
+                a.Fax,
+                a.Nom_Banque,
+                a.Compte_Bancaire,
+                a.NIF,
+                a.NCI,
+                a.CreatedAt,
+                c.Nom_Centre
+            FROM DIM_AGENCE a
+            LEFT JOIN DIM_CENTRE c ON a.FK_Centre = c.CentreId
+        `;
         if (role !== 'Administrateur') {
             if (!userAgenceId) {
                 connection.close();
-                return res.status(403).json({ message: 'Agence de l’utilisateur non fournie' });
+                return res.status(403).json({ message: 'Agence de l\'utilisateur non fournie' });
             }
-            query = `SELECT * FROM DIM_AGENCE WHERE AgenceId = ${userAgenceId}`;
+            query += ` WHERE a.AgenceId = ${userAgenceId}`;
         }
-        query += ' ORDER BY AgenceId';
+        query += ' ORDER BY a.AgenceId';
 
         const request = new Request(query, (err, rowCount) => {
             connection.close();
@@ -92,6 +109,7 @@ router.post('/', (req, res) => {
         return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
     }
     const { 
+        FK_Centre,
         Nom_Agence, 
         Adresse, 
         Telephone, 
@@ -104,9 +122,9 @@ router.post('/', (req, res) => {
     } = req.body;
 
     // Validation
-    if (!Nom_Agence || !Adresse || !Telephone) {
+    if (!FK_Centre || !Nom_Agence || !Adresse || !Telephone) {
         return res.status(400).json({ 
-            message: 'Les champs Nom_Agence, Adresse et Telephone sont obligatoires' 
+            message: 'Les champs Centre, Nom_Agence, Adresse et Telephone sont obligatoires' 
         });
     }
 
@@ -122,9 +140,9 @@ router.post('/', (req, res) => {
 
         const query = `
             INSERT INTO DIM_AGENCE 
-            (Nom_Agence, Adresse, Telephone, Email, Fax, Nom_Banque, Compte_Bancaire, NIF, NCI, CreatedAt)
+            (FK_Centre, Nom_Agence, Adresse, Telephone, Email, Fax, Nom_Banque, Compte_Bancaire, NIF, NCI, CreatedAt)
             OUTPUT INSERTED.AgenceId
-            VALUES (@Nom_Agence, @Adresse, @Telephone, @Email, @Fax, @Nom_Banque, @Compte_Bancaire, @NIF, @NCI, @CreatedAt)
+            VALUES (@FK_Centre, @Nom_Agence, @Adresse, @Telephone, @Email, @Fax, @Nom_Banque, @Compte_Bancaire, @NIF, @NCI, @CreatedAt)
         `;
 
         let insertedId = null;
@@ -145,6 +163,7 @@ router.post('/', (req, res) => {
             });
         });
 
+        request.addParameter('FK_Centre', TYPES.Int, parseInt(FK_Centre));
         request.addParameter('Nom_Agence', TYPES.NVarChar, Nom_Agence);
         request.addParameter('Adresse', TYPES.NVarChar, Adresse);
         request.addParameter('Telephone', TYPES.NVarChar, Telephone);
@@ -178,6 +197,7 @@ router.put('/:id', (req, res) => {
     }
     const { id } = req.params;
     const { 
+        FK_Centre,
         Nom_Agence, 
         Adresse, 
         Telephone, 
@@ -190,9 +210,9 @@ router.put('/:id', (req, res) => {
     } = req.body;
 
     // Validation
-    if (!Nom_Agence || !Adresse || !Telephone) {
+    if (!FK_Centre || !Nom_Agence || !Adresse || !Telephone) {
         return res.status(400).json({ 
-            message: 'Les champs Nom_Agence, Adresse et Telephone sont obligatoires' 
+            message: 'Les champs Centre, Nom_Agence, Adresse et Telephone sont obligatoires' 
         });
     }
 
@@ -208,7 +228,8 @@ router.put('/:id', (req, res) => {
 
         const query = `
             UPDATE DIM_AGENCE 
-            SET Nom_Agence = @Nom_Agence, 
+            SET FK_Centre = @FK_Centre,
+                Nom_Agence = @Nom_Agence, 
                 Adresse = @Adresse, 
                 Telephone = @Telephone, 
                 Email = @Email, 
@@ -242,6 +263,7 @@ router.put('/:id', (req, res) => {
         });
 
         request.addParameter('AgenceId', TYPES.Int, parseInt(id));
+        request.addParameter('FK_Centre', TYPES.Int, parseInt(FK_Centre));
         request.addParameter('Nom_Agence', TYPES.NVarChar, Nom_Agence);
         request.addParameter('Adresse', TYPES.NVarChar, Adresse);
         request.addParameter('Telephone', TYPES.NVarChar, Telephone);
@@ -258,8 +280,48 @@ router.put('/:id', (req, res) => {
     connection.connect();
 });
 
-module.exports = router;
- 
+// ✅ Récupérer la liste des centres pour le formulaire
+router.get('/centres', (req, res) => {
+    const connection = new Connection(getConfig());
+
+    connection.on('connect', (err) => {
+        if (err) {
+            return res.status(500).json({ 
+                message: 'Erreur de connexion à la base de données', 
+                error: err.message 
+            });
+        }
+
+        const query = 'SELECT CentreId, Nom_Centre FROM DIM_CENTRE ORDER BY Nom_Centre';
+        const centres = [];
+
+        const request = new Request(query, (err, rowCount) => {
+            connection.close();
+
+            if (err) {
+                return res.status(500).json({ 
+                    message: 'Erreur lors du chargement des centres', 
+                    error: err.message 
+                });
+            }
+
+            res.json(centres);
+        });
+
+        request.on('row', (columns) => {
+            let row = {};
+            columns.forEach(column => {
+                row[column.metadata.colName] = column.value;
+            });
+            centres.push(row);
+        });
+
+        connection.execSql(request);
+    });
+
+    connection.connect();
+});
+
 // ✅ Supprimer une agence (admin uniquement)
 router.delete('/:id', (req, res) => {
     const roleHeader = (req.headers['x-role'] || '').toString();
@@ -296,3 +358,5 @@ router.delete('/:id', (req, res) => {
 
     connection.connect();
 });
+
+module.exports = router;

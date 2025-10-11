@@ -12,6 +12,10 @@ const agenceService = {
   async update(id, payload) {
     const res = await api.put(`/agences/${id}`, payload);
     return res.data;
+  },
+  async getCentres() {
+    const res = await api.get('/agences/centres');
+    return res.data || [];
   }
 };
 

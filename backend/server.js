@@ -10,6 +10,7 @@ const meRoutes = require('./routes/me.js');
 const categoriesRoutes = require('./routes/categories.js');
 const kpiRoutes = require('./routes/kpi.js');
 const objectivesRoutes = require('./routes/objectives.js');
+const centresRoutes = require('./routes/centres.js');
 
 const app = express();
 const PORT = 5000;
@@ -92,6 +93,7 @@ app.use("/api/me", meRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/kpi", kpiRoutes);
 app.use("/api/objectives", objectivesRoutes);
+app.use("/api/centres", centresRoutes);
 
 
 // Lancement du serveur

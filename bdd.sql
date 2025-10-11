@@ -1,10 +1,9 @@
-/*******************************************************
-  Création base de données et utilisation
+ï»¿/*******************************************************
+  CrÃ©ation base de donnÃ©es et utilisation
 *******************************************************/
 IF DB_ID(N'ADE_KPI') IS NULL
 BEGIN
-    CREATE DATABASE ADE_KPI
-    -- Vous pouvez ajouter FILEGROUPS, tamaños, options selon besoin.
+    CREATE DATABASE ADE_KPI;
 END;
 GO
 
@@ -12,39 +11,51 @@ USE ADE_KPI;
 GO
 
 /*******************************************************
-  Schéma (on garde dbo)
+  SUPPRESSION DES OBJETS EXISTANTS DANS LE BON ORDRE
 *******************************************************/
 
-/*******************************************************
-  TABLE: DIM_DATE
-  - contient la granularité jour et flags Est_Vendredi, Est_Jour_Ferie
-  - sera remplie pour au moins 10 ans (script de peuplement ci-dessous)
-*******************************************************/
+-- Supprimer les vues d'abord
+IF OBJECT_ID('dbo.VW_HIERARCHIE_COMPLETE') IS NOT NULL DROP VIEW dbo.VW_HIERARCHIE_COMPLETE;
+IF OBJECT_ID('dbo.VW_STATISTIQUES_CENTRE') IS NOT NULL DROP VIEW dbo.VW_STATISTIQUES_CENTRE;
+IF OBJECT_ID('dbo.VW_COMMUNES_PAR_AGENCE') IS NOT NULL DROP VIEW dbo.VW_COMMUNES_PAR_AGENCE;
+IF OBJECT_ID('dbo.VW_FAIT_AGENCE_JOUR') IS NOT NULL DROP VIEW dbo.VW_FAIT_AGENCE_JOUR;
+GO
+
+-- Supprimer les tables dans l'ordre inverse des dÃ©pendances
+IF OBJECT_ID('dbo.FAIT_KPI_ADE') IS NOT NULL DROP TABLE dbo.FAIT_KPI_ADE;
+IF OBJECT_ID('dbo.DIM_UTILISATEUR') IS NOT NULL DROP TABLE dbo.DIM_UTILISATEUR;
+IF OBJECT_ID('dbo.DIM_COMMUNE') IS NOT NULL DROP TABLE dbo.DIM_COMMUNE;
+IF OBJECT_ID('dbo.DIM_AGENCE') IS NOT NULL DROP TABLE dbo.DIM_AGENCE;
+IF OBJECT_ID('dbo.DIM_CENTRE') IS NOT NULL DROP TABLE dbo.DIM_CENTRE;
+IF OBJECT_ID('dbo.DIM_CATEGORIE') IS NOT NULL DROP TABLE dbo.DIM_CATEGORIE;
+IF OBJECT_ID('dbo.TAB_JOURS_FERIES') IS NOT NULL DROP TABLE dbo.TAB_JOURS_FERIES;
 IF OBJECT_ID('dbo.DIM_DATE') IS NOT NULL DROP TABLE dbo.DIM_DATE;
 GO
 
+/*******************************************************
+  TABLE: DIM_DATE
+*******************************************************/
 CREATE TABLE dbo.DIM_DATE
 (
-    DateKey        INT           NOT NULL PRIMARY KEY, -- format YYYYMMDD (ex: 20251003)
+    DateKey        INT           NOT NULL PRIMARY KEY,
     TheDate        DATE          NOT NULL UNIQUE,
     [Year]         SMALLINT      NOT NULL,
     [Month]        TINYINT       NOT NULL,
     DayOfMonth     TINYINT       NOT NULL,
-    DayOfWeek      TINYINT       NOT NULL, -- 1 = Monday .. 7 = Sunday (SQL Server DATEPART dw default depends on DATEFIRST; we will compute 1..7)
+    DayOfWeek      TINYINT       NOT NULL,
     MonthName      NVARCHAR(20)  NOT NULL,
     DayName        NVARCHAR(20)  NOT NULL,
-    IsWeekEnd      BIT           NOT NULL, -- Saturday or Sunday
-    Est_Vendredi   BIT           NOT NULL, -- flag explicite pour vendredi
-    Est_Jour_Ferie BIT           NOT NULL, -- flag pour jours fériés (lié à TAB_JOURS_FERIES)
+    IsWeekEnd      BIT           NOT NULL,
+    Est_Vendredi   BIT           NOT NULL,
+    Est_Jour_Ferie BIT           NOT NULL,
     IsFirstDayOfMonth BIT        NOT NULL,
     IsLastDayOfMonth  BIT        NOT NULL
 );
 GO
 
--- Table des jours fériés déclarés (à alimenter par l'admin)
-IF OBJECT_ID('dbo.TAB_JOURS_FERIES') IS NOT NULL DROP TABLE dbo.TAB_JOURS_FERIES;
-GO
-
+/*******************************************************
+  TABLE: TAB_JOURS_FERIES
+*******************************************************/
 CREATE TABLE dbo.TAB_JOURS_FERIES
 (
     JourFerieId INT IDENTITY(1,1) PRIMARY KEY,
@@ -56,11 +67,7 @@ GO
 
 /*******************************************************
   TABLE: DIM_CATEGORIE
-  - 4 catégories requises
 *******************************************************/
-IF OBJECT_ID('dbo.DIM_CATEGORIE') IS NOT NULL DROP TABLE dbo.DIM_CATEGORIE;
-GO
-
 CREATE TABLE dbo.DIM_CATEGORIE
 (
     CategorieId INT IDENTITY(1,1) PRIMARY KEY,
@@ -71,15 +78,28 @@ CREATE TABLE dbo.DIM_CATEGORIE
 GO
 
 /*******************************************************
-  TABLE: DIM_AGENCE
-  - Chaque agence commerciale a un enregistrement unique.
+  TABLE: DIM_CENTRE
 *******************************************************/
-IF OBJECT_ID('dbo.DIM_AGENCE') IS NOT NULL DROP TABLE dbo.DIM_AGENCE;
+CREATE TABLE dbo.DIM_CENTRE
+(
+    CentreId INT IDENTITY(1,1) PRIMARY KEY,
+    Nom_Centre NVARCHAR(200) NOT NULL,
+    Adresse NVARCHAR(400) NOT NULL,
+    Telephone NVARCHAR(50) NOT NULL,
+    Email NVARCHAR(200) NULL,
+    Fax NVARCHAR(50) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT UQ_DIM_CENTRE_NOM UNIQUE (Nom_Centre)
+);
 GO
 
+/*******************************************************
+  TABLE: DIM_AGENCE
+*******************************************************/
 CREATE TABLE dbo.DIM_AGENCE
 (
     AgenceId INT IDENTITY(1,1) PRIMARY KEY,
+    FK_Centre INT NOT NULL,
     Nom_Agence NVARCHAR(200) NOT NULL,
     Adresse NVARCHAR(400) NOT NULL,
     Telephone NVARCHAR(50) NOT NULL,
@@ -87,232 +107,199 @@ CREATE TABLE dbo.DIM_AGENCE
     Fax NVARCHAR(50) NULL,
     Nom_Banque NVARCHAR(200) NULL,
     Compte_Bancaire NVARCHAR(100) NULL,
-    NIF NVARCHAR(50) NULL, -- Numéro d'identification fiscale
-    NCI NVARCHAR(50) NULL, -- Numéro de compte interne
+    NIF NVARCHAR(50) NULL,
+    NCI NVARCHAR(50) NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT UQ_DIM_AGENCE_NOM UNIQUE (Nom_Agence)
+    CONSTRAINT UQ_DIM_AGENCE_NOM UNIQUE (Nom_Agence),
+    CONSTRAINT FK_DIM_AGENCE_CENTRE FOREIGN KEY (FK_Centre) 
+        REFERENCES dbo.DIM_CENTRE(CentreId) ON DELETE NO ACTION
+);
+GO
+
+/*******************************************************
+  TABLE: DIM_COMMUNE
+*******************************************************/
+CREATE TABLE dbo.DIM_COMMUNE
+(
+    CommuneId INT IDENTITY(1,1) PRIMARY KEY,
+    FK_Agence INT NOT NULL,
+    Nom_Commune NVARCHAR(200) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_DIM_COMMUNE_AGENCE FOREIGN KEY (FK_Agence) 
+        REFERENCES dbo.DIM_AGENCE(AgenceId) ON DELETE CASCADE,
+    CONSTRAINT UQ_DIM_COMMUNE_NOM_AGENCE UNIQUE (FK_Agence, Nom_Commune)
 );
 GO
 
 /*******************************************************
   TABLE: DIM_UTILISATEUR
-  - stocke hash mot de passe de manière sécurisée (VARBINARY)
-  - FK vers DIM_AGENCE (un utilisateur lié à une agence ; 
-    certains utilisateurs administrateur peuvent ne pas être liés)
 *******************************************************/
-IF OBJECT_ID('dbo.DIM_UTILISATEUR') IS NOT NULL DROP TABLE dbo.DIM_UTILISATEUR;
-GO
-
 CREATE TABLE dbo.DIM_UTILISATEUR
 (
     UtilisateurId INT IDENTITY(1,1) PRIMARY KEY,
     Nom_Utilisateur NVARCHAR(200) NOT NULL UNIQUE,
-    -- Stocker ici le hash sécurisé (application doit générer hash salé via bcrypt / argon2).
     Mot_de_Passe_Hash VARBINARY(128) NOT NULL,
-    FK_Agence INT NULL, -- NULL si utilisateur global (admin)
+    FK_Agence INT NULL,
     [Role] NVARCHAR(50) NOT NULL CHECK([Role] IN ('Standard','Administrateur')),
     Email NVARCHAR(200) NULL,
+    Telephone NVARCHAR(50) NULL,
     IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT FK_DIM_UTILISATEUR_AGENCE FOREIGN KEY (FK_Agence) REFERENCES dbo.DIM_AGENCE(AgenceId) ON DELETE SET NULL
+    CONSTRAINT FK_DIM_UTILISATEUR_AGENCE FOREIGN KEY (FK_Agence) 
+        REFERENCES dbo.DIM_AGENCE(AgenceId) ON DELETE SET NULL
 );
 GO
 
 /*******************************************************
   TABLE: FAIT_KPI_ADE
-  - Table de faits centrale
-  - Une ligne par Date, par Agence, par Categorie
-  - Composite PK sur (DateKey, AgenceId, CategorieId) pour assurer unicité
 *******************************************************/
-IF OBJECT_ID('dbo.FAIT_KPI_ADE') IS NOT NULL DROP TABLE dbo.FAIT_KPI_ADE;
-GO
-
 CREATE TABLE dbo.FAIT_KPI_ADE
 (
-    DateKey      INT NOT NULL, -- FK vers DIM_DATE.DateKey (YYYYMMDD)
-    AgenceId     INT NOT NULL, -- FK vers DIM_AGENCE
-    CategorieId  INT NOT NULL, -- FK vers DIM_CATEGORIE
+    DateKey      INT NOT NULL,
+    AgenceId     INT NOT NULL,
+    CategorieId  INT NOT NULL,
 
-    -- Encaissement global pour l'agence ce jour (même si non par catégorie, stocké pour analyse)
     Encaissement_Journalier_Global MONEY NULL,
 
-    /* -------------------
-       KPIs: pour chaque élément => Nombre (INT) et Montant (MONEY)
-       ------------------- */
-    -- Coupures
     Nb_Coupures INT          NOT NULL DEFAULT 0,
     Mt_Coupures MONEY        NOT NULL DEFAULT 0,
-    -- Rétablissements
     Nb_Retablissements INT   NOT NULL DEFAULT 0,
     Mt_Retablissements MONEY NOT NULL DEFAULT 0,
-    -- Branchements
     Nb_Branchements INT      NOT NULL DEFAULT 0,
     Mt_Branchements MONEY    NOT NULL DEFAULT 0,
-    -- Compteurs remplacés
     Nb_Compteurs_Remplaces INT     NOT NULL DEFAULT 0,
     Mt_Compteurs_Remplaces MONEY   NOT NULL DEFAULT 0,
-    -- Dossiers juridiques transmis
     Nb_Dossiers_Juridiques INT      NOT NULL DEFAULT 0,
     Mt_Dossiers_Juridiques MONEY    NOT NULL DEFAULT 0,
-    -- Contrôles
     Nb_Controles INT         NOT NULL DEFAULT 0,
     Mt_Controles MONEY       NOT NULL DEFAULT 0,
-    -- Mises en demeure envoyées
     Nb_MisesEnDemeure_Envoyees INT NOT NULL DEFAULT 0,
     Mt_MisesEnDemeure_Envoyees MONEY NOT NULL DEFAULT 0,
-    -- Mises en demeure encaissées / réglées
     Nb_MisesEnDemeure_Reglees INT NOT NULL DEFAULT 0,
     Mt_MisesEnDemeure_Reglees MONEY NOT NULL DEFAULT 0,
-    -- Relances systématiques envoyées
     Nb_RelancesEnvoyees INT NOT NULL DEFAULT 0,
     Mt_RelancesEnvoyees MONEY NOT NULL DEFAULT 0,
-    -- Relances systématiques encaissées / réglées
     Nb_RelancesReglees INT NOT NULL DEFAULT 0,
     Mt_RelancesReglees MONEY NOT NULL DEFAULT 0,
 
-    /* -------------------
-       OBJECTIFS (par agence) : stocker objectif (INT) pour certains KPIs
-       ------------------- */
     Obj_Coupures INT NULL,
     Obj_Dossiers_Juridiques INT NULL,
     Obj_MisesEnDemeure_Envoyees INT NULL,
     Obj_Relances_Envoyees INT NULL,
 
-    -- Métadonnées
     CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     ModifiedAt DATETIME2 NULL,
 
     CONSTRAINT PK_FAIT_KPI_ADE PRIMARY KEY CLUSTERED (DateKey, AgenceId, CategorieId),
-    CONSTRAINT FK_FAITKPI_DIMDATE FOREIGN KEY (DateKey) REFERENCES dbo.DIM_DATE(DateKey) ON DELETE NO ACTION,
-    CONSTRAINT FK_FAITKPI_DIMAGENCE FOREIGN KEY (AgenceId) REFERENCES dbo.DIM_AGENCE(AgenceId) ON DELETE CASCADE,
-    CONSTRAINT FK_FAITKPI_DIMCATEGORIE FOREIGN KEY (CategorieId) REFERENCES dbo.DIM_CATEGORIE(CategorieId) ON DELETE NO ACTION
+    CONSTRAINT FK_FAITKPI_DIMDATE FOREIGN KEY (DateKey) 
+        REFERENCES dbo.DIM_DATE(DateKey) ON DELETE NO ACTION,
+    CONSTRAINT FK_FAITKPI_DIMAGENCE FOREIGN KEY (AgenceId) 
+        REFERENCES dbo.DIM_AGENCE(AgenceId) ON DELETE CASCADE,
+    CONSTRAINT FK_FAITKPI_DIMCATEGORIE FOREIGN KEY (CategorieId) 
+        REFERENCES dbo.DIM_CATEGORIE(CategorieId) ON DELETE NO ACTION
 );
 GO
 
 /*******************************************************
-  INDEXES NON-CLUSTERED utiles pour requêtes analytiques
-  - index pour recherche rapide par Agence + DateRange
-  - index pour DateKey seul (analyses temporelles)
-  - index sur flags Est_Vendredi / Est_Jour_Ferie si besoin (sur DIM_DATE)
+  INDEXES NON-CLUSTERED
 *******************************************************/
--- Index sur FAIT pour requêtes par agence + date
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.FAIT_KPI_ADE') AND name = 'IX_FAIT_AGENCE_DATE')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_FAIT_AGENCE_DATE
-    ON dbo.FAIT_KPI_ADE (AgenceId, DateKey)
-    INCLUDE (Encaissement_Journalier_Global, Nb_Coupures, Mt_Coupures);
-END;
+CREATE NONCLUSTERED INDEX IX_FAIT_AGENCE_DATE
+ON dbo.FAIT_KPI_ADE (AgenceId, DateKey)
+INCLUDE (Encaissement_Journalier_Global, Nb_Coupures, Mt_Coupures);
 GO
 
--- Index pour requêtes par date (utile pour agrégations journalières)
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.FAIT_KPI_ADE') AND name = 'IX_FAIT_DATE')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_FAIT_DATE
-    ON dbo.FAIT_KPI_ADE (DateKey)
-    INCLUDE (Encaissement_Journalier_Global);
-END;
+CREATE NONCLUSTERED INDEX IX_FAIT_DATE
+ON dbo.FAIT_KPI_ADE (DateKey)
+INCLUDE (Encaissement_Journalier_Global);
 GO
 
--- Index pour les objectifs (par agence) si on recherche souvent sur colonnes Objectif
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.FAIT_KPI_ADE') AND name = 'IX_FAIT_OBJ_AGENCE')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_FAIT_OBJ_AGENCE
-    ON dbo.FAIT_KPI_ADE (AgenceId)
-    INCLUDE (Obj_Coupures, Obj_Dossiers_Juridiques, Obj_MisesEnDemeure_Envoyees, Obj_Relances_Envoyees);
-END;
+CREATE NONCLUSTERED INDEX IX_FAIT_OBJ_AGENCE
+ON dbo.FAIT_KPI_ADE (AgenceId)
+INCLUDE (Obj_Coupures, Obj_Dossiers_Juridiques, Obj_MisesEnDemeure_Envoyees, Obj_Relances_Envoyees);
 GO
 
--- Indexes sur DIM_DATE pour filtres rapides
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.DIM_DATE') AND name = 'IX_DIM_DATE_YearMonth')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_DIM_DATE_YearMonth
-    ON dbo.DIM_DATE ([Year], [Month]);
-END;
+CREATE NONCLUSTERED INDEX IX_DIM_DATE_YearMonth
+ON dbo.DIM_DATE ([Year], [Month]);
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.DIM_DATE') AND name = 'IX_DIM_DATE_Flags')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_DIM_DATE_Flags
-    ON dbo.DIM_DATE (Est_Vendredi, Est_Jour_Ferie);
-END;
+CREATE NONCLUSTERED INDEX IX_DIM_DATE_Flags
+ON dbo.DIM_DATE (Est_Vendredi, Est_Jour_Ferie);
+GO
+
+CREATE NONCLUSTERED INDEX IX_COMMUNE_AGENCE
+ON dbo.DIM_COMMUNE (FK_Agence);
+GO
+
+CREATE NONCLUSTERED INDEX IX_AGENCE_CENTRE
+ON dbo.DIM_AGENCE (FK_Centre);
 GO
 
 /*******************************************************
-  Peuplement initial: DIM_CATEGORIE (4 catégories)
+  PEUPLEMENTS INITIAUX
 *******************************************************/
 SET NOCOUNT ON;
 
-IF NOT EXISTS (SELECT 1 FROM dbo.DIM_CATEGORIE WHERE CodeCategorie = 'MENAGE')
-BEGIN
-    INSERT INTO dbo.DIM_CATEGORIE (CodeCategorie, Libelle, Description)
-    VALUES
-      ('MENAGE', N'Ménage Individuel', N'Clients ménages individuels'),
-      ('ADMIN', N'Administration', N'Clients administrations / collectivités'),
-      ('ARTCOM', N'Artisanat / Commercial', N'Clients artisans et commerces'),
-      ('IND', N'Industriel', N'Clients industriels');
-END;
+-- DIM_CATEGORIE
+INSERT INTO dbo.DIM_CATEGORIE (CodeCategorie, Libelle, Description)
+VALUES
+  ('MENAGE', N'MÃ©nage Individuel', N'Clients mÃ©nages individuels'),
+  ('ADMIN', N'Administration', N'Clients administrations / collectivitÃ©s'),
+  ('ARTCOM', N'Artisanat / Commercial', N'Clients artisans et commerces'),
+  ('IND', N'Industriel', N'Clients industriels');
 GO
 
-/*******************************************************
-  Exemple: Peuplement de TAB_JOURS_FERIES avec quelques jours fixes
-  (Compléter/ajuster par l'administrateur — les fêtes religieuses mobiles
-  doivent être ajoutées pour chaque année par l'admin)
-*******************************************************/
-IF NOT EXISTS (SELECT 1 FROM dbo.TAB_JOURS_FERIES)
-BEGIN
-    INSERT INTO dbo.TAB_JOURS_FERIES (DateJour, Description) VALUES
-      ('2016-01-01','Nouvel An'),
-      ('2016-05-01','Fête du Travail'),
-      ('2016-07-05','Fête de l\'Indépendance'),
-      ('2016-11-01','Fête de la Révolution');
-
-    -- Note: ce sont des exemples ; l'admin doit insérer les dates pertinentes pour chaque année.
-END;
+-- TAB_JOURS_FERIES
+INSERT INTO dbo.TAB_JOURS_FERIES (DateJour, Description) VALUES
+  ('2016-01-01','Nouvel An'),
+  ('2016-05-01','FÃªte du Travail'),
+  ('2016-07-05','FÃªte de l''IndÃ©pendance'),
+  ('2016-11-01','FÃªte de la RÃ©volution'),
+  ('2024-01-01','Nouvel An 2024'),
+  ('2024-05-01','FÃªte du Travail 2024'),
+  ('2024-07-05','FÃªte de l''IndÃ©pendance 2024'),
+  ('2024-11-01','FÃªte de la RÃ©volution 2024'),
+  ('2025-01-01','Nouvel An 2025'),
+  ('2025-05-01','FÃªte du Travail 2025'),
+  ('2025-07-05','FÃªte de l''IndÃ©pendance 2025'),
+  ('2025-11-01','FÃªte de la RÃ©volution 2025');
 GO
 
-/*******************************************************
-  Peuplement automatique de DIM_DATE sur 10 ans.
-  Ici on génère de 2016-01-01 à 2025-12-31 (10 ans).
-  Ajustez les bornes si nécessaire.
-*******************************************************/
+-- DIM_DATE (Peuplement sur 10 ans)
 DECLARE @start DATE = '2016-01-01';
-DECLARE @end   DATE = '2025-12-31'; -- au moins 10 ans
+DECLARE @end   DATE = '2025-12-31';
 DECLARE @d DATE = @start;
 
 WHILE @d <= @end
 BEGIN
     DECLARE @dk INT = CONVERT(INT, FORMAT(@d,'yyyyMMdd'));
-    DECLARE @dow INT = DATEPART(WEEKDAY, @d); -- 1..7 selon DATEFIRST, but we will remap to ISO-style (1=Mon..7=Sun)
-    -- Remapper DAYOFWEEK en 1=Monday .. 7=Sunday indépendamment de DATEFIRST
     DECLARE @isoDow TINYINT = ((DATEPART(WEEKDAY, @d) + @@DATEFIRST - 2) % 7) + 1;
 
     INSERT INTO dbo.DIM_DATE (DateKey, TheDate, [Year], [Month], DayOfMonth, DayOfWeek, MonthName, DayName, IsWeekEnd, Est_Vendredi, Est_Jour_Ferie, IsFirstDayOfMonth, IsLastDayOfMonth)
-    SELECT
+    VALUES (
         @dk,
         @d,
-        DATEPART(YEAR,@d),
-        DATEPART(MONTH,@d),
-        DATEPART(DAY,@d),
+        YEAR(@d),
+        MONTH(@d),
+        DAY(@d),
         @isoDow,
         DATENAME(MONTH,@d),
         DATENAME(WEEKDAY,@d),
-        CASE WHEN @isoDow IN (6,7) THEN 1 ELSE 0 END, -- 6=Saturday, 7=Sunday
-        CASE WHEN DATENAME(WEEKDAY,@d) = 'Friday' OR (DATEPART(WEEKDAY,@d) + @@DATEFIRST - 2) % 7 + 1 = 5 THEN 1 ELSE 0 END,
+        CASE WHEN @isoDow IN (6,7) THEN 1 ELSE 0 END,
+        CASE WHEN @isoDow = 5 THEN 1 ELSE 0 END,
         CASE WHEN EXISTS (SELECT 1 FROM dbo.TAB_JOURS_FERIES f WHERE f.DateJour = @d) THEN 1 ELSE 0 END,
         CASE WHEN DAY(@d) = 1 THEN 1 ELSE 0 END,
         CASE WHEN @d = EOMONTH(@d) THEN 1 ELSE 0 END
-    WHERE NOT EXISTS (SELECT 1 FROM dbo.DIM_DATE dd WHERE dd.DateKey = @dk);
+    );
 
     SET @d = DATEADD(DAY,1,@d);
 END;
 GO
 
 /*******************************************************
-  INDEXS SUPPLÉMENTAIRES & VUES UTILES (exemples)
+  VUES UTILES
 *******************************************************/
--- Vue d'aide: agrégation journalière par agence (exemple)
-IF OBJECT_ID('dbo.VW_FAIT_AGENCE_JOUR') IS NOT NULL DROP VIEW dbo.VW_FAIT_AGENCE_JOUR;
-GO
+
+-- Vue: agrÃ©gation journaliÃ¨re par agence avec informations du centre
 CREATE VIEW dbo.VW_FAIT_AGENCE_JOUR
 AS
 SELECT
@@ -320,85 +307,138 @@ SELECT
     d.TheDate,
     f.AgenceId,
     a.Nom_Agence,
-    SUM(f.Encaissement_Journalier_Global) AS TotalEncaissementAgence, -- si plusieurs catégories, somme (mais stocké aussi au niveau ligne)
+    c.CentreId,
+    c.Nom_Centre,
+    SUM(f.Encaissement_Journalier_Global) AS TotalEncaissementAgence,
     SUM(f.Nb_Coupures) AS Nb_Coupures,
     SUM(f.Mt_Coupures) AS Mt_Coupures,
-    SUM(f.Nb_Retablissements) AS Nb_Retablissements
+    SUM(f.Nb_Retablissements) AS Nb_Retablissements,
+    SUM(f.Mt_Retablissements) AS Mt_Retablissements
 FROM dbo.FAIT_KPI_ADE f
 JOIN dbo.DIM_DATE d ON f.DateKey = d.DateKey
 JOIN dbo.DIM_AGENCE a ON f.AgenceId = a.AgenceId
-GROUP BY f.DateKey, d.TheDate, f.AgenceId, a.Nom_Agence;
+JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
+GROUP BY f.DateKey, d.TheDate, f.AgenceId, a.Nom_Agence, c.CentreId, c.Nom_Centre;
+GO
+
+-- Vue: Liste des communes par agence et centre
+CREATE VIEW dbo.VW_COMMUNES_PAR_AGENCE
+AS
+SELECT
+    c.CentreId,
+    c.Nom_Centre,
+    a.AgenceId,
+    a.Nom_Agence,
+    com.CommuneId,
+    com.Nom_Commune
+FROM dbo.DIM_CENTRE c
+JOIN dbo.DIM_AGENCE a ON c.CentreId = a.FK_Centre
+LEFT JOIN dbo.DIM_COMMUNE com ON a.AgenceId = com.FK_Agence;
+GO
+
+-- Vue: Statistiques par centre
+CREATE VIEW dbo.VW_STATISTIQUES_CENTRE
+AS
+SELECT
+    c.CentreId,
+    c.Nom_Centre,
+    c.Adresse AS Adresse_Centre,
+    c.Telephone AS Tel_Centre,
+    c.Email AS Email_Centre,
+    COUNT(DISTINCT a.AgenceId) AS Nb_Agences,
+    COUNT(DISTINCT com.CommuneId) AS Nb_Communes_Total
+FROM dbo.DIM_CENTRE c
+LEFT JOIN dbo.DIM_AGENCE a ON c.CentreId = a.FK_Centre
+LEFT JOIN dbo.DIM_COMMUNE com ON a.AgenceId = com.FK_Agence
+GROUP BY c.CentreId, c.Nom_Centre, c.Adresse, c.Telephone, c.Email;
+GO
+
+-- Vue: HiÃ©rarchie complÃ¨te Centre > Agence > Commune
+CREATE VIEW dbo.VW_HIERARCHIE_COMPLETE
+AS
+SELECT
+    c.CentreId,
+    c.Nom_Centre,
+    c.Adresse AS Adresse_Centre,
+    c.Telephone AS Tel_Centre,
+    a.AgenceId,
+    a.Nom_Agence,
+    a.Adresse AS Adresse_Agence,
+    a.Telephone AS Tel_Agence,
+    com.CommuneId,
+    com.Nom_Commune
+FROM dbo.DIM_CENTRE c
+LEFT JOIN dbo.DIM_AGENCE a ON c.CentreId = a.FK_Centre
+LEFT JOIN dbo.DIM_COMMUNE com ON a.AgenceId = com.FK_Agence;
 GO
 
 /*******************************************************
-  Remarques & bonnes pratiques / Commentaires pour l'application
-  (Règles demandées dans la spécification)
+  DONNÃ‰ES EXEMPLES
 *******************************************************/
 
+-- Insertion d'un centre exemple
+INSERT INTO dbo.DIM_CENTRE (Nom_Centre, Adresse, Telephone, Email, Fax)
+VALUES (N'Centre RÃ©gional BÃ©jaÃ¯a', N'Avenue de la LibertÃ©, BÃ©jaÃ¯a', '+213-34-210-XXX', 'centre.bejaia@ade.dz', '+213-34-210-XXX');
+
+DECLARE @CentreId INT = SCOPE_IDENTITY();
+
+-- Insertion d'une agence liÃ©e au centre
+INSERT INTO dbo.DIM_AGENCE (FK_Centre, Nom_Agence, Adresse, Telephone, Email, Nom_Banque, Compte_Bancaire, NIF, NCI)
+VALUES (@CentreId, N'Agence Exemple BÃ©jaÃ¯a', N'Rue Exemple, BÃ©jaÃ¯a', '+213-34-XXX-XXX', 'agence.bejaia@ade.dz', 'BNA', 'FR76 1234 5678 9012 3456 7890', 'NIF123456', 'NCI7890');
+
+DECLARE @AgenceId INT = SCOPE_IDENTITY();
+
+-- Insertion de communes pour l'agence
+INSERT INTO dbo.DIM_COMMUNE (FK_Agence, Nom_Commune)
+VALUES 
+    (@AgenceId, N'BÃ©jaÃ¯a Centre'),
+    (@AgenceId, N'Amizour'),
+    (@AgenceId, N'Akbou'),
+    (@AgenceId, N'Sidi Aich'),
+    (@AgenceId, N'El Kseur');
+
+-- Insertion d'un utilisateur admin avec tÃ©lÃ©phone
+INSERT INTO dbo.DIM_UTILISATEUR (Nom_Utilisateur, Mot_de_Passe_Hash, FK_Agence, [Role], Email, Telephone)
+VALUES (N'admin', 0x53414D504C4548415348, NULL, 'Administrateur', 'admin@ade.dz', '+213-XX-XXX-XXXX');
+
+-- Insertion d'un utilisateur standard liÃ© Ã  l'agence
+INSERT INTO dbo.DIM_UTILISATEUR (Nom_Utilisateur, Mot_de_Passe_Hash, FK_Agence, [Role], Email, Telephone)
+VALUES (N'user_bejaia', 0x53414D504C4548415348, @AgenceId, 'Standard', 'user.bejaia@ade.dz', '+213-34-XXX-XXXX');
+
+GO
+
+/*******************************************************
+  RÃˆGLES DE GESTION ET BONNES PRATIQUES
+*******************************************************/
 /*
-  LOGIQUE D'APPLICATION (à implémenter côté front-end/back-end) :
+  STRUCTURE HIÃ‰RARCHIQUE:
+  DIM_CENTRE (1) â”€â”€â†’ (1..N) DIM_AGENCE (1) â”€â”€â†’ (0..N) DIM_COMMUNE
 
-  1) Modification Standard :
-     - Un utilisateur avec Role = 'Standard' et qui est lié à une agence (DIM_UTILISATEUR.FK_Agence)
-       peut modifier les lignes de FAIT_KPI_ADE uniquement si la DateKey correspond à la date du jour
-       OU si la DateKey est dans un intervalle de 5 jours immédiatement antérieurs à la date actuelle.
-       Exemple (pseudo) :
-         currentDateKey = CONVERT(INT, FORMAT(GETDATE(), 'yyyyMMdd'));
-         autorisé_si DateKey BETWEEN (currentDateKey - 5 jours) AND currentDateKey
-
-     - Toute ligne dont DateKey < (date du jour - 5 jours) doit être en lecture seule (verrouillage côté application).
-       IMPORTANT : la restriction doit être appliquée côté back-end pour sécurité (vérification serveur avant mise à jour).
-       Le front-end ne doit seulement afficher les boutons d'édition si la règle est satisfaite.
-
-  2) Rôle Administrateur :
-     - Un utilisateur avec Role = 'Administrateur' a droits illimités de modification sur FAIT_KPI_ADE,
-       et peut créer/modifier/supprimer en plus les enregistrements de DIM_AGENCE et DIM_UTILISATEUR.
-     - Les droits admin doivent être gérés par un module d'authentification/autorisation dans l'API (RBAC).
+  LOGIQUE D'APPLICATION:
   
-  3) Recommandation d'implémentation :
-     - Le back-end (API) doit vérifier le rôle et l'appartenance à l'agence avant toute UPDATE/DELETE/INSERT sur FAIT_KPI_ADE.
-     - Les contrôles doivent être double : UI (expérience utilisateur) + Server (sécurité).
-     - Exemple de contrôle côté serveur (pseudo) :
-         IF @UserRole = 'Standard'
-           AND @UserAgenceId = @AgenceId_of_row
-           AND @DateKey >= CONVERT(INT, FORMAT(DATEADD(DAY,-5,GETDATE()), 'yyyyMMdd'))
-           AND @DateKey <= CONVERT(INT, FORMAT(GETDATE(), 'yyyyMMdd'))
-         THEN allow update
-         ELSE deny update
-
-  4) Gestion des jours fériés (Est_Jour_Ferie) :
-     - L'administrateur doit remplir/maintenir la table TAB_JOURS_FERIES pour marquer correctement les jours fériés mobiles
-       (ex : Eid, etc.). Le flag Est_Jour_Ferie dans DIM_DATE est calculé au moment du (re)peuplement à partir de cette table.
-     - Si vous avez des règles business particulières sur l'autorisation d'édition pour un jour férié,
-       implémentez-les de la même manière (UI + validation back-end).
-
-  5) Stockage des mots de passe :
-     - Ne jamais stocker de mot de passe en clair.
-     - L'application doit générer un hash salé sécurisé (bcrypt ou argon2id fortement recommandé).
-     - Stocker le hash (et éventuellement le sel) dans DIM_UTILISATEUR.Mot_de_Passe_Hash (VARBINARY).
-     - Exemple : bcrypt renvoie une chaîne de ~60 caractères ; vous pouvez stocker l'octet encodé en VARBINARY.
-
-  6) Historique / Audit (optionnel mais recommandé) :
-     - Pour traçabilité, ajouter un mécanisme d'audit (ex: table FAIT_KPI_ADE_AUDIT) pour enregistrer qui a modifié quoi et quand.
-     - Alternativement créer triggers AFTER UPDATE/INSERT/DELETE pour insérer dans une table d'audit.
-
+  1) Modification Standard (utilisateurs avec Role='Standard'):
+     - Peut modifier FAIT_KPI_ADE uniquement pour:
+       * DateKey = date du jour
+       * OU DateKey dans les 5 jours prÃ©cÃ©dents
+     - ContrÃ´le OBLIGATOIRE cÃ´tÃ© back-end avant toute mise Ã  jour
+  
+  2) RÃ´le Administrateur:
+     - Droits illimitÃ©s sur toutes les tables
+     - Peut gÃ©rer DIM_CENTRE, DIM_AGENCE, DIM_COMMUNE, DIM_UTILISATEUR
+  
+  3) SÃ©curitÃ© mots de passe:
+     - TOUJOURS utiliser bcrypt ou argon2id
+     - JAMAIS stocker en clair
+     - Hash stockÃ© dans Mot_de_Passe_Hash (VARBINARY)
+  
+  4) Cascades:
+     - Suppression agence â†’ suppression communes (CASCADE)
+     - Suppression centre â†’ bloquÃ©e si agences existent (NO ACTION)
+     - Suppression agence â†’ FK_Agence utilisateur devient NULL (SET NULL)
 */
 
-/*******************************************************
-  Exemple d'insertion d'agence et d'utilisateur (exemples)
-  (Remplacer par données réelles)
-*******************************************************/
-INSERT INTO dbo.DIM_AGENCE (Nom_Agence, Adresse, Telephone, Email, Nom_Banque, Compte_Bancaire, NIF, NCI)
-VALUES (N'Agence Exemple Béjaïa', N'Rue Exemple, Béjaïa', '+213-XX-XXX-XXXX', 'agence@example.ad', 'FR76 1234 5678 9012 3456 7890', 'NIF123456', 'NCI7890');
-
--- Exemple: création utilisateur admin (mot de passe doit être hashé par l'application)
--- Note: ici on met un exemple binaire fictif. En production, insérer via l'API avec hash réel.
-INSERT INTO dbo.DIM_UTILISATEUR (Nom_Utilisateur, Mot_de_Passe_Hash, FK_Agence, [Role], Email)
-VALUES (N'admin', 0x53414D504C4548415348, NULL, 'Administrateur', 'admin@ade.local');
-
-GO
-
-/*******************************************************
-  FIN DU SCRIPT
-*******************************************************/
 SET NOCOUNT OFF;
+PRINT 'Base de donnÃ©es ADE_KPI crÃ©Ã©e avec succÃ¨s !';
+PRINT 'Tables crÃ©Ã©es: DIM_DATE, DIM_CATEGORIE, DIM_CENTRE, DIM_AGENCE, DIM_COMMUNE, DIM_UTILISATEUR, FAIT_KPI_ADE';
+PRINT 'Vues crÃ©Ã©es: VW_FAIT_AGENCE_JOUR, VW_COMMUNES_PAR_AGENCE, VW_STATISTIQUES_CENTRE, VW_HIERARCHIE_COMPLETE';
+GO

@@ -18,17 +18,23 @@ export default function Agences() {
   // Charger la liste des agences
   const loadAgences = async () => {
     const data = await agenceService.list();
-    setAgences(data);
+    // Ajouter un numéro d'ordre à chaque agence
+    const agencesWithNumber = data.map((agence, index) => ({
+      ...agence,
+      Numero: index + 1
+    }));
+    setAgences(agencesWithNumber);
     // Déduire dynamiquement les colonnes à partir des objets retournés
     const keys = Array.from(
-      data.reduce((acc, row) => {
+      agencesWithNumber.reduce((acc, row) => {
         Object.keys(row || {}).forEach((k) => acc.add(k));
         return acc;
       }, new Set())
     );
     // Ordonner: champs principaux d'abord, puis le reste trié alpha
     const preferred = [
-      'AgenceId',
+      'Numero',
+      'Nom_Centre',
       'Nom_Agence',
       'Adresse',
       'Telephone',
@@ -45,7 +51,7 @@ export default function Agences() {
       ...keys.filter((k) => !preferredSet.has(k)).sort((a, b) => a.localeCompare(b))
     ];
     // Masquer certains champs
-    const hidden = new Set(['NIF', 'NCI', 'CreatedAt', 'Nom_Banque', 'Compte_Bancaire']);
+    const hidden = new Set(['NIF', 'NCI', 'CreatedAt', 'Nom_Banque', 'Compte_Bancaire', 'FK_Centre', 'AgenceId']);
     const ordered = orderedAll.filter((k) => !hidden.has(k));
     setColumns(ordered);
   };
@@ -96,9 +102,9 @@ export default function Agences() {
   };
 
   return (
-    <div className="p-6 text-gray-800">
+    <div className="p-6 text-gray-800 w-full min-h-screen">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-semibold text-blue-700">
+        <h1 className="text-2xl font-semibold text-blue-700">
           Gestion des Agences Commerciales
         </h1>
 
@@ -127,33 +133,33 @@ export default function Agences() {
       />
 
       {/* ✅ Tableau des agences (colonnes dynamiques) */}
-      <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100">
-        <table className="min-w-full border-collapse">
+      <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100 w-full">
+        <table className="w-full border-collapse min-w-full">
           <thead className="bg-blue-100 text-blue-800">
             <tr>
               {columns.map((col) => (
-                <th key={col} className="py-2 px-4 text-left whitespace-nowrap">{col}</th>
+                <th key={col} className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">{col}</th>
               ))}
-              <th className="py-2 px-4 text-center">Actions</th>
+              <th className="py-3 px-6 text-center font-semibold text-sm">Actions</th>
             </tr>
           </thead>
           <tbody>
             {agences.map((row) => (
               <tr key={row.AgenceId || JSON.stringify(row)} className="border-t hover:bg-blue-50">
                 {columns.map((col) => (
-                  <td key={col} className="py-2 px-4 whitespace-nowrap">{String(row[col] ?? '')}</td>
+                  <td key={col} className="py-2 px-6 whitespace-nowrap text-sm">{String(row[col] ?? '')}</td>
                 ))}
-                <td className="py-2 px-4 text-center space-x-2">
+                <td className="py-2 px-6 text-center space-x-2">
                   {isAdmin && (
                     <>
-                      <button title="Modifier" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-blue-50" onClick={() => handleEdit(row)}>
-                        <Pencil className="h-4 w-4 text-blue-600" />
+                      <button title="Modifier" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50" onClick={() => handleEdit(row)}>
+                        <Pencil className="h-3.5 w-3.5 text-blue-600" />
                       </button>
-                      <button title="Supprimer" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-red-50" onClick={() => {/* implement delete with confirm & service */}}>
-                        <Trash2 className="h-4 w-4 text-red-600" />
+                      <button title="Supprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50" onClick={() => {/* implement delete with confirm & service */}}>
+                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
                       </button>
-                      <button title="Imprimer" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-100" onClick={() => window.print()}>
-                        <Printer className="h-4 w-4 text-gray-700" />
+                      <button title="Imprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100" onClick={() => window.print()}>
+                        <Printer className="h-3.5 w-3.5 text-gray-700" />
                       </button>
                     </>
                   )}

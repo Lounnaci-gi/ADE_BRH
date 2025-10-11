@@ -91,6 +91,9 @@ const NavBar = () => {
           <NavLink to="/objectives" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
             <Target className="h-4 w-4" /> Objectifs
           </NavLink>
+          <NavLink to="/centres" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
+            <Building2 className="h-4 w-4" /> Centres
+          </NavLink>
         </nav>
 
         <div className="flex items-center gap-4">
