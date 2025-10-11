@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, Printer, Plus, Building2, MapPin, Phone, Mail, FileText } from 'lucide-react';
+import { Pencil, Trash2, Printer, Plus, Building2, MapPin, Phone, Mail, FileText } from 'lucide-react';
 import centresService from '../services/centresService';
 import CentresAddModal from '../components/CentresAddModal';
 
@@ -88,7 +88,7 @@ const Centres = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-water-50 to-water-100 dark:from-water-900 dark:to-water-800 p-6">
+    <div className="p-6 text-gray-800 w-full min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -124,20 +124,19 @@ const Centres = () => {
         )}
 
         {/* Table */}
-        <div className="bg-white dark:bg-water-800 rounded-2xl shadow-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-water-600 text-white">
+        <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100 w-full">
+          <table className="w-full border-collapse min-w-full">
+              <thead className="bg-blue-100 text-blue-800">
                 <tr>
-                  <th className="px-6 py-4 text-left font-semibold">Nom du Centre</th>
-                  <th className="px-6 py-4 text-left font-semibold">Adresse</th>
-                  <th className="px-6 py-4 text-left font-semibold">Téléphone</th>
-                  <th className="px-6 py-4 text-left font-semibold">Email</th>
-                  <th className="px-6 py-4 text-left font-semibold">Fax</th>
-                  <th className="px-6 py-4 text-center font-semibold">Actions</th>
+                  <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Centre</th>
+                  <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Agences</th>
+                  <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Adresse</th>
+                  <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Téléphone</th>
+                  <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Fax</th>
+                  <th className="py-3 px-6 text-center font-semibold text-sm">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-water-200 dark:divide-water-700">
+              <tbody>
                 {centres.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center text-water-500 dark:text-water-400">
@@ -148,75 +147,34 @@ const Centres = () => {
                   </tr>
                 ) : (
                   centres.map((centre) => (
-                    <tr key={centre.CentreId} className="hover:bg-water-50 dark:hover:bg-water-700 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-water-100 dark:bg-water-600 rounded-lg">
-                            <Building2 className="h-5 w-5 text-water-600 dark:text-white" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-water-900 dark:text-white">
-                              {centre.Nom_Centre}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2 text-water-700 dark:text-water-300">
-                          <MapPin className="h-4 w-4" />
-                          <span className="max-w-xs truncate">{centre.Adresse}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2 text-water-700 dark:text-water-300">
-                          <Phone className="h-4 w-4" />
-                          <span>{centre.Telephone}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {centre.Email ? (
-                          <div className="flex items-center space-x-2 text-water-700 dark:text-water-300">
-                            <Mail className="h-4 w-4" />
-                            <span className="max-w-xs truncate">{centre.Email}</span>
-                          </div>
-                        ) : (
-                          <span className="text-water-400 dark:text-water-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {centre.Fax ? (
-                          <div className="flex items-center space-x-2 text-water-700 dark:text-water-300">
-                            <FileText className="h-4 w-4" />
-                            <span>{centre.Fax}</span>
-                          </div>
-                        ) : (
-                          <span className="text-water-400 dark:text-water-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center space-x-2">
-                          <button
-                            onClick={() => handleEdit(centre)}
-                            className="p-2 text-water-600 hover:bg-water-100 dark:hover:bg-water-700 rounded-lg transition-colors"
-                            title="Modifier"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(centre)}
-                            className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handlePrint(centre)}
-                            className="p-2 text-water-600 hover:bg-water-100 dark:hover:bg-water-700 rounded-lg transition-colors"
-                            title="Imprimer"
-                          >
-                            <Printer className="h-4 w-4" />
-                          </button>
-                        </div>
+                    <tr key={centre.CentreId} className="border-t hover:bg-blue-50">
+                      <td className="py-2 px-6 whitespace-nowrap text-sm">{centre.Nom_Centre}</td>
+                      <td className="py-2 px-6 whitespace-nowrap text-sm">{centre.Nombre_Agences || 0}</td>
+                      <td className="py-2 px-6 whitespace-nowrap text-sm">{centre.Adresse}</td>
+                      <td className="py-2 px-6 whitespace-nowrap text-sm">{centre.Telephone}</td>
+                      <td className="py-2 px-6 whitespace-nowrap text-sm">{centre.Fax || '-'}</td>
+                      <td className="py-2 px-6 text-center space-x-2">
+                        <button
+                          title="Modifier"
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
+                          onClick={() => handleEdit(centre)}
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-blue-600" />
+                        </button>
+                        <button
+                          title="Supprimer"
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
+                          onClick={() => handleDelete(centre)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                        </button>
+                        <button
+                          title="Imprimer"
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100"
+                          onClick={() => handlePrint(centre)}
+                        >
+                          <Printer className="h-3.5 w-3.5 text-gray-700" />
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -235,7 +193,6 @@ const Centres = () => {
             initialValues={editingCentre}
           />
         )}
-      </div>
     </div>
   );
 };

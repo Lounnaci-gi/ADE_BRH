@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, ChevronDown, User, Settings as SettingsIcon, Shield, Crown, Sparkles, FolderOpen, BarChart3, Target } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, ChevronDown, User, Settings as SettingsIcon, Shield, Crown, Sparkles, FolderOpen, BarChart3, Target, MapPin } from 'lucide-react';
 import notificationsService from '../services/notificationsService';
 import ThemeToggle from './ThemeToggle';
 import authService from '../services/authService';
@@ -76,8 +76,14 @@ const NavBar = () => {
           <NavLink to="/dashboard" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
             <LayoutDashboard className="h-4 w-4" /> Tableau de bord
           </NavLink>
+          <NavLink to="/centres" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
+            <Building2 className="h-4 w-4" /> Centres
+          </NavLink>
           <NavLink to="/dashboard/agences" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
             <Building2 className="h-4 w-4" /> Agences
+          </NavLink>
+          <NavLink to="/communes" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
+            <MapPin className="h-4 w-4" /> Communes
           </NavLink>
           <NavLink to="/users" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
             <Users className="h-4 w-4" /> Utilisateurs
@@ -90,9 +96,6 @@ const NavBar = () => {
           </NavLink>
           <NavLink to="/objectives" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
             <Target className="h-4 w-4" /> Objectifs
-          </NavLink>
-          <NavLink to="/centres" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
-            <Building2 className="h-4 w-4" /> Centres
           </NavLink>
         </nav>
 

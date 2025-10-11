@@ -104,9 +104,9 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-water-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-water-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-water-200 dark:border-water-700">
+        <div className="flex items-center justify-between p-4 border-b border-water-200 dark:border-water-700">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-water-600 rounded-lg">
               <Building2 className="h-6 w-6 text-white" />
@@ -124,7 +124,7 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Nom du Centre */}
           <div>
             <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">

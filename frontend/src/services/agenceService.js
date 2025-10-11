@@ -1,16 +1,29 @@
 import api from './api';
+import authService from './authService';
 
 const agenceService = {
   async list() {
-    const res = await api.get('/agences');
+    const user = authService.getCurrentUser();
+    const res = await api.get('/agences', { 
+      headers: { 
+        'X-Role': user?.role || '', 
+        'X-User-Agence': user?.agenceId || ''
+      } 
+    });
     return res.data || [];
   },
   async create(payload) {
-    const res = await api.post('/agences', payload);
+    const user = authService.getCurrentUser();
+    const res = await api.post('/agences', payload, { 
+      headers: { 'X-Role': user?.role || '' } 
+    });
     return res.data;
   },
   async update(id, payload) {
-    const res = await api.put(`/agences/${id}`, payload);
+    const user = authService.getCurrentUser();
+    const res = await api.put(`/agences/${id}`, payload, { 
+      headers: { 'X-Role': user?.role || '' } 
+    });
     return res.data;
   },
   async getCentres() {

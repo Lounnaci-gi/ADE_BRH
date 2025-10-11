@@ -39,15 +39,18 @@ router.get('/', (req, res) => {
 
     const query = `
       SELECT 
-        CentreId,
-        Nom_Centre,
-        Adresse,
-        Telephone,
-        Email,
-        Fax,
-        CreatedAt
-      FROM dbo.DIM_CENTRE
-      ORDER BY Nom_Centre
+        c.CentreId,
+        c.Nom_Centre,
+        c.Adresse,
+        c.Telephone,
+        c.Email,
+        c.Fax,
+        c.CreatedAt,
+        ISNULL(COUNT(a.AgenceId), 0) as Nombre_Agences
+      FROM dbo.DIM_CENTRE c
+      LEFT JOIN dbo.DIM_AGENCE a ON c.CentreId = a.FK_Centre
+      GROUP BY c.CentreId, c.Nom_Centre, c.Adresse, c.Telephone, c.Email, c.Fax, c.CreatedAt
+      ORDER BY c.Nom_Centre
     `;
 
     const results = [];

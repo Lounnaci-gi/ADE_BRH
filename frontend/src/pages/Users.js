@@ -176,41 +176,43 @@ function Users() {
       {isAdmin ? (
         // Interface Admin - Liste des utilisateurs
         <>
-          <table className="min-w-full bg-white rounded-lg shadow">
-            <thead>
-              <tr className="bg-blue-600 text-white text-left">
-                <th className="p-3">Nom d'utilisateur</th>
-                <th className="p-3">Rôle</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Agence</th>
-                <th className="p-3 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100 w-full">
+            <table className="w-full border-collapse min-w-full">
+              <thead className="bg-blue-100 text-blue-800">
+                <tr>
+                  <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Nom d'utilisateur</th>
+                  <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Rôle</th>
+                  <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Email</th>
+                  <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Agence</th>
+                  <th className="py-3 px-6 text-center font-semibold text-sm">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
               {loading && (
-                <tr><td className="p-3" colSpan="5">Chargement…</td></tr>
+                <tr><td className="py-2 px-6 text-sm" colSpan="5">Chargement…</td></tr>
               )}
               {!loading && users.map((u, i) => (
-                <tr key={i} className="border-b hover:bg-gray-100">
-                  <td className="p-3">{u.username}</td>
-                  <td className="p-3">{u.role}</td>
-                  <td className="p-3">{u.email}</td>
-                  <td className="p-3">{u.agence || '-'}</td>
-                  <td className="p-3 text-center space-x-2">
-                    <button title="Modifier" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-blue-50" onClick={() => handleEditClick(u)}>
-                      <Pencil className="h-4 w-4 text-blue-600" />
+                <tr key={i} className="border-t hover:bg-blue-50">
+                  <td className="py-2 px-6 whitespace-nowrap text-sm">{u.username}</td>
+                  <td className="py-2 px-6 whitespace-nowrap text-sm">{u.role}</td>
+                  <td className="py-2 px-6 whitespace-nowrap text-sm">{u.email}</td>
+                  <td className="py-2 px-6 whitespace-nowrap text-sm">{u.agence || '-'}</td>
+                  <td className="py-2 px-6 text-center space-x-2">
+                    <button title="Modifier" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50" onClick={() => handleEditClick(u)}>
+                      <Pencil className="h-3.5 w-3.5 text-blue-600" />
                     </button>
-                    <button title="Supprimer" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-red-50" onClick={() => handleDeleteClick(u)}>
-                      <Trash2 className="h-4 w-4 text-red-600" />
+                    <button title="Supprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50" onClick={() => handleDeleteClick(u)}>
+                      <Trash2 className="h-3.5 w-3.5 text-red-600" />
                     </button>
-                    <button title="Imprimer" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-100" onClick={() => window.print()}>
-                      <Printer className="h-4 w-4 text-gray-700" />
+                    <button title="Imprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100" onClick={() => window.print()}>
+                      <Printer className="h-3.5 w-3.5 text-gray-700" />
                     </button>
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
 
           <UsersAddModal
             open={open}

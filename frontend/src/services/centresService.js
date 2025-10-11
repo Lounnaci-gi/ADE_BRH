@@ -1,24 +1,37 @@
 import api from './api';
+import authService from './authService';
 
 const centresService = {
   // Lister tous les centres
   list: () => {
-    return api.get('/centres');
+    const user = authService.getCurrentUser();
+    return api.get('/centres', { 
+      headers: { 'X-Role': user?.role || '' } 
+    });
   },
 
   // Créer un centre
   create: (centreData) => {
-    return api.post('/centres', centreData);
+    const user = authService.getCurrentUser();
+    return api.post('/centres', centreData, { 
+      headers: { 'X-Role': user?.role || '' } 
+    });
   },
 
   // Modifier un centre
   update: (id, centreData) => {
-    return api.put(`/centres/${id}`, centreData);
+    const user = authService.getCurrentUser();
+    return api.put(`/centres/${id}`, centreData, { 
+      headers: { 'X-Role': user?.role || '' } 
+    });
   },
 
   // Supprimer un centre
   remove: (id) => {
-    return api.delete(`/centres/${id}`);
+    const user = authService.getCurrentUser();
+    return api.delete(`/centres/${id}`, { 
+      headers: { 'X-Role': user?.role || '' } 
+    });
   }
 };
 

@@ -359,4 +359,55 @@ router.delete('/:id', (req, res) => {
     connection.connect();
 });
 
+// GET /api/agences/centres - Récupérer la liste des centres
+router.get('/centres', (req, res) => {
+    const connection = new Connection(config);
+    let hasResponded = false;
+
+    connection.on('connect', (err) => {
+        if (err) {
+            console.error('Erreur de connexion à la base de données:', err);
+            if (!hasResponded) {
+                hasResponded = true;
+                res.status(500).json({ message: 'Erreur de connexion à la base de données' });
+                connection.close();
+            }
+            return;
+        }
+
+        const query = 'SELECT CentreId, Nom_Centre FROM DIM_CENTRE ORDER BY Nom_Centre';
+        const request = new Request(query, (err) => {
+            if (err) {
+                console.error('Erreur lors de l\'exécution de la requête:', err);
+                if (!hasResponded) {
+                    hasResponded = true;
+                    res.status(500).json({ message: 'Erreur lors de la récupération des centres' });
+                    connection.close();
+                }
+            }
+        });
+
+        const centres = [];
+        request.on('row', (columns) => {
+            const centre = {};
+            columns.forEach((column) => {
+                centre[column.metadata.colName] = column.value;
+            });
+            centres.push(centre);
+        });
+
+        request.on('requestCompleted', () => {
+            if (!hasResponded) {
+                hasResponded = true;
+                res.json(centres);
+                connection.close();
+            }
+        });
+
+        connection.execSql(request);
+    });
+
+    connection.connect();
+});
+
 module.exports = router;

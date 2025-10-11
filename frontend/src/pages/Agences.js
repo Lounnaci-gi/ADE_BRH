@@ -18,10 +18,12 @@ export default function Agences() {
   // Charger la liste des agences
   const loadAgences = async () => {
     const data = await agenceService.list();
-    // Ajouter un numéro d'ordre à chaque agence
+    // Ajouter un numéro d'ordre à chaque agence et renommer les colonnes
     const agencesWithNumber = data.map((agence, index) => ({
       ...agence,
-      Numero: index + 1
+      Numero: index + 1,
+      Centre: agence.Nom_Centre,
+      Agence: agence.Nom_Agence
     }));
     setAgences(agencesWithNumber);
     // Déduire dynamiquement les colonnes à partir des objets retournés
@@ -34,11 +36,11 @@ export default function Agences() {
     // Ordonner: champs principaux d'abord, puis le reste trié alpha
     const preferred = [
       'Numero',
-      'Nom_Centre',
-      'Nom_Agence',
+      'Centre',
+      'Nom_Commune',
+      'Agence',
       'Adresse',
       'Telephone',
-      'Email',
       'Fax',
       'NIF',
       'NCI',
@@ -51,7 +53,7 @@ export default function Agences() {
       ...keys.filter((k) => !preferredSet.has(k)).sort((a, b) => a.localeCompare(b))
     ];
     // Masquer certains champs
-    const hidden = new Set(['NIF', 'NCI', 'CreatedAt', 'Nom_Banque', 'Compte_Bancaire', 'FK_Centre', 'AgenceId']);
+    const hidden = new Set(['NIF', 'NCI', 'CreatedAt', 'Nom_Banque', 'Compte_Bancaire', 'FK_Centre', 'FK_Commune', 'AgenceId', 'Email', 'Nom_Centre', 'Nom_Agence']);
     const ordered = orderedAll.filter((k) => !hidden.has(k));
     setColumns(ordered);
   };
