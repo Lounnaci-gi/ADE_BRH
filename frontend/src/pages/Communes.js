@@ -107,75 +107,75 @@ const Communes = () => {
 
   return (
     <div className="p-6 text-gray-800 w-full min-h-screen">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-2">
-          <MapPin className="h-6 w-6 text-blue-600" />
-          Gestion des Communes
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Gérez les communes de votre organisation
-        </p>
-      </div>
-
-      <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100 w-full">
-        <div className="p-4 border-b border-blue-100">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-              Liste des Communes ({communes.length})
-            </h2>
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
+                <MapPin className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Gestion des Communes
+                </h1>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">
+                  Gérez les communes de votre organisation
+                </p>
+              </div>
+            </div>
             <button
               onClick={handleCreate}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition inline-flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center gap-2 font-medium"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
               Nouvelle Commune
             </button>
           </div>
         </div>
 
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">Chargement...</p>
-          </div>
-        ) : communes.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-            <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p>Aucune commune trouvée</p>
-            <p className="text-sm">Cliquez sur "Ajouter une commune" pour commencer</p>
-          </div>
-        ) : (
+        {/* Table */}
+        <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100 w-full">
           <table className="w-full border-collapse min-w-full">
             <thead className="bg-blue-100 text-blue-800">
               <tr>
-                {columns.map((col) => (
-                  <th key={col} className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">
-                    {col}
-                  </th>
-                ))}
+                <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">N°</th>
+                <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Commune</th>
+                <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Agence</th>
+                <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Date de création</th>
                 <th className="py-3 px-6 text-center font-semibold text-sm">Actions</th>
               </tr>
             </thead>
-              <tbody>
-                {communes.map((row) => (
-                  <tr key={row.CommuneId || JSON.stringify(row)} className="border-t hover:bg-blue-50">
-                    {columns.map((col) => (
-                      <td key={col} className="py-2 px-6 whitespace-nowrap text-sm">
-                        {String(row[col] ?? '')}
-                      </td>
-                    ))}
+            <tbody>
+              {communes.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Aucune commune trouvée</p>
+                    <p className="text-sm">Cliquez sur "Nouvelle Commune" pour commencer</p>
+                  </td>
+                </tr>
+              ) : (
+                communes.map((commune) => (
+                  <tr key={commune.CommuneId} className="border-t hover:bg-blue-50">
+                    <td className="py-2 px-6 whitespace-nowrap text-sm">{commune.Numero}</td>
+                    <td className="py-2 px-6 whitespace-nowrap text-sm">{commune.Nom_Commune}</td>
+                    <td className="py-2 px-6 whitespace-nowrap text-sm">{commune.Nom_Agence}</td>
+                    <td className="py-2 px-6 whitespace-nowrap text-sm">
+                      {commune.CreatedAt ? new Date(commune.CreatedAt).toLocaleDateString('fr-FR') : '-'}
+                    </td>
                     <td className="py-2 px-6 text-center space-x-2">
                       <button
                         title="Modifier"
                         className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
-                        onClick={() => handleEdit(row)}
+                        onClick={() => handleEdit(commune)}
                       >
                         <Pencil className="h-3.5 w-3.5 text-blue-600" />
                       </button>
                       <button
                         title="Supprimer"
                         className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
-                        onClick={() => handleDelete(row)}
+                        onClick={() => handleDelete(commune)}
                       >
                         <Trash2 className="h-3.5 w-3.5 text-red-600" />
                       </button>
@@ -188,20 +188,21 @@ const Communes = () => {
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {modalOpen && (
+          <CommunesAddModal
+            isOpen={modalOpen}
+            onClose={handleModalClose}
+            onSubmit={handleModalSubmit}
+            initialValues={editingCommune}
+          />
         )}
       </div>
-
-      {modalOpen && (
-        <CommunesAddModal
-          isOpen={modalOpen}
-          onClose={handleModalClose}
-          onSubmit={handleModalSubmit}
-          initialValues={editingCommune}
-        />
-      )}
     </div>
   );
 };
