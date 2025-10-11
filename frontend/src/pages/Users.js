@@ -182,18 +182,20 @@ function Users() {
                 <th className="p-3">Nom d'utilisateur</th>
                 <th className="p-3">Rôle</th>
                 <th className="p-3">Email</th>
+                <th className="p-3">Agence</th>
                 <th className="p-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td className="p-3" colSpan="4">Chargement…</td></tr>
+                <tr><td className="p-3" colSpan="5">Chargement…</td></tr>
               )}
               {!loading && users.map((u, i) => (
                 <tr key={i} className="border-b hover:bg-gray-100">
                   <td className="p-3">{u.username}</td>
                   <td className="p-3">{u.role}</td>
                   <td className="p-3">{u.email}</td>
+                  <td className="p-3">{u.agence || '-'}</td>
                   <td className="p-3 text-center space-x-2">
                     <button title="Modifier" className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-blue-50" onClick={() => handleEditClick(u)}>
                       <Pencil className="h-4 w-4 text-blue-600" />

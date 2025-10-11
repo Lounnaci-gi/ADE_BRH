@@ -42,14 +42,16 @@ router.get('/', (req, res) => {
       // Admin voit tous les utilisateurs
       query = `
         SELECT 
-          UtilisateurId,
-          Nom_Utilisateur AS username,
-          [Role] AS role,
-          Email AS email,
-          FK_Agence AS agenceId
-        FROM dbo.DIM_UTILISATEUR
-        WHERE IsActive = 1
-        ORDER BY Nom_Utilisateur
+          u.UtilisateurId,
+          u.Nom_Utilisateur AS username,
+          u.[Role] AS role,
+          u.Email AS email,
+          u.FK_Agence AS agenceId,
+          a.Nom_Agence AS agence
+        FROM dbo.DIM_UTILISATEUR u
+        LEFT JOIN dbo.DIM_AGENCE a ON u.FK_Agence = a.AgenceId
+        WHERE u.IsActive = 1
+        ORDER BY u.Nom_Utilisateur
       `;
       request = new Request(query, (err) => {
         connection.close();
