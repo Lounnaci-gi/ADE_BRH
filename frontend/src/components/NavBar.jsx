@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, ChevronDown, User, Settings as SettingsIcon, Shield, Crown, Sparkles, FolderOpen, BarChart3 } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, ChevronDown, User, Settings as SettingsIcon, Shield, Crown, Sparkles, FolderOpen, BarChart3, Target } from 'lucide-react';
 import notificationsService from '../services/notificationsService';
 import ThemeToggle from './ThemeToggle';
 import authService from '../services/authService';
@@ -87,6 +87,9 @@ const NavBar = () => {
           </NavLink>
           <NavLink to="/kpi" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
             <BarChart3 className="h-4 w-4" /> KPIs
+          </NavLink>
+          <NavLink to="/objectives" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
+            <Target className="h-4 w-4" /> Objectifs
           </NavLink>
         </nav>
 
@@ -187,6 +190,9 @@ const NavBar = () => {
             </NavLink>
             <NavLink onClick={() => setOpen(false)} to="/kpi" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-3 rounded-xl font-medium`}>
               <BarChart3 className="h-4 w-4" /> KPIs
+            </NavLink>
+            <NavLink onClick={() => setOpen(false)} to="/objectives" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-3 rounded-xl font-medium`}>
+              <Target className="h-4 w-4" /> Objectifs
             </NavLink>
           </div>
         </div>

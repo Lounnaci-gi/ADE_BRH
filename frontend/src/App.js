@@ -15,6 +15,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Categories from './pages/Categories';
 import KPI from './pages/KPI';
+import Objectives from './pages/Objectives';
 
 // 🔒 Composant de route protégée
 const PrivateRoute = ({ children }) => {
@@ -95,6 +96,16 @@ function App() {
           element={
             <PrivateRoute>
               <KPI />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 🎯 Gestion des objectifs */}
+        <Route
+          path="/objectives"
+          element={
+            <PrivateRoute>
+              <Objectives />
             </PrivateRoute>
           }
         />
