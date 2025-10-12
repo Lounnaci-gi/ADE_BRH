@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Printer, MapPin } from 'lucide-react';
 import communesService from '../services/communesService';
 import CommunesAddModal from '../components/CommunesAddModal';
 import { toast } from 'react-hot-toast';
+import authService from '../services/authService';
 
 const Communes = () => {
   const [communes, setCommunes] = useState([]);
@@ -10,6 +11,8 @@ const Communes = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCommune, setEditingCommune] = useState(null);
   const [columns, setColumns] = useState([]);
+  const user = authService.getCurrentUser();
+  const isAdmin = (user?.role || '').toString() === 'Administrateur';
 
   // Charger la liste des communes
   const loadCommunes = async () => {
@@ -71,11 +74,15 @@ const Communes = () => {
   };
 
   const handleDelete = async (commune) => {
+    if (!isAdmin) {
+      toast.error('Accès refusé. Rôle administrateur requis.');
+      return;
+    }
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer la commune "${commune.Nom_Commune}" ?`)) {
       try {
         await communesService.remove(commune.CommuneId);
         toast.success('Commune supprimée avec succès');
-        loadCommunes();
+        await loadCommunes();
       } catch (error) {
         console.error('Erreur lors de la suppression:', error);
         toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
@@ -165,20 +172,24 @@ const Communes = () => {
                       {commune.CreatedAt ? new Date(commune.CreatedAt).toLocaleDateString('fr-FR') : '-'}
                     </td>
                     <td className="py-2 px-6 text-center space-x-2">
-                      <button
-                        title="Modifier"
-                        className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
-                        onClick={() => handleEdit(commune)}
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-blue-600" />
-                      </button>
-                      <button
-                        title="Supprimer"
-                        className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
-                        onClick={() => handleDelete(commune)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          title="Modifier"
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
+                          onClick={() => handleEdit(commune)}
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-blue-600" />
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <button
+                          title="Supprimer"
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
+                          onClick={() => handleDelete(commune)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                        </button>
+                      )}
                       <button
                         title="Imprimer"
                         className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100"
