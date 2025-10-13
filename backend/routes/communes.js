@@ -326,20 +326,27 @@ router.delete('/:id', requireAdmin, (req, res) => {
       SELECT @exists = COUNT(1) FROM DIM_COMMUNE WHERE CommuneId = @CommuneId;
       IF (@exists = 0)
       BEGIN
-        SELECT CAST('NOT_FOUND' as nvarchar(20)) as Status, CAST(0 as int) as RefCount;
+        SELECT CAST('NOT_FOUND' as nvarchar(20)) as Status, CAST(0 as int) as RefCount, CAST(NULL as nvarchar(2048)) as ErrorMessage;
         RETURN;
       END
 
-      DECLARE @ref INT = 0;
-      SELECT @ref = COUNT(1) FROM DIM_AGENCE WHERE FK_Commune = @CommuneId;
-      IF (@ref > 0)
-      BEGIN
-        SELECT CAST('HAS_REFERENCES' as nvarchar(20)) as Status, @ref as RefCount;
-        RETURN;
-      END
-
-      DELETE FROM DIM_COMMUNE WHERE CommuneId = @CommuneId;
-      SELECT CAST('DELETED' as nvarchar(20)) as Status, CAST(0 as int) as RefCount;
+      BEGIN TRY
+        DELETE FROM DIM_COMMUNE WHERE CommuneId = @CommuneId;
+        SELECT CAST('DELETED' as nvarchar(20)) as Status, CAST(0 as int) as RefCount, CAST(NULL as nvarchar(2048)) as ErrorMessage;
+      END TRY
+      BEGIN CATCH
+        DECLARE @err INT = ERROR_NUMBER();
+        DECLARE @msg NVARCHAR(2048) = ERROR_MESSAGE();
+        IF (@err = 547)
+        BEGIN
+          -- Violation de contrainte FK
+          SELECT CAST('FK_CONSTRAINT' as nvarchar(20)) as Status, CAST(0 as int) as RefCount, @msg as ErrorMessage;
+        END
+        ELSE
+        BEGIN
+          SELECT CAST('ERROR' as nvarchar(20)) as Status, CAST(0 as int) as RefCount, @msg as ErrorMessage;
+        END
+      END CATCH
     `;
 
     const request = new Request(batch, (err) => {
@@ -357,10 +364,12 @@ router.delete('/:id', requireAdmin, (req, res) => {
 
     let status = 'UNKNOWN';
     let refCount = 0;
+    let errorMessage = null;
     request.on('row', (columns) => {
       columns.forEach((c) => {
         if (c.metadata.colName === 'Status') status = String(c.value);
         if (c.metadata.colName === 'RefCount') refCount = c.value || 0;
+        if (c.metadata.colName === 'ErrorMessage') errorMessage = c.value ? String(c.value) : null;
       });
     });
 
@@ -369,12 +378,12 @@ router.delete('/:id', requireAdmin, (req, res) => {
       hasResponded = true;
       if (status === 'NOT_FOUND') {
         res.status(404).json({ message: 'Commune non trouvée' });
-      } else if (status === 'HAS_REFERENCES') {
-        res.status(409).json({ message: 'Impossible de supprimer la commune: des agences y sont rattachées', references: refCount });
+      } else if (status === 'FK_CONSTRAINT') {
+        res.status(409).json({ message: 'Impossible de supprimer la commune: des données y sont rattachées', detail: errorMessage });
       } else if (status === 'DELETED') {
         res.json({ message: 'Commune supprimée avec succès' });
       } else {
-        res.status(500).json({ message: 'Erreur inconnue lors de la suppression' });
+        res.status(500).json({ message: 'Erreur lors de la suppression', detail: errorMessage });
       }
       connection.close();
     });
