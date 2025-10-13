@@ -49,6 +49,17 @@ const communesService = {
   async getAgences() {
     const res = await api.get('/communes/agences');
     return res.data || [];
+  },
+
+  async getCount() {
+    const user = authService.getCurrentUser();
+    const roleHeader = user?.role === 'Administrateur'
+      ? 'Administrateur'
+      : (user?.role?.toLowerCase?.().includes('admin') ? 'Administrateur' : (user?.role || ''));
+    const response = await api.get('/communes/count', {
+      headers: { 'X-Role': roleHeader }
+    });
+    return response.data.count;
   }
 };
 

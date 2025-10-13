@@ -66,13 +66,9 @@ router.get('/', (req, res) => {
             FROM DIM_AGENCE a
             LEFT JOIN DIM_CENTRE c ON a.FK_Centre = c.CentreId
         `;
-        if (role !== 'Administrateur') {
-            if (!userAgenceId) {
-                connection.close();
-                return res.status(403).json({ message: 'Agence de l\'utilisateur non fournie' });
-            }
-            query += ` WHERE a.AgenceId = ${userAgenceId}`;
-        }
+        
+        // Pour les utilisateurs non-admin, afficher toutes les agences mais sans possibilité de modification
+        // (la restriction sera appliquée côté frontend et dans les routes POST/PUT/DELETE)
         query += ' ORDER BY a.AgenceId';
 
         const request = new Request(query, (err, rowCount) => {
@@ -408,6 +404,39 @@ router.get('/centres', (req, res) => {
     });
 
     connection.connect();
+});
+
+// GET /api/agences/count - Nombre total d'agences
+router.get('/count', (req, res) => {
+  const role = getRole(req);
+  
+  if (role !== 'Administrateur') {
+    return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent consulter les agences.' });
+  }
+
+  const connection = new Connection(getConfig());
+
+  connection.on('connect', (err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+    }
+
+    const query = 'SELECT COUNT(*) as count FROM dbo.DIM_AGENCE';
+    const request = new Request(query, (err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Erreur lors de l\'exécution de la requête', error: err.message });
+      }
+    });
+
+    request.on('row', (columns) => {
+      const count = columns[0].value;
+      res.json({ count });
+    });
+
+    connection.execSql(request);
+  });
+
+  connection.connect();
 });
 
 module.exports = router;

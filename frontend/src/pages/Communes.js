@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Printer, MapPin } from 'lucide-react';
 import communesService from '../services/communesService';
 import CommunesAddModal from '../components/CommunesAddModal';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import authService from '../services/authService';
 import { toast } from 'react-hot-toast';
 
 const Communes = () => {
@@ -14,6 +15,9 @@ const Communes = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmProps, setConfirmProps] = useState({});
   const [selectedCommune, setSelectedCommune] = useState(null);
+  const user = authService.getCurrentUser();
+  const isAdmin = (user?.role || '').toString() === 'Administrateur';
+  const canEdit = isAdmin; // Seuls les admins peuvent modifier/supprimer
 
   // Charger la liste des communes
   const loadCommunes = async () => {
@@ -149,6 +153,8 @@ const Communes = () => {
             <button
               onClick={handleCreate}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center gap-2 font-medium"
+              disabled={!canEdit}
+              style={{ opacity: canEdit ? 1 : 0.5 }}
             >
               <Plus className="h-5 w-5" />
               Nouvelle Commune
@@ -187,20 +193,24 @@ const Communes = () => {
                       {commune.CreatedAt ? new Date(commune.CreatedAt).toLocaleDateString('fr-FR') : '-'}
                     </td>
                     <td className="py-2 px-6 text-center space-x-2">
-                      <button
-                        title="Modifier"
-                        className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
-                        onClick={() => handleEdit(commune)}
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-blue-600" />
-                      </button>
-                      <button
-                        title="Supprimer"
-                        className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
-                        onClick={() => askDelete(commune)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                      </button>
+                      {canEdit && (
+                        <>
+                          <button
+                            title="Modifier"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
+                            onClick={() => handleEdit(commune)}
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-blue-600" />
+                          </button>
+                          <button
+                            title="Supprimer"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
+                            onClick={() => askDelete(commune)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                          </button>
+                        </>
+                      )}
                       <button
                         title="Imprimer"
                         className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100"

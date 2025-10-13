@@ -72,9 +72,17 @@ function App() {
               }
             />
 
-        {/* ✅ Route pour la gestion des agences */}
+        {/* ✅ Routes pour la gestion des agences */}
         <Route
           path="/dashboard/agences"
+          element={
+            <PrivateRoute>
+              <Agences />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/agences"
           element={
             <PrivateRoute>
               <Agences />

@@ -240,4 +240,37 @@ router.delete('/:id', (req, res) => {
   connection.connect();
 });
 
+// GET /api/centres/count - Nombre total de centres
+router.get('/count', (req, res) => {
+  const role = getRole(req);
+  
+  if (role !== 'Administrateur') {
+    return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent consulter les centres.' });
+  }
+
+  const connection = new Connection(getConfig());
+
+  connection.on('connect', (err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+    }
+
+    const query = 'SELECT COUNT(*) as count FROM dbo.DIM_CENTRE';
+    const request = new Request(query, (err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Erreur lors de l\'exécution de la requête', error: err.message });
+      }
+    });
+
+    request.on('row', (columns) => {
+      const count = columns[0].value;
+      res.json({ count });
+    });
+
+    connection.execSql(request);
+  });
+
+  connection.connect();
+});
+
 module.exports = router;

@@ -3,6 +3,7 @@ import { Pencil, Trash2, Printer, Plus, Building2, MapPin, Phone, Mail, FileText
 import centresService from '../services/centresService';
 import CentresAddModal from '../components/CentresAddModal';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import authService from '../services/authService';
 
 const Centres = () => {
   const [centres, setCentres] = useState([]);
@@ -13,6 +14,9 @@ const Centres = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmProps, setConfirmProps] = useState({});
   const [selectedCentre, setSelectedCentre] = useState(null);
+  const user = authService.getCurrentUser();
+  const isAdmin = (user?.role || '').toString() === 'Administrateur';
+  const canEdit = isAdmin; // Seuls les admins peuvent modifier/supprimer
 
   useEffect(() => {
     loadCentres();
@@ -125,6 +129,8 @@ const Centres = () => {
             <button
               onClick={handleCreate}
               className="flex items-center space-x-2 bg-water-600 hover:bg-water-700 text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl"
+              disabled={!canEdit}
+              style={{ opacity: canEdit ? 1 : 0.5 }}
             >
               <Plus className="h-5 w-5" />
               <span>Nouveau Centre</span>
@@ -170,20 +176,24 @@ const Centres = () => {
                       <td className="py-2 px-6 whitespace-nowrap text-sm">{centre.Telephone}</td>
                       <td className="py-2 px-6 whitespace-nowrap text-sm">{centre.Fax || '-'}</td>
                       <td className="py-2 px-6 text-center space-x-2">
-                        <button
-                          title="Modifier"
-                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
-                          onClick={() => handleEdit(centre)}
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-blue-600" />
-                        </button>
-                        <button
-                          title="Supprimer"
-                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
-                        onClick={() => askDelete(centre)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                        </button>
+                        {canEdit && (
+                          <>
+                            <button
+                              title="Modifier"
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
+                              onClick={() => handleEdit(centre)}
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-blue-600" />
+                            </button>
+                            <button
+                              title="Supprimer"
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
+                              onClick={() => askDelete(centre)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                            </button>
+                          </>
+                        )}
                         <button
                           title="Imprimer"
                           className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100"

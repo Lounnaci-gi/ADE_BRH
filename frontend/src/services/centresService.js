@@ -32,6 +32,14 @@ const centresService = {
     return api.delete(`/centres/${id}`, { 
       headers: { 'X-Role': user?.role || '' } 
     });
+  },
+
+  // Obtenir le nombre total de centres
+  getCount: () => {
+    const user = authService.getCurrentUser();
+    return api.get('/centres/count', { 
+      headers: { 'X-Role': user?.role || '' } 
+    });
   }
 };
 
