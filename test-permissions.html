@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test des Permissions</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test des Permissions - Utilisateurs Standard</h1>
+    
+    <div class="test-section">
+        <h3>Test de Lecture (GET) - Devrait fonctionner pour tous</h3>
+        <button onclick="testReadAccess()">Tester l'accès en lecture</button>
+        <div id="read-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test d'Écriture (POST) - Devrait échouer pour Standard</h3>
+        <button onclick="testWriteAccess()">Tester l'accès en écriture</button>
+        <div id="write-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Dashboard Count - Devrait fonctionner pour tous</h3>
+        <button onclick="testDashboardCounts()">Tester les compteurs Dashboard</button>
+        <div id="dashboard-results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        async function testReadAccess() {
+            const resultsDiv = document.getElementById('read-results');
+            resultsDiv.innerHTML = 'Test en cours...';
+            
+            const tests = [
+                { name: 'Centres', url: '/centres' },
+                { name: 'Agences', url: '/agences' },
+                { name: 'Communes', url: '/communes' }
+            ];
+            
+            let results = '<h4>Résultats des tests de lecture :</h4>';
+            
+            for (const test of tests) {
+                try {
+                    const response = await fetch(`${API_BASE}${test.url}`, {
+                        headers: {
+                            'X-Role': 'Standard',
+                            'X-User-Agence': '1'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        results += `<div class="success">✅ ${test.name}: Succès (${data.length} éléments)</div>`;
+                    } else {
+                        results += `<div class="error">❌ ${test.name}: Échec (${response.status})</div>`;
+                    }
+                } catch (error) {
+                    results += `<div class="error">❌ ${test.name}: Erreur - ${error.message}</div>`;
+                }
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+        
+        async function testWriteAccess() {
+            const resultsDiv = document.getElementById('write-results');
+            resultsDiv.innerHTML = 'Test en cours...';
+            
+            const tests = [
+                { name: 'Centres', url: '/centres', data: { nom_centre: 'Test Centre', adresse: 'Test Adresse', telephone: '123456789' } },
+                { name: 'Agences', url: '/agences', data: { Nom_Agence: 'Test Agence', FK_Centre: 1, Adresse: 'Test Adresse', Telephone: '123456789' } },
+                { name: 'Communes', url: '/communes', data: { Nom_Commune: 'Test Commune', FK_Agence: 1 } }
+            ];
+            
+            let results = '<h4>Résultats des tests d\'écriture :</h4>';
+            
+            for (const test of tests) {
+                try {
+                    const response = await fetch(`${API_BASE}${test.url}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Role': 'Standard',
+                            'X-User-Agence': '1'
+                        },
+                        body: JSON.stringify(test.data)
+                    });
+                    
+                    if (response.status === 403) {
+                        results += `<div class="success">✅ ${test.name}: Accès refusé comme attendu (${response.status})</div>`;
+                    } else {
+                        results += `<div class="error">❌ ${test.name}: Accès autorisé (ne devrait pas l'être) (${response.status})</div>`;
+                    }
+                } catch (error) {
+                    results += `<div class="error">❌ ${test.name}: Erreur - ${error.message}</div>`;
+                }
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+        
+        async function testDashboardCounts() {
+            const resultsDiv = document.getElementById('dashboard-results');
+            resultsDiv.innerHTML = 'Test en cours...';
+            
+            const tests = [
+                { name: 'Centres', url: '/centres/count' },
+                { name: 'Agences', url: '/agences/count' },
+                { name: 'Communes', url: '/communes/count' }
+            ];
+            
+            let results = '<h4>Résultats des tests de comptage :</h4>';
+            
+            for (const test of tests) {
+                try {
+                    const response = await fetch(`${API_BASE}${test.url}`, {
+                        headers: {
+                            'X-Role': 'Standard',
+                            'X-User-Agence': '1'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        results += `<div class="success">✅ ${test.name}: Succès (${data.count} éléments)</div>`;
+                    } else {
+                        results += `<div class="error">❌ ${test.name}: Échec (${response.status})</div>`;
+                    }
+                } catch (error) {
+                    results += `<div class="error">❌ ${test.name}: Erreur - ${error.message}</div>`;
+                }
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+    </script>
+</body>
+</html>

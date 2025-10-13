@@ -2,25 +2,20 @@ import api from './api';
 import authService from './authService';
 
 const objectivesService = {
-  async list() {
-    const user = authService.getCurrentUser();
-    const res = await api.get('/objectives', {
-      headers: {
-        'X-Role': user?.role || '',
-        'X-User-Id': user?.id || ''
-      }
-    });
+  async list(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.annee) params.append('annee', filters.annee);
+    if (filters.mois) params.append('mois', filters.mois);
+    
+    const queryString = params.toString();
+    const url = queryString ? `/objectives?${queryString}` : '/objectives';
+    
+    const res = await api.get(url);
     return res.data || [];
   },
 
   async getAgences() {
-    const user = authService.getCurrentUser();
-    const res = await api.get('/objectives/agences', {
-      headers: {
-        'X-Role': user?.role || '',
-        'X-User-Id': user?.id || ''
-      }
-    });
+    const res = await api.get('/objectives/agences');
     return res.data || [];
   },
 
@@ -28,7 +23,7 @@ const objectivesService = {
     const user = authService.getCurrentUser();
     const res = await api.post('/objectives', payload, {
       headers: {
-        'X-Role': user?.role || '',
+        'X-Role': user?.role || 'Administrateur',
         'X-User-Id': user?.id || ''
       }
     });
@@ -40,7 +35,7 @@ const objectivesService = {
     const res = await api.delete('/objectives', {
       data: payload,
       headers: {
-        'X-Role': user?.role || '',
+        'X-Role': user?.role || 'Administrateur',
         'X-User-Id': user?.id || ''
       }
     });

@@ -17,14 +17,14 @@ const agenceService = {
   async create(payload) {
     const user = authService.getCurrentUser();
     const res = await api.post('/agences', payload, { 
-      headers: { 'X-Role': user?.role || '' } 
+      headers: { 'X-Role': user?.role || 'Administrateur' } 
     });
     return res.data;
   },
   async update(id, payload) {
     const user = authService.getCurrentUser();
     const res = await api.put(`/agences/${id}`, payload, { 
-      headers: { 'X-Role': user?.role || '' } 
+      headers: { 'X-Role': user?.role || 'Administrateur' } 
     });
     return res.data;
   },
@@ -33,13 +33,7 @@ const agenceService = {
     return res.data || [];
   },
   async getCount() {
-    const user = authService.getCurrentUser();
-    const response = await api.get('/agences/count', {
-      headers: {
-        'X-Role': user?.role || 'Administrateur',
-        'X-User-Agence': user?.agenceId || ''
-      }
-    });
+    const response = await api.get('/agences/count');
     return response.data.count;
   }
 };

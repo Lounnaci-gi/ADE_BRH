@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test des Objectifs</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test des Objectifs</h1>
+    
+    <div class="test-section">
+        <h3>Test de l'API Objectifs</h3>
+        <button onclick="testObjectivesAPI()">Tester l'API Objectifs</button>
+        <div id="objectives-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test de l'API Agences pour Objectifs</h3>
+        <button onclick="testAgencesAPI()">Tester l'API Agences</button>
+        <div id="agences-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test de Sauvegarde d'Objectif</h3>
+        <button onclick="testSaveObjective()">Tester la Sauvegarde</button>
+        <div id="save-results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        async function testObjectivesAPI() {
+            const resultsDiv = document.getElementById('objectives-results');
+            resultsDiv.innerHTML = 'Test en cours...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/objectives`, {
+                    headers: {
+                        'X-Role': 'Administrateur',
+                        'X-User-Id': '1'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML = `
+                        <div class="success">✅ API Objectifs: Succès (${data.length} objectifs)</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultsDiv.innerHTML = `
+                        <div class="error">❌ API Objectifs: Échec (${response.status})</div>
+                        <pre>${error}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="error">❌ API Objectifs: Erreur - ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function testAgencesAPI() {
+            const resultsDiv = document.getElementById('agences-results');
+            resultsDiv.innerHTML = 'Test en cours...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/objectives/agences`, {
+                    headers: {
+                        'X-Role': 'Administrateur',
+                        'X-User-Id': '1'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML = `
+                        <div class="success">✅ API Agences: Succès (${data.length} agences)</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultsDiv.innerHTML = `
+                        <div class="error">❌ API Agences: Échec (${response.status})</div>
+                        <pre>${error}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="error">❌ API Agences: Erreur - ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function testSaveObjective() {
+            const resultsDiv = document.getElementById('save-results');
+            resultsDiv.innerHTML = 'Test en cours...';
+            
+            const testData = {
+                agenceId: 1,
+                annee: 2025,
+                mois: 1,
+                objectif_Coupures: 10,
+                objectif_Dossiers_Juridiques: 5,
+                objectif_MisesEnDemeure_Envoyees: 3,
+                objectif_Relances_Envoyees: 8
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/objectives`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Role': 'Administrateur',
+                        'X-User-Id': '1'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML = `
+                        <div class="success">✅ Sauvegarde: Succès</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultsDiv.innerHTML = `
+                        <div class="error">❌ Sauvegarde: Échec (${response.status})</div>
+                        <pre>${error}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="error">❌ Sauvegarde: Erreur - ${error.message}</div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

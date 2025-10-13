@@ -5,6 +5,9 @@ const router = express.Router();
 
 // La config est gérée par utils/db
 
+// Helper pour obtenir le rôle
+const getRole = (req) => (req.headers['x-role'] || '').toString();
+
 // Middleware pour vérifier le rôle administrateur
 const requireAdmin = (req, res, next) => {
   const roleHeader = (req.headers['x-role'] || '').toString();
@@ -14,8 +17,15 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-// GET /api/communes - Lister toutes les communes
+// GET /api/communes - Lister toutes les communes (lecture pour tous les utilisateurs connectés)
 router.get('/', async (req, res) => {
+  const roleHeader = (req.headers['x-role'] || '').toString();
+  
+  // Permettre la lecture pour tous les utilisateurs connectés (Administrateur et Standard)
+  if (!roleHeader || (roleHeader !== 'Administrateur' && roleHeader !== 'Standard')) {
+    return res.status(403).json({ message: 'Accès refusé. Connexion requise.' });
+  }
+
   try {
     const rows = await db.query(`
       SELECT c.CommuneId, c.Nom_Commune, c.CreatedAt, a.Nom_Agence, a.AgenceId
@@ -209,12 +219,13 @@ router.get('/agences', async (req, res) => {
   }
 });
 
-// GET /api/communes/count - Nombre total de communes
+// GET /api/communes/count - Nombre total de communes (lecture pour tous les utilisateurs connectés)
 router.get('/count', (req, res) => {
   const role = getRole(req);
   
-  if (role !== 'Administrateur') {
-    return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent consulter les communes.' });
+  // Permettre la lecture pour tous les utilisateurs connectés (Administrateur et Standard)
+  if (!role || (role !== 'Administrateur' && role !== 'Standard')) {
+    return res.status(403).json({ message: 'Accès refusé. Connexion requise.' });
   }
 
   const connection = new Connection(getConfig());

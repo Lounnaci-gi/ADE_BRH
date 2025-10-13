@@ -8,9 +8,14 @@ function Objectives() {
   const [objectives, setObjectives] = useState([]);
   const [agences, setAgences] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [toast, setToast] = useState({ open: false, type: 'success', message: '' });
   const [showModal, setShowModal] = useState(false);
   const [editingObjective, setEditingObjective] = useState(null);
+  const [filters, setFilters] = useState({
+    annee: new Date().getFullYear(),
+    mois: new Date().getMonth() + 1
+  });
   const [formData, setFormData] = useState({
     agenceId: '',
     annee: new Date().getFullYear(),
@@ -24,38 +29,57 @@ function Objectives() {
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
 
+  // Chargement initial
   useEffect(() => {
     if (isAdmin) {
-      loadObjectives();
-      loadAgences();
+      loadData();
     }
   }, [isAdmin, user]);
 
-  const loadObjectives = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await objectivesService.list();
-      setObjectives(data);
+      setError(null);
+      
+      // Charger les données en parallèle avec filtres
+      const [objectivesData, agencesData] = await Promise.all([
+        objectivesService.list(filters),
+        objectivesService.getAgences()
+      ]);
+      
+      setObjectives(objectivesData);
+      setAgences(agencesData);
     } catch (e) {
-      console.error('Erreur lors du chargement des objectifs:', e);
-      setToast({ open: true, type: 'error', message: 'Erreur lors du chargement des objectifs' });
+      console.error('Erreur lors du chargement des données:', e);
+      setError('Erreur lors du chargement des données');
+      setToast({ open: true, type: 'error', message: 'Erreur lors du chargement des données' });
     } finally {
       setLoading(false);
     }
   };
 
-  const loadAgences = async () => {
-    try {
-      const data = await objectivesService.getAgences();
-      setAgences(data);
-    } catch (e) {
-      console.error('Erreur lors du chargement des agences:', e);
-      setToast({ open: true, type: 'error', message: 'Erreur lors du chargement des agences' });
-    }
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
+
+  // Debounce pour éviter trop de requêtes
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    const timeoutId = setTimeout(() => {
+      loadData();
+    }, 300); // Attendre 300ms après le dernier changement
+
+    return () => clearTimeout(timeoutId);
+  }, [filters.annee, filters.mois]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    console.log('Form submission started with data:', formData);
     
     // Validation
     if (!formData.agenceId) {
@@ -79,7 +103,11 @@ function Objectives() {
         objectif_Relances_Envoyees: formData.objectif_Relances_Envoyees ? parseInt(formData.objectif_Relances_Envoyees) : null
       };
 
-      await objectivesService.save(payload);
+      console.log('Sending payload to API:', payload);
+      
+      const result = await objectivesService.save(payload);
+      console.log('API response:', result);
+      
       setToast({ open: true, type: 'success', message: 'Objectif sauvegardé avec succès' });
       
       setShowModal(false);
@@ -93,8 +121,9 @@ function Objectives() {
         objectif_MisesEnDemeure_Envoyees: '',
         objectif_Relances_Envoyees: ''
       });
-      await loadObjectives();
+      await loadData();
     } catch (e) {
+      console.error('Error saving objective:', e);
       const msg = e?.response?.data?.message || 'Une erreur est survenue';
       setToast({ open: true, type: 'error', message: msg });
     }
@@ -126,7 +155,7 @@ function Objectives() {
         mois: objective.Mois
       });
       setToast({ open: true, type: 'success', message: 'Objectifs supprimés avec succès' });
-      await loadObjectives();
+      await loadData();
     } catch (e) {
       const msg = e?.response?.data?.message || 'Une erreur est survenue';
       setToast({ open: true, type: 'error', message: msg });
@@ -185,12 +214,117 @@ function Objectives() {
         </button>
       </div>
 
+      {/* Filtre temporel moderne */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-800">Filtre Temporel</h3>
+          </div>
+          <div className="flex-1 h-px bg-gradient-to-r from-blue-200 to-transparent"></div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Année
+            </label>
+            <select
+              value={filters.annee}
+              onChange={(e) => handleFilterChange('annee', parseInt(e.target.value))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+            >
+              {Array.from({ length: 11 }, (_, i) => 2020 + i).map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Mois
+            </label>
+            <select
+              value={filters.mois}
+              onChange={(e) => handleFilterChange('mois', parseInt(e.target.value))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                <option key={month} value={month}>
+                  {getMonthName(month)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                const now = new Date();
+                setFilters({
+                  annee: now.getFullYear(),
+                  mois: now.getMonth() + 1
+                });
+              }}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-3 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg font-medium"
+            >
+              📅 Période Actuelle
+            </button>
+          </div>
+        </div>
+
+        {/* Indicateur de filtrage actif */}
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-2 text-blue-800">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-sm font-medium">
+              Affichage des objectifs pour : <strong>{getMonthName(filters.mois)} {filters.annee}</strong>
+            </span>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h3 className="text-lg font-semibold text-red-800 mb-2">Erreur de chargement</h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={loadData}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition"
+          >
+            Réessayer
+          </button>
+        </div>
       ) : (
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* En-tête avec statistiques */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-700">
+                    Objectifs trouvés : <strong className="text-blue-600">{objectives.length}</strong>
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  Période : {getMonthName(filters.mois)} {filters.annee}
+                </div>
+              </div>
+              {objectives.length > 0 && (
+                <div className="text-xs text-gray-500 bg-white px-3 py-1 rounded-full border">
+                  📊 Données filtrées
+                </div>
+              )}
+            </div>
+          </div>
+          
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -225,8 +359,32 @@ function Objectives() {
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                       <Target className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-lg font-medium">Aucun objectif défini</p>
-                      <p className="text-sm">Cliquez sur "Nouvel objectif" pour commencer</p>
+                      <p className="text-lg font-medium">
+                        Aucun objectif trouvé pour {getMonthName(filters.mois)} {filters.annee}
+                      </p>
+                      <p className="text-sm text-gray-400 mb-4">
+                        Essayez de changer la période ou créez un nouvel objectif
+                      </p>
+                      <div className="flex justify-center gap-3">
+                        <button
+                          onClick={() => {
+                            const now = new Date();
+                            setFilters({
+                              annee: now.getFullYear(),
+                              mois: now.getMonth() + 1
+                            });
+                          }}
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm"
+                        >
+                          📅 Période Actuelle
+                        </button>
+                        <button
+                          onClick={() => setShowModal(true)}
+                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition text-sm"
+                        >
+                          ➕ Nouvel Objectif
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ) : (
