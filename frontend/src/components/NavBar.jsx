@@ -45,8 +45,8 @@ const NavBar = () => {
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-gradient-to-r from-white/90 via-blue-50/90 to-white/90 dark:from-slate-900/90 dark:via-slate-800/90 dark:to-slate-900/90 border-b border-water-200/50 dark:border-slate-700/50 shadow-lg shadow-water-100/20 dark:shadow-slate-900/20">
-      <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="mx-auto max-w-7xl px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 md:gap-4">
           <button
             className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-xl border border-water-200/60 dark:border-water-700/60 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-water-50/80 dark:hover:bg-slate-700/50 transition-all duration-200"
             onClick={() => setOpen(!open)}
@@ -76,7 +76,7 @@ const NavBar = () => {
 
         <div className="flex items-center gap-4">
           {/* Badge notifications */}
-          <button className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-water-200/60 dark:border-water-700/60 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-water-50/80 dark:hover:bg-slate-700/50 transition-all duration-200 group">
+          <button className="relative inline-flex h-10 w-10 md:h-11 md:w-11 items-center justify-center rounded-xl border border-water-200/60 dark:border-water-700/60 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-water-50/80 dark:hover:bg-slate-700/50 transition-all duration-200 group">
             <Bell className="h-5 w-5 text-water-600 dark:text-water-300 group-hover:text-water-700 dark:group-hover:text-water-200 transition-colors" />
             {unread > 0 && (
               <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-1.5 shadow-lg animate-pulse">

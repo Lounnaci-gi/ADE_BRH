@@ -92,7 +92,8 @@ const Communes = () => {
       await loadCommunes();
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
+      const msg = error.response?.data?.message || (error.response?.status === 409 ? 'Impossible de supprimer: des références existent.' : 'Erreur lors de la suppression');
+      toast.error(msg);
     } finally {
       setConfirmState({ open: false, commune: null });
     }

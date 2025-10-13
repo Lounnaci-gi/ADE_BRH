@@ -337,27 +337,61 @@ router.delete('/:id', requireAdmin, (req, res) => {
     checkRequest.addParameter('CommuneId', TYPES.Int, parseInt(id, 10));
 
     checkRequest.on('row', () => {
-      // Supprimer la commune
-      const deleteQuery = 'DELETE FROM DIM_COMMUNE WHERE CommuneId = @CommuneId';
-      const deleteRequest = new Request(deleteQuery, (err) => {
+      // Vérifier les références depuis DIM_AGENCE (FK_Commune)
+      const refQuery = 'SELECT COUNT(1) as RefCount FROM DIM_AGENCE WHERE FK_Commune = @CommuneId';
+      const refRequest = new Request(refQuery, (err) => {
         if (err) {
-          console.error('Erreur lors de la suppression de la commune:', err);
+          console.error('Erreur lors de la vérification des références:', err);
           if (!hasResponded) {
             hasResponded = true;
-            res.status(500).json({ message: 'Erreur lors de la suppression de la commune' });
-            connection.close();
-          }
-        } else {
-          if (!hasResponded) {
-            hasResponded = true;
-            res.json({ message: 'Commune supprimée avec succès' });
+            res.status(500).json({ message: 'Erreur lors de la vérification des dépendances' });
             connection.close();
           }
         }
       });
 
-      deleteRequest.addParameter('CommuneId', TYPES.Int, parseInt(id, 10));
-      connection.execSql(deleteRequest);
+      refRequest.addParameter('CommuneId', TYPES.Int, parseInt(id, 10));
+
+      let refCount = 0;
+      refRequest.on('row', (columns) => {
+        columns.forEach((column) => {
+          if (column.metadata.colName === 'RefCount') refCount = column.value || 0;
+        });
+      });
+
+      refRequest.on('requestCompleted', () => {
+        if (hasResponded) return;
+        if (refCount > 0) {
+          hasResponded = true;
+          res.status(409).json({ message: 'Impossible de supprimer la commune: des agences y sont rattachées', references: refCount });
+          connection.close();
+          return;
+        }
+
+        // Supprimer la commune si aucune référence
+        const deleteQuery = 'DELETE FROM DIM_COMMUNE WHERE CommuneId = @CommuneId';
+        const deleteRequest = new Request(deleteQuery, (err) => {
+          if (err) {
+            console.error('Erreur lors de la suppression de la commune:', err);
+            if (!hasResponded) {
+              hasResponded = true;
+              res.status(500).json({ message: 'Erreur lors de la suppression de la commune' });
+              connection.close();
+            }
+          } else {
+            if (!hasResponded) {
+              hasResponded = true;
+              res.json({ message: 'Commune supprimée avec succès' });
+              connection.close();
+            }
+          }
+        });
+
+        deleteRequest.addParameter('CommuneId', TYPES.Int, parseInt(id, 10));
+        connection.execSql(deleteRequest);
+      });
+
+      connection.execSql(refRequest);
     });
 
     checkRequest.on('requestCompleted', () => {
