@@ -4,6 +4,7 @@ import communesService from '../services/communesService';
 import CommunesAddModal from '../components/CommunesAddModal';
 import { toast } from 'react-hot-toast';
 import authService from '../services/authService';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const Communes = () => {
   const [communes, setCommunes] = useState([]);
@@ -13,6 +14,7 @@ const Communes = () => {
   const [columns, setColumns] = useState([]);
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
+  const [confirmState, setConfirmState] = useState({ open: false, commune: null });
 
   // Charger la liste des communes
   const loadCommunes = async () => {
@@ -73,20 +75,26 @@ const Communes = () => {
     setModalOpen(true);
   };
 
-  const handleDelete = async (commune) => {
+  const askDelete = (commune) => {
     if (!isAdmin) {
       toast.error('Accès refusé. Rôle administrateur requis.');
       return;
     }
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la commune "${commune.Nom_Commune}" ?`)) {
-      try {
-        await communesService.remove(commune.CommuneId);
-        toast.success('Commune supprimée avec succès');
-        await loadCommunes();
-      } catch (error) {
-        console.error('Erreur lors de la suppression:', error);
-        toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
-      }
+    setConfirmState({ open: true, commune });
+  };
+
+  const confirmDelete = async () => {
+    const commune = confirmState.commune;
+    if (!commune) return;
+    try {
+      await communesService.remove(commune.CommuneId);
+      toast.success('Commune supprimée avec succès');
+      await loadCommunes();
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
+    } finally {
+      setConfirmState({ open: false, commune: null });
     }
   };
 
@@ -185,7 +193,7 @@ const Communes = () => {
                         <button
                           title="Supprimer"
                           className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
-                          onClick={() => handleDelete(commune)}
+                        onClick={() => askDelete(commune)}
                         >
                           <Trash2 className="h-3.5 w-3.5 text-red-600" />
                         </button>
@@ -213,6 +221,17 @@ const Communes = () => {
             initialValues={editingCommune}
           />
         )}
+
+        <ConfirmDialog
+          isOpen={confirmState.open}
+          title="Supprimer la commune"
+          message={confirmState.commune ? `Voulez-vous vraiment supprimer la commune "${confirmState.commune.Nom_Commune}" ? Cette action est irréversible.` : ''}
+          confirmLabel="Supprimer"
+          cancelLabel="Annuler"
+          tone="danger"
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmState({ open: false, commune: null })}
+        />
       </div>
     </div>
   );

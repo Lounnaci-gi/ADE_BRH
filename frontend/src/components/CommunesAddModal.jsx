@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, Building2 } from 'lucide-react';
+import { MapPin, Building2 } from 'lucide-react';
 import communesService from '../services/communesService';
+import FormDialog from './FormDialog';
 
 const CommunesAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
   const [formData, setFormData] = useState({
@@ -86,22 +87,16 @@ const CommunesAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-200 dark:border-slate-800">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-blue-600" />
-            {initialValues ? 'Modifier la commune' : 'Ajouter une commune'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+    <FormDialog
+      isOpen={isOpen}
+      onCancel={onClose}
+      onSubmit={handleSubmit}
+      submitting={loading}
+      title={initialValues ? 'Modifier la commune' : 'Ajouter une commune'}
+      icon={<MapPin className="h-5 w-5 text-blue-600" />}
+      submitLabel={initialValues ? 'Modifier' : 'Créer'}
+      description={initialValues ? 'Mettez à jour les informations de la commune.' : 'Renseignez les informations pour créer une nouvelle commune.'}
+    >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Nom de la commune */}
             <div className="md:col-span-2">
@@ -159,37 +154,7 @@ const CommunesAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
               )}
             </div>
           </div>
-
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg shadow-md transition"
-              disabled={loading}
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2 rounded-lg shadow-md transition inline-flex items-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  {initialValues ? 'Modification...' : 'Création...'}
-                </>
-              ) : (
-                <>
-                  <MapPin className="h-4 w-4" />
-                  {initialValues ? 'Modifier' : 'Créer'}
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    </FormDialog>
   );
 };
 
