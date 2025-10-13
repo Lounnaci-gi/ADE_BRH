@@ -165,7 +165,7 @@ export default function Agences() {
       />
 
       {/* ✅ Tableau des agences (colonnes dynamiques) */}
-      <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100 w-full">
+      <div className="table-container bg-white shadow-md rounded-xl border border-blue-100 w-full">
         <table className="w-full border-collapse min-w-full">
           <thead className="bg-blue-100 text-blue-800">
             <tr>
