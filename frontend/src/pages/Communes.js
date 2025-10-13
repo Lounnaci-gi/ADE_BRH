@@ -121,8 +121,8 @@ const Communes = () => {
   };
 
   return (
-    <div className="p-6 text-gray-800 w-full min-h-screen">
-      <div className="max-w-7xl mx-auto">
+    <div className="p-6 text-gray-800 w-full">
+      <div className="page-shell">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -150,7 +150,7 @@ const Communes = () => {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100 w-full">
+        <div className="page-content">
           <table className="w-full border-collapse min-w-full">
             <thead className="bg-blue-100 text-blue-800">
               <tr>

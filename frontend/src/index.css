@@ -23,24 +23,22 @@
 
 html, body, #root {
   height: 100%;
+  overflow: hidden; /* prevent global overflow; we'll scroll inside main */
 }
 
-body {
-  @apply bg-[rgb(var(--bg))] text-[rgb(var(--fg))];
-}
+body { @apply bg-[rgb(var(--bg))] text-[rgb(var(--fg))]; }
 
 .water-surface {
   @apply bg-water-gradient dark:bg-water-gradient-dark; /* decorative backgrounds */
 }
 
-.card {
-  @apply bg-[rgb(var(--card))] shadow-soft rounded-xl border border-water-100 dark:border-water-800;
-}
+.card { @apply bg-[rgb(var(--card))] shadow-soft rounded-xl border border-water-100 dark:border-water-800; }
 
-.btn-primary {
-  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium text-white bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-600))] transition-colors;
-}
+.btn-primary { @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium text-white bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-600))] transition-colors; }
 
-.input {
-  @apply w-full rounded-lg border border-water-200 dark:border-water-700 bg-white dark:bg-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-water-400 dark:focus:ring-water-600;
-}
+.input { @apply w-full rounded-lg border border-water-200 dark:border-water-700 bg-white dark:bg-slate-900 px-3 py-2 outline-none focus:ring-2 focus:ring-water-400 dark:focus:ring-water-600; }
+
+/* Page shell helpers to ensure consistent layout */
+.page-shell { @apply max-w-7xl mx-auto; }
+.page-header { @apply mb-8; }
+.page-content { @apply overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100 w-full; }

@@ -11,6 +11,7 @@ import Users from "./pages/Users"; // ✅ Import de la page utilisateurs
 import authService from "./services/authService";
 import Agences from './pages/Agences'; // ✅ importe la page agences
 import NavBar from './components/NavBar';
+import Sidebar from './components/Sidebar';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Categories from './pages/Categories';
@@ -29,7 +30,10 @@ function App() {
     <Router>
       <div className="min-h-screen water-surface">
         <NavBar />
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-4">
+        <div className="mx-auto max-w-7xl px-4 pb-8 pt-4 md:max-w-none md:px-0">
+          <div className="md:flex md:items-stretch md:gap-0">
+            <Sidebar />
+            <main className="flex-1 min-h-[calc(100vh-64px)] overflow-auto px-4 md:px-6 py-4 md:py-6">
           <Routes>
         {/* 🧠 Page de connexion */}
         <Route path="/login" element={<Login />} />
@@ -135,6 +139,8 @@ function App() {
         {/* 🌍 Redirection par défaut */}
             <Route path="/" element={<Navigate to="/login" />} />
           </Routes>
+            </main>
+          </div>
         </div>
       </div>
     </Router>

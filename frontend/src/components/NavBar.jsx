@@ -72,32 +72,7 @@ const NavBar = () => {
           </div>
         </div>
 
-        <nav className="hidden md:flex items-center gap-3">
-          <NavLink to="/dashboard" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
-            <LayoutDashboard className="h-4 w-4" /> Tableau de bord
-          </NavLink>
-          <NavLink to="/centres" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
-            <Building2 className="h-4 w-4" /> Centres
-          </NavLink>
-          <NavLink to="/dashboard/agences" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
-            <Building2 className="h-4 w-4" /> Agences
-          </NavLink>
-          <NavLink to="/communes" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
-            <MapPin className="h-4 w-4" /> Communes
-          </NavLink>
-          <NavLink to="/users" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
-            <Users className="h-4 w-4" /> Utilisateurs
-          </NavLink>
-          <NavLink to="/categories" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
-            <FolderOpen className="h-4 w-4" /> Catégories
-          </NavLink>
-          <NavLink to="/kpi" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
-            <BarChart3 className="h-4 w-4" /> KPIs
-          </NavLink>
-          <NavLink to="/objectives" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive} px-4 py-2.5 rounded-xl font-medium`}>
-            <Target className="h-4 w-4" /> Objectifs
-          </NavLink>
-        </nav>
+        <div className="hidden md:flex items-center gap-3" aria-hidden="true"></div>
 
         <div className="flex items-center gap-4">
           {/* Badge notifications */}

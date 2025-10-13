@@ -77,8 +77,8 @@ const Centres = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-water-50 to-water-100 dark:from-water-900 dark:to-water-800 p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="p-6">
+        <div className="page-shell">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-water-600"></div>
           </div>
@@ -88,8 +88,8 @@ const Centres = () => {
   }
 
   return (
-    <div className="p-6 text-gray-800 w-full min-h-screen">
-      <div className="max-w-7xl mx-auto">
+    <div className="p-6 text-gray-800 w-full">
+      <div className="page-shell">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -124,7 +124,7 @@ const Centres = () => {
         )}
 
         {/* Table */}
-        <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100 w-full">
+        <div className="page-content">
           <table className="w-full border-collapse min-w-full">
               <thead className="bg-blue-100 text-blue-800">
                 <tr>
