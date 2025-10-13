@@ -56,13 +56,13 @@ const NavBar = () => {
           </button>
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-water-500 to-water-600 shadow-lg flex items-center justify-center">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-lg flex items-center justify-center">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
               <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gradient-to-r from-blue-400 to-water-500 animate-pulse"></div>
             </div>
             <div>
-              <div className="text-xl font-bold bg-gradient-to-r from-water-700 to-blue-600 dark:from-water-300 dark:to-blue-400 bg-clip-text text-transparent">
+              <div className="text-xl font-bold bg-gradient-to-r from-brand-700 to-brand-500 dark:from-brand-300 dark:to-brand-400 bg-clip-text text-transparent">
                 ADE BRH
               </div>
               <div className="text-xs text-water-500 dark:text-water-400 font-medium">

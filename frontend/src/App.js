@@ -12,6 +12,7 @@ import authService from "./services/authService";
 import Agences from './pages/Agences'; // ✅ importe la page agences
 import NavBar from './components/NavBar';
 import Sidebar from './components/Sidebar';
+import ApiStatusBanner from './components/ApiStatusBanner';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Categories from './pages/Categories';
@@ -26,9 +27,27 @@ const PrivateRoute = ({ children }) => {
 };
 
 function App() {
+  const [apiOnline, setApiOnline] = React.useState(true);
+
+  const checkApi = React.useCallback(async () => {
+    try {
+      const res = await fetch((process.env.REACT_APP_API_URL || `${window.location.protocol}//${window.location.hostname}:5000/api`) + '/test', { method: 'GET' });
+      setApiOnline(res.ok);
+    } catch {
+      setApiOnline(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    checkApi();
+    const id = setInterval(checkApi, 30000);
+    return () => clearInterval(id);
+  }, [checkApi]);
+
   return (
     <Router>
       <div className="min-h-screen water-surface">
+        <ApiStatusBanner online={apiOnline} onRetry={checkApi} />
         <NavBar />
         <div className="mx-auto max-w-7xl px-4 pb-8 pt-4 md:max-w-none md:px-0">
           <div className="md:flex md:items-stretch md:gap-0">

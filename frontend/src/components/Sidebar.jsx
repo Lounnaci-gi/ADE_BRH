@@ -26,16 +26,16 @@ function Sidebar() {
   };
 
   return (
-    <aside className="h-screen sticky top-0 hidden md:flex md:flex-col w-72 shrink-0 border-r border-water-100 dark:border-slate-800 bg-gradient-to-b from-white/80 to-blue-50/80 dark:from-slate-900/80 dark:to-slate-900/80 backdrop-blur-xl">
+    <aside className="h-screen sticky top-0 hidden md:flex md:flex-col w-64 shrink-0 border-r border-water-100 dark:border-slate-800 bg-gradient-to-b from-white/80 to-brand-50/80 dark:from-slate-900/80 dark:to-slate-900/80 backdrop-blur-xl">
       <div className="px-4 pt-5 pb-4 border-b border-water-100 dark:border-slate-800">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-water-500 to-water-600 shadow-lg grid place-items-center">
+            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-lg grid place-items-center">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
           </div>
           <div>
-            <div className="text-xl font-bold bg-gradient-to-r from-water-700 to-blue-600 dark:from-water-300 dark:to-blue-400 bg-clip-text text-transparent">
+            <div className="text-xl font-bold bg-gradient-to-r from-brand-700 to-brand-500 dark:from-brand-300 dark:to-brand-400 bg-clip-text text-transparent">
               ADE BRH
             </div>
             <div className="text-xs text-water-500 dark:text-water-400 font-medium">

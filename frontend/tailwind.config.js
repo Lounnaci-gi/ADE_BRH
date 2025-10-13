@@ -18,14 +18,26 @@ module.exports = {
           700: '#0369a1',
           800: '#075985',
           900: '#0c4a6e'
+        },
+        brand: {
+          50:  '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81'
         }
       },
       backgroundImage: {
-        'water-gradient': 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 35%, #7dd3fc 65%, #38bdf8 100%)',
-        'water-gradient-dark': 'linear-gradient(135deg, #0c4a6e 0%, #075985 35%, #0369a1 65%, #0284c7 100%)'
+        'water-gradient': 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 35%, #a5b4fc 65%, #818cf8 100%)',
+        'water-gradient-dark': 'linear-gradient(135deg, #312e81 0%, #3730a3 35%, #4338ca 65%, #4f46e5 100%)'
       },
       boxShadow: {
-        soft: '0 10px 25px -10px rgba(2, 132, 199, 0.35)'
+        soft: '0 10px 25px -10px rgba(79, 70, 229, 0.35)'
       }
     },
   },
