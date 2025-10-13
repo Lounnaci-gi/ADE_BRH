@@ -17,45 +17,52 @@ export default function Agences() {
 
   // Charger la liste des agences
   const loadAgences = async () => {
-    const data = await agenceService.list();
-    // Ajouter un numéro d'ordre à chaque agence et renommer les colonnes
-    const agencesWithNumber = data.map((agence, index) => ({
-      ...agence,
-      Numero: index + 1,
-      Centre: agence.Nom_Centre,
-      Agence: agence.Nom_Agence
-    }));
-    setAgences(agencesWithNumber);
-    // Déduire dynamiquement les colonnes à partir des objets retournés
-    const keys = Array.from(
-      agencesWithNumber.reduce((acc, row) => {
-        Object.keys(row || {}).forEach((k) => acc.add(k));
-        return acc;
-      }, new Set())
-    );
-    // Ordonner: champs principaux d'abord, puis le reste trié alpha
-    const preferred = [
-      'Numero',
-      'Centre',
-      'Nom_Commune',
-      'Agence',
-      'Adresse',
-      'Telephone',
-      'Fax',
-      'NIF',
-      'NCI',
-      'CreatedAt',
-      'UpdatedAt'
-    ];
-    const preferredSet = new Set(preferred);
-    const orderedAll = [
-      ...preferred.filter((k) => keys.includes(k)),
-      ...keys.filter((k) => !preferredSet.has(k)).sort((a, b) => a.localeCompare(b))
-    ];
-    // Masquer certains champs
-    const hidden = new Set(['NIF', 'NCI', 'CreatedAt', 'Nom_Banque', 'Compte_Bancaire', 'FK_Centre', 'FK_Commune', 'AgenceId', 'Email', 'Nom_Centre', 'Nom_Agence']);
-    const ordered = orderedAll.filter((k) => !hidden.has(k));
-    setColumns(ordered);
+    try {
+      const data = await agenceService.list();
+      // Ajouter un numéro d'ordre à chaque agence et renommer les colonnes
+      const agencesWithNumber = data.map((agence, index) => ({
+        ...agence,
+        Numero: index + 1,
+        Centre: agence.Nom_Centre,
+        Agence: agence.Nom_Agence
+      }));
+      setAgences(agencesWithNumber);
+      // Déduire dynamiquement les colonnes à partir des objets retournés
+      const keys = Array.from(
+        agencesWithNumber.reduce((acc, row) => {
+          Object.keys(row || {}).forEach((k) => acc.add(k));
+          return acc;
+        }, new Set())
+      );
+      // Ordonner: champs principaux d'abord, puis le reste trié alpha
+      const preferred = [
+        'Numero',
+        'Centre',
+        'Nom_Commune',
+        'Agence',
+        'Adresse',
+        'Telephone',
+        'Fax',
+        'NIF',
+        'NCI',
+        'CreatedAt',
+        'UpdatedAt'
+      ];
+      const preferredSet = new Set(preferred);
+      const orderedAll = [
+        ...preferred.filter((k) => keys.includes(k)),
+        ...keys.filter((k) => !preferredSet.has(k)).sort((a, b) => a.localeCompare(b))
+      ];
+      // Masquer certains champs
+      const hidden = new Set(['NIF', 'NCI', 'CreatedAt', 'Nom_Banque', 'Compte_Bancaire', 'FK_Centre', 'FK_Commune', 'AgenceId', 'Email', 'Nom_Centre', 'Nom_Agence']);
+      const ordered = orderedAll.filter((k) => !hidden.has(k));
+      setColumns(ordered);
+    } catch (e) {
+      console.error('Erreur lors du chargement des agences:', e);
+      setToast({ open: true, type: 'error', message: 'Impossible de joindre le serveur. Vérifiez le backend (http://localhost:5000).' });
+      setAgences([]);
+      setColumns([]);
+    }
   };
 
   useEffect(() => {

@@ -4,13 +4,18 @@ import authService from './authService';
 const agenceService = {
   async list() {
     const user = authService.getCurrentUser();
-    const res = await api.get('/agences', { 
-      headers: { 
-        'X-Role': user?.role || '', 
-        'X-User-Agence': user?.agenceId || ''
-      } 
-    });
-    return res.data || [];
+    try {
+      const res = await api.get('/agences', { 
+        headers: { 
+          'X-Role': user?.role || '', 
+          'X-User-Agence': user?.agenceId || ''
+        } 
+      });
+      return res.data || [];
+    } catch (e) {
+      // Surface clearer error upstream
+      throw e;
+    }
   },
   async create(payload) {
     const user = authService.getCurrentUser();
