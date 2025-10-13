@@ -4,11 +4,15 @@ import authService from './authService';
 const userService = {
   async list() {
     const user = authService.getCurrentUser();
-    const res = await api.get('/users', { 
-      headers: { 
-        'X-Role': user?.role || '', 
-        'X-User-Id': user?.id || ''
-      } 
+    const roleHeader = user?.role === 'Administrateur'
+      ? 'Administrateur'
+      : (user?.role?.toLowerCase?.().includes('admin') ? 'Administrateur' : (user?.role || ''));
+    const userIdHeader = user?.id ?? user?.UtilisateurId ?? user?.userId ?? '';
+    const res = await api.get('/users', {
+      headers: {
+        'X-Role': roleHeader,
+        'X-User-Id': userIdHeader
+      }
     });
     return res.data || [];
   },
@@ -27,11 +31,15 @@ const userService = {
   },
   async updateOwnProfile(payload) {
     const user = authService.getCurrentUser();
-    const res = await api.put('/users/profile', payload, { 
-      headers: { 
-        'X-Role': user?.role || '', 
-        'X-User-Id': user?.id || ''
-      } 
+    const roleHeader = user?.role === 'Administrateur'
+      ? 'Administrateur'
+      : (user?.role?.toLowerCase?.().includes('admin') ? 'Administrateur' : (user?.role || ''));
+    const userIdHeader = user?.id ?? user?.UtilisateurId ?? user?.userId ?? '';
+    const res = await api.put('/users/profile', payload, {
+      headers: {
+        'X-Role': roleHeader,
+        'X-User-Id': userIdHeader
+      }
     });
     return res.data;
   },
@@ -41,15 +49,21 @@ const userService = {
   },
   async update(id, payload) {
     const user = authService.getCurrentUser();
-    const res = await api.put(`/users/${id}`, payload, { 
-      headers: { 'X-Role': user?.role || '' } 
+    const roleHeader = user?.role === 'Administrateur'
+      ? 'Administrateur'
+      : (user?.role?.toLowerCase?.().includes('admin') ? 'Administrateur' : (user?.role || ''));
+    const res = await api.put(`/users/${id}`, payload, {
+      headers: { 'X-Role': roleHeader }
     });
     return res.data;
   },
   async remove(id) {
     const user = authService.getCurrentUser();
-    const res = await api.delete(`/users/${id}`, { 
-      headers: { 'X-Role': user?.role || '' } 
+    const roleHeader = user?.role === 'Administrateur'
+      ? 'Administrateur'
+      : (user?.role?.toLowerCase?.().includes('admin') ? 'Administrateur' : (user?.role || ''));
+    const res = await api.delete(`/users/${id}`, {
+      headers: { 'X-Role': roleHeader }
     });
     return res.data;
   }

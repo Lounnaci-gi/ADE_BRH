@@ -286,8 +286,11 @@ router.put('/profile', (req, res) => {
       `;
       
       const checkRequest = new Request(checkPasswordQuery, (err) => {
-        connection.close();
-        if (err) return res.status(500).json({ message: 'Erreur lors de la vérification', error: err.message });
+        if (err) {
+          // Fermer la connexion uniquement en cas d'erreur ici
+          connection.close();
+          return res.status(500).json({ message: 'Erreur lors de la vérification', error: err.message });
+        }
       });
 
       checkRequest.addParameter('userId', TYPES.Int, parseInt(userIdHeader, 10));
@@ -295,6 +298,8 @@ router.put('/profile', (req, res) => {
       checkRequest.on('row', async (columns) => {
         const hashColumn = columns.find(c => c.metadata.colName === 'Mot_de_Passe_Hash');
         if (!hashColumn) {
+          // Si aucun utilisateur, répondre et fermer
+          connection.close();
           return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
 
@@ -302,6 +307,8 @@ router.put('/profile', (req, res) => {
         const isValidPassword = await bcrypt.compare(currentPassword, storedHash);
         
         if (!isValidPassword) {
+          // Mot de passe invalide, fermer la connexion et répondre
+          connection.close();
           return res.status(400).json({ message: 'Mot de passe actuel incorrect' });
         }
 
@@ -310,11 +317,8 @@ router.put('/profile', (req, res) => {
         updateProfile(newHash);
       });
 
-      checkRequest.on('requestCompleted', () => {
-        if (!newPassword) {
-          updateProfile(null);
-        }
-      });
+      // Ici, on n'appelle pas updateProfile(null) car on est dans la branche newPassword
+      // La fermeture de la connexion sera gérée dans updateProfile
 
       connection.execSql(checkRequest);
     } else {
@@ -334,10 +338,16 @@ router.put('/profile', (req, res) => {
       updateQuery += ` WHERE UtilisateurId = @userId`;
 
       const updateRequest = new Request(updateQuery, (err, rowCount) => {
-        connection.close();
-        if (err) return res.status(500).json({ message: 'Erreur lors de la mise à jour', error: err.message });
-        if (rowCount === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
-        res.json({ message: 'Profil mis à jour avec succès' });
+        // La fermeture est gérée dans requestCompleted pour garantir la fin complète
+        if (err) {
+          connection.close();
+          return res.status(500).json({ message: 'Erreur lors de la mise à jour', error: err.message });
+        }
+        if (rowCount === 0) {
+          connection.close();
+          return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+        // Réponse dans requestCompleted pour éviter conflits avec le flux Tedious
       });
 
       updateRequest.addParameter('username', TYPES.NVarChar, username);
@@ -347,6 +357,11 @@ router.put('/profile', (req, res) => {
       if (passwordHash) {
         updateRequest.addParameter('passwordHash', TYPES.VarBinary, Buffer.from(passwordHash));
       }
+
+      updateRequest.on('requestCompleted', () => {
+        connection.close();
+        res.json({ message: 'Profil mis à jour avec succès' });
+      });
 
       connection.execSql(updateRequest);
     }

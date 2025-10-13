@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Pencil, Trash2, Printer, Plus, Building2, MapPin, Phone, Mail, FileText } from 'lucide-react';
 import centresService from '../services/centresService';
 import CentresAddModal from '../components/CentresAddModal';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 const Centres = () => {
   const [centres, setCentres] = useState([]);
@@ -9,6 +10,9 @@ const Centres = () => {
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCentre, setEditingCentre] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmProps, setConfirmProps] = useState({});
+  const [selectedCentre, setSelectedCentre] = useState(null);
 
   useEffect(() => {
     loadCentres();
@@ -38,15 +42,27 @@ const Centres = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (centre) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer le centre "${centre.Nom_Centre}" ?`)) {
-      try {
-        await centresService.remove(centre.CentreId);
-        await loadCentres();
-      } catch (err) {
-        console.error('Erreur lors de la suppression:', err);
-        alert('Erreur lors de la suppression du centre');
-      }
+  const askDelete = (centre) => {
+    setSelectedCentre(centre);
+    setConfirmProps({
+      title: 'Confirmer la suppression',
+      message: `Supprimer le centre "${centre.Nom_Centre}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer',
+      type: 'danger'
+    });
+    setConfirmOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedCentre?.CentreId) { setConfirmOpen(false); return; }
+    try {
+      await centresService.remove(selectedCentre.CentreId);
+      await loadCentres();
+    } catch (err) {
+      console.error('Erreur lors de la suppression:', err);
+    } finally {
+      setConfirmOpen(false);
+      setSelectedCentre(null);
     }
   };
 
@@ -164,7 +180,7 @@ const Centres = () => {
                         <button
                           title="Supprimer"
                           className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
-                          onClick={() => handleDelete(centre)}
+                        onClick={() => askDelete(centre)}
                         >
                           <Trash2 className="h-3.5 w-3.5 text-red-600" />
                         </button>
@@ -193,6 +209,16 @@ const Centres = () => {
             initialValues={editingCentre}
           />
         )}
+
+        <ConfirmationDialog
+          isOpen={confirmOpen}
+          title={confirmProps.title}
+          message={confirmProps.message}
+          confirmText={confirmProps.confirmText}
+          type={confirmProps.type}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={handleDelete}
+        />
     </div>
   );
 };

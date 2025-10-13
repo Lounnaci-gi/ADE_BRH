@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Pencil, Trash2, Printer } from 'lucide-react';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 import AddAgencyModal from "../components/AddAgencyModal";
 import Toast from "../components/Toast";
 import agenceService from "../services/agenceService";
@@ -12,6 +13,9 @@ export default function Agences() {
   const [modalOpen, setModalOpen] = useState(false);
   const [initialValues, setInitialValues] = useState(null);
   const [toast, setToast] = useState({ open: false, type: "success", message: "" });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmProps, setConfirmProps] = useState({});
+  const [selectedAgence, setSelectedAgence] = useState(null);
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
 
@@ -103,6 +107,32 @@ export default function Agences() {
     setModalOpen(true);
   };
 
+  const askDelete = (agence) => {
+    setSelectedAgence(agence);
+    setConfirmProps({
+      title: 'Confirmer la suppression',
+      message: `Supprimer l\'agence "${agence.Nom_Agence}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer',
+      type: 'danger'
+    });
+    setConfirmOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedAgence?.AgenceId) { setConfirmOpen(false); return; }
+    try {
+      await agenceService.remove(selectedAgence.AgenceId);
+      setToast({ open: true, type: 'success', message: 'Agence supprimée avec succès.' });
+      await loadAgences();
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Erreur lors de la suppression.';
+      setToast({ open: true, type: 'error', message: msg });
+    } finally {
+      setConfirmOpen(false);
+      setSelectedAgence(null);
+    }
+  };
+
   return (
     <div className="p-6 text-gray-800 w-full min-h-screen">
       <div className="flex items-center justify-between mb-6">
@@ -157,7 +187,7 @@ export default function Agences() {
                       <button title="Modifier" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50" onClick={() => handleEdit(row)}>
                         <Pencil className="h-3.5 w-3.5 text-blue-600" />
                       </button>
-                      <button title="Supprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50" onClick={() => {/* implement delete with confirm & service */}}>
+                      <button title="Supprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50" onClick={() => askDelete(row)}>
                         <Trash2 className="h-3.5 w-3.5 text-red-600" />
                       </button>
                       <button title="Imprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100" onClick={() => window.print()}>
@@ -172,13 +202,23 @@ export default function Agences() {
         </table>
       </div>
 
-    {/* ✅ Messages bulle (toasts) */}
-    <Toast
-      open={toast.open}
-      type={toast.type}
-      message={toast.message}
-      onClose={() => setToast({ ...toast, open: false })}
-    />
+      {/* ✅ Messages bulle (toasts) */}
+      <Toast
+        open={toast.open}
+        type={toast.type}
+        message={toast.message}
+        onClose={() => setToast({ ...toast, open: false })}
+      />
+
+      <ConfirmationDialog
+        isOpen={confirmOpen}
+        title={confirmProps.title}
+        message={confirmProps.message}
+        confirmText={confirmProps.confirmText}
+        type={confirmProps.type}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

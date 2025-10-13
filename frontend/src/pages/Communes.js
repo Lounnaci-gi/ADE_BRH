@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Printer, MapPin } from 'lucide-react';
 import communesService from '../services/communesService';
 import CommunesAddModal from '../components/CommunesAddModal';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 import { toast } from 'react-hot-toast';
 
 const Communes = () => {
@@ -10,6 +11,9 @@ const Communes = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCommune, setEditingCommune] = useState(null);
   const [columns, setColumns] = useState([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmProps, setConfirmProps] = useState({});
+  const [selectedCommune, setSelectedCommune] = useState(null);
 
   // Charger la liste des communes
   const loadCommunes = async () => {
@@ -70,16 +74,34 @@ const Communes = () => {
     setModalOpen(true);
   };
 
-  const handleDelete = async (commune) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la commune "${commune.Nom_Commune}" ?`)) {
-      try {
-        await communesService.remove(commune.CommuneId);
-        toast.success('Commune supprimée avec succès');
-        loadCommunes();
-      } catch (error) {
-        console.error('Erreur lors de la suppression:', error);
-        toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
-      }
+  const askDelete = (commune) => {
+    if (!commune?.CommuneId) return;
+    setSelectedCommune(commune);
+    setConfirmProps({
+      title: 'Confirmer la suppression',
+      message: `Supprimer la commune "${commune.Nom_Commune}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer',
+      type: 'danger'
+    });
+    setConfirmOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedCommune?.CommuneId) {
+      setConfirmOpen(false);
+      return;
+    }
+    try {
+      await communesService.remove(selectedCommune.CommuneId);
+      toast.success('Commune supprimée avec succès');
+      await loadCommunes();
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || 'Erreur lors de la suppression';
+      console.error('Erreur lors de la suppression:', message, error);
+      toast.error(message);
+    } finally {
+      setConfirmOpen(false);
+      setSelectedCommune(null);
     }
   };
 
@@ -175,7 +197,7 @@ const Communes = () => {
                       <button
                         title="Supprimer"
                         className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
-                        onClick={() => handleDelete(commune)}
+                        onClick={() => askDelete(commune)}
                       >
                         <Trash2 className="h-3.5 w-3.5 text-red-600" />
                       </button>
@@ -202,6 +224,16 @@ const Communes = () => {
             initialValues={editingCommune}
           />
         )}
+
+        <ConfirmationDialog
+          isOpen={confirmOpen}
+          title={confirmProps.title}
+          message={confirmProps.message}
+          confirmText={confirmProps.confirmText}
+          type={confirmProps.type}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={handleDelete}
+        />
       </div>
     </div>
   );
