@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Printer, MapPin } from 'lucide-react';
 import communesService from '../services/communesService';
 import CommunesAddModal from '../components/CommunesAddModal';
+import ConfirmationDialog from '../components/ConfirmationDialog';
+import authService from '../services/authService';
 import { toast } from 'react-hot-toast';
 
 const Communes = () => {
@@ -10,6 +12,12 @@ const Communes = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCommune, setEditingCommune] = useState(null);
   const [columns, setColumns] = useState([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmProps, setConfirmProps] = useState({});
+  const [selectedCommune, setSelectedCommune] = useState(null);
+  const user = authService.getCurrentUser();
+  const isAdmin = (user?.role || '').toString() === 'Administrateur';
+  const canEdit = isAdmin; // Seuls les admins peuvent modifier/supprimer
 
   // Charger la liste des communes
   const loadCommunes = async () => {
@@ -70,16 +78,34 @@ const Communes = () => {
     setModalOpen(true);
   };
 
-  const handleDelete = async (commune) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la commune "${commune.Nom_Commune}" ?`)) {
-      try {
-        await communesService.remove(commune.CommuneId);
-        toast.success('Commune supprimée avec succès');
-        loadCommunes();
-      } catch (error) {
-        console.error('Erreur lors de la suppression:', error);
-        toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
-      }
+  const askDelete = (commune) => {
+    if (!commune?.CommuneId) return;
+    setSelectedCommune(commune);
+    setConfirmProps({
+      title: 'Confirmer la suppression',
+      message: `Supprimer la commune "${commune.Nom_Commune}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer',
+      type: 'danger'
+    });
+    setConfirmOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedCommune?.CommuneId) {
+      setConfirmOpen(false);
+      return;
+    }
+    try {
+      await communesService.remove(selectedCommune.CommuneId);
+      toast.success('Commune supprimée avec succès');
+      await loadCommunes();
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || 'Erreur lors de la suppression';
+      console.error('Erreur lors de la suppression:', message, error);
+      toast.error(message);
+    } finally {
+      setConfirmOpen(false);
+      setSelectedCommune(null);
     }
   };
 
@@ -127,6 +153,8 @@ const Communes = () => {
             <button
               onClick={handleCreate}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center gap-2 font-medium"
+              disabled={!canEdit}
+              style={{ opacity: canEdit ? 1 : 0.5 }}
             >
               <Plus className="h-5 w-5" />
               Nouvelle Commune
@@ -135,7 +163,7 @@ const Communes = () => {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto bg-white shadow-md rounded-xl border border-blue-100 w-full">
+        <div className="table-container bg-white shadow-md rounded-xl border border-blue-100 w-full">
           <table className="w-full border-collapse min-w-full">
             <thead className="bg-blue-100 text-blue-800">
               <tr>
@@ -165,20 +193,24 @@ const Communes = () => {
                       {commune.CreatedAt ? new Date(commune.CreatedAt).toLocaleDateString('fr-FR') : '-'}
                     </td>
                     <td className="py-2 px-6 text-center space-x-2">
-                      <button
-                        title="Modifier"
-                        className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
-                        onClick={() => handleEdit(commune)}
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-blue-600" />
-                      </button>
-                      <button
-                        title="Supprimer"
-                        className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
-                        onClick={() => handleDelete(commune)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                      </button>
+                      {canEdit && (
+                        <>
+                          <button
+                            title="Modifier"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
+                            onClick={() => handleEdit(commune)}
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-blue-600" />
+                          </button>
+                          <button
+                            title="Supprimer"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
+                            onClick={() => askDelete(commune)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                          </button>
+                        </>
+                      )}
                       <button
                         title="Imprimer"
                         className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100"
@@ -202,6 +234,16 @@ const Communes = () => {
             initialValues={editingCommune}
           />
         )}
+
+        <ConfirmationDialog
+          isOpen={confirmOpen}
+          title={confirmProps.title}
+          message={confirmProps.message}
+          confirmText={confirmProps.confirmText}
+          type={confirmProps.type}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={handleDelete}
+        />
       </div>
     </div>
   );

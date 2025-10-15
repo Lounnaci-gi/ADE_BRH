@@ -1,5 +1,6 @@
 const express = require('express');
-const { Connection, Request, TYPES } = require('tedious');
+const { TYPES } = require('tedious');
+const db = require('../utils/db');
 
 const router = express.Router();
 
@@ -32,23 +33,17 @@ function getUserAgenceId(req) {
     return Number.isNaN(n) ? null : n;
 }
 
-// ✅ Récupérer les agences (Standard => uniquement son agence; Admin => toutes)
-router.get('/', (req, res) => {
-    const connection = new Connection(getConfig());
+// ✅ Récupérer les agences (lecture pour tous les utilisateurs connectés)
+router.get('/', async (req, res) => {
+    const role = getRole(req);
+    
+    // Permettre la lecture pour tous les utilisateurs connectés (Administrateur et Standard)
+    if (!role || (role !== 'Administrateur' && role !== 'Standard')) {
+        return res.status(403).json({ message: 'Accès refusé. Connexion requise.' });
+    }
 
-    connection.on('connect', (err) => {
-        if (err) {
-            return res.status(500).json({ 
-                message: 'Erreur de connexion à la base de données', 
-                error: err.message 
-            });
-        }
-
-        const role = getRole(req);
-        const userAgenceId = getUserAgenceId(req);
-
-        let agences = [];
-        let query = `
+    try {
+        const query = `
             SELECT 
                 a.AgenceId,
                 a.FK_Centre,
@@ -65,41 +60,18 @@ router.get('/', (req, res) => {
                 c.Nom_Centre
             FROM DIM_AGENCE a
             LEFT JOIN DIM_CENTRE c ON a.FK_Centre = c.CentreId
+            ORDER BY a.AgenceId
         `;
-        if (role !== 'Administrateur') {
-            if (!userAgenceId) {
-                connection.close();
-                return res.status(403).json({ message: 'Agence de l\'utilisateur non fournie' });
-            }
-            query += ` WHERE a.AgenceId = ${userAgenceId}`;
-        }
-        query += ' ORDER BY a.AgenceId';
 
-        const request = new Request(query, (err, rowCount) => {
-            connection.close();
-
-            if (err) {
-                return res.status(500).json({ 
-                    message: 'Erreur lors du chargement des agences', 
-                    error: err.message 
-                });
-            }
-
-            res.json(agences);
+        const results = await db.query(query);
+        res.json(results);
+    } catch (err) {
+        console.error('Erreur GET /agences:', err);
+        res.status(500).json({ 
+            message: 'Erreur lors du chargement des agences', 
+            error: err.message 
         });
-
-        request.on('row', (columns) => {
-            let row = {};
-            columns.forEach(column => {
-                row[column.metadata.colName] = column.value;
-            });
-            agences.push(row);
-        });
-
-        connection.execSql(request);
-    });
-
-    connection.connect();
+    }
 });
 
 // ✅ Ajouter une nouvelle agence
@@ -408,6 +380,25 @@ router.get('/centres', (req, res) => {
     });
 
     connection.connect();
+});
+
+// GET /api/agences/count - Nombre total d'agences (lecture pour tous les utilisateurs connectés)
+router.get('/count', async (req, res) => {
+  const role = getRole(req);
+  
+  // Permettre la lecture pour tous les utilisateurs connectés (Administrateur et Standard)
+  if (!role || (role !== 'Administrateur' && role !== 'Standard')) {
+    return res.status(403).json({ message: 'Accès refusé. Connexion requise.' });
+  }
+
+  try {
+    const query = 'SELECT COUNT(*) as count FROM dbo.DIM_AGENCE';
+    const results = await db.query(query);
+    res.json({ count: results[0].count });
+  } catch (err) {
+    console.error('Erreur GET /agences/count:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du nombre d\'agences', error: err.message });
+  }
 });
 
 module.exports = router;

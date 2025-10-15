@@ -1,5 +1,6 @@
 const express = require('express');
-const { Connection, Request, TYPES } = require('tedious');
+const { TYPES } = require('tedious');
+const db = require('../utils/db');
 const router = express.Router();
 
 // Configuration de la base de données
@@ -22,21 +23,16 @@ const getConfig = () => ({
 // Helper pour obtenir le rôle
 const getRole = (req) => (req.headers['x-role'] || '').toString();
 
-// GET /api/centres - Liste des centres
-router.get('/', (req, res) => {
+// GET /api/centres - Liste des centres (lecture pour tous les utilisateurs connectés)
+router.get('/', async (req, res) => {
   const role = getRole(req);
   
-  if (role !== 'Administrateur') {
-    return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent consulter les centres.' });
+  // Permettre la lecture pour tous les utilisateurs connectés (Administrateur et Standard)
+  if (!role || (role !== 'Administrateur' && role !== 'Standard')) {
+    return res.status(403).json({ message: 'Accès refusé. Connexion requise.' });
   }
 
-  const connection = new Connection(getConfig());
-
-  connection.on('connect', (err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
-    }
-
+  try {
     const query = `
       SELECT 
         c.CentreId,
@@ -53,39 +49,12 @@ router.get('/', (req, res) => {
       ORDER BY c.Nom_Centre
     `;
 
-    const results = [];
-    let hasResponded = false;
-
-    const request = new Request(query, (err, rowCount) => {
-      if (err) {
-        if (!hasResponded) {
-          hasResponded = true;
-          connection.close();
-          return res.status(500).json({ message: 'Erreur lors de la requête', error: err.message });
-        }
-      }
-    });
-
-    request.on('row', (columns) => {
-      const row = {};
-      columns.forEach(column => {
-        row[column.metadata.colName] = column.value;
-      });
-      results.push(row);
-    });
-
-    request.on('requestCompleted', () => {
-      if (!hasResponded) {
-        hasResponded = true;
-        connection.close();
-        res.json(results);
-      }
-    });
-
-    connection.execSql(request);
-  });
-
-  connection.connect();
+    const results = await db.query(query);
+    res.json(results);
+  } catch (err) {
+    console.error('Erreur GET /centres:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération des centres', error: err.message });
+  }
 });
 
 // POST /api/centres - Créer un centre
@@ -238,6 +207,25 @@ router.delete('/:id', (req, res) => {
   });
 
   connection.connect();
+});
+
+// GET /api/centres/count - Nombre total de centres (lecture pour tous les utilisateurs connectés)
+router.get('/count', async (req, res) => {
+  const role = getRole(req);
+  
+  // Permettre la lecture pour tous les utilisateurs connectés (Administrateur et Standard)
+  if (!role || (role !== 'Administrateur' && role !== 'Standard')) {
+    return res.status(403).json({ message: 'Accès refusé. Connexion requise.' });
+  }
+
+  try {
+    const query = 'SELECT COUNT(*) as count FROM dbo.DIM_CENTRE';
+    const results = await db.query(query);
+    res.json({ count: results[0].count });
+  } catch (err) {
+    console.error('Erreur GET /centres/count:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du nombre de centres', error: err.message });
+  }
 });
 
 module.exports = router;
