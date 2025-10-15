@@ -97,6 +97,82 @@ router.get('/agences', async (req, res) => {
   }
 });
 
+// GET /api/objectives/debug - Debug de la structure de la base de données
+router.get('/debug', async (req, res) => {
+  const role = getRole(req);
+  
+  if (role !== 'Administrateur') {
+    return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent consulter les informations de debug.' });
+  }
+
+  try {
+    // Vérifier l'existence des tables
+    const tablesQuery = `
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_NAME IN ('DIM_AGENCE', 'FAIT_KPI_ADE', 'DIM_DATE', 'DIM_CENTRE')
+      ORDER BY TABLE_NAME
+    `;
+    
+    const tables = await db.query(tablesQuery);
+    
+    // Vérifier la structure de FAIT_KPI_ADE
+    const structureQuery = `
+      SELECT 
+        COLUMN_NAME,
+        DATA_TYPE,
+        IS_NULLABLE,
+        COLUMN_DEFAULT
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_NAME = 'FAIT_KPI_ADE'
+      ORDER BY ORDINAL_POSITION
+    `;
+    
+    const structure = await db.query(structureQuery);
+    
+    // Vérifier les données dans FAIT_KPI_ADE
+    const dataQuery = `
+      SELECT TOP 5 
+        f.AgenceId,
+        f.DateKey,
+        f.Obj_Coupures,
+        f.Obj_Dossiers_Juridiques,
+        f.Obj_MisesEnDemeure_Envoyees,
+        f.Obj_Relances_Envoyees
+      FROM dbo.FAIT_KPI_ADE f
+    `;
+    
+    const data = await db.query(dataQuery);
+    
+    // Vérifier si DIM_DATE existe et a les bonnes colonnes
+    let dateStructure = null;
+    try {
+      const dateQuery = `
+        SELECT 
+          COLUMN_NAME,
+          DATA_TYPE
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = 'DIM_DATE'
+        ORDER BY ORDINAL_POSITION
+      `;
+      dateStructure = await db.query(dateQuery);
+    } catch (err) {
+      dateStructure = { error: 'Table DIM_DATE non trouvée' };
+    }
+    
+    res.json({
+      tables: tables,
+      faitKpiStructure: structure,
+      faitKpiData: data,
+      dimDateStructure: dateStructure,
+      message: 'Informations de debug récupérées avec succès'
+    });
+  } catch (err) {
+    console.error('Erreur GET /objectives/debug:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération des informations de debug', error: err.message });
+  }
+});
+
 // POST /api/objectives - Créer ou mettre à jour un objectif
 router.post('/', async (req, res) => {
   const role = getRole(req);
