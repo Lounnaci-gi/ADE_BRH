@@ -4,7 +4,7 @@ const { Connection, Request, TYPES } = require('tedious');
 const router = express.Router();
 
 const getConfig = () => ({
-  server: process.env.DB_SERVER || 'localhost',
+  server: process.env.DB_SERVER || '0.0.0.0',
   authentication: {
     type: 'default',
     options: {

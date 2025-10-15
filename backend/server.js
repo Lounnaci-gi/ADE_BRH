@@ -99,7 +99,7 @@ app.use("/api/communes", communesRoutes);
 
 
 // Lancement du serveur
-app.listen(PORT, () => {
+app.listen(PORT,"0.0.0.0", () => {
     console.log(`🚀 Serveur backend démarré sur le port ${PORT}`);
     console.log(`🧩 Test: http://localhost:${PORT}/api/test`);
 });
