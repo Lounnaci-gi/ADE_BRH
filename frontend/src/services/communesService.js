@@ -38,7 +38,7 @@ const communesService = {
 
   async getCount() {
     const res = await api.get('/communes/count');
-    return res.data.count;
+    return res.data?.count ?? 0;
   }
 };
 

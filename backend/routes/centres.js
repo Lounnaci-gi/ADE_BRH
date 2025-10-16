@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/centres - Créer un centre
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const role = getRole(req);
   
   if (role !== 'Administrateur') {
@@ -71,47 +71,39 @@ router.post('/', (req, res) => {
     return res.status(400).json({ message: 'Nom du centre, adresse et téléphone sont obligatoires' });
   }
 
-  const connection = new Connection(getConfig());
-
-  connection.on('connect', (err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+  try {
+    const exists = await db.query(
+      'SELECT CentreId FROM dbo.DIM_CENTRE WHERE Nom_Centre = @nom_centre',
+      [ { name: 'nom_centre', type: TYPES.NVarChar, value: nom_centre } ]
+    );
+    if (exists.length > 0) {
+      return res.status(409).json({ message: 'Un centre avec ce nom existe déjà' });
     }
 
-    const query = `
-      INSERT INTO dbo.DIM_CENTRE (Nom_Centre, Adresse, Telephone, Email, Fax)
-      VALUES (@nom_centre, @adresse, @telephone, @email, @fax)
-    `;
+    const insertSql = `
+      DECLARE @t TABLE(CentreId INT);
+      INSERT INTO dbo.DIM_CENTRE (Nom_Centre, Adresse, Telephone, Email, Fax, CreatedAt)
+      OUTPUT INSERTED.CentreId INTO @t
+      VALUES (@nom_centre, @adresse, @telephone, @email, @fax, SYSUTCDATETIME());
+      SELECT CentreId FROM @t;`;
 
-    const request = new Request(query, (err, rowCount) => {
-      if (err) {
-        connection.close();
-        if (err.message.includes('UNIQUE')) {
-          return res.status(409).json({ message: 'Un centre avec ce nom existe déjà' });
-        }
-        return res.status(500).json({ message: 'Erreur lors de la création', error: err.message });
-      }
-      connection.close();
-      res.json({ 
-        message: 'Centre créé avec succès',
-        rowsAffected: rowCount
-      });
-    });
+    const rows = await db.query(insertSql, [
+      { name: 'nom_centre', type: TYPES.NVarChar, value: nom_centre },
+      { name: 'adresse', type: TYPES.NVarChar, value: adresse },
+      { name: 'telephone', type: TYPES.NVarChar, value: telephone },
+      { name: 'email', type: TYPES.NVarChar, value: email || null },
+      { name: 'fax', type: TYPES.NVarChar, value: fax || null }
+    ]);
 
-    request.addParameter('nom_centre', TYPES.NVarChar, nom_centre);
-    request.addParameter('adresse', TYPES.NVarChar, adresse);
-    request.addParameter('telephone', TYPES.NVarChar, telephone);
-    request.addParameter('email', TYPES.NVarChar, email || null);
-    request.addParameter('fax', TYPES.NVarChar, fax || null);
-
-    connection.execSql(request);
-  });
-
-  connection.connect();
+    return res.status(201).json({ message: 'Centre créé avec succès', CentreId: rows[0]?.CentreId });
+  } catch (err) {
+    console.error('Erreur POST /centres:', err);
+    return res.status(500).json({ message: 'Erreur lors de la création', error: err.message });
+  }
 });
 
 // PUT /api/centres/:id - Modifier un centre
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const role = getRole(req);
   
   if (role !== 'Administrateur') {
@@ -125,88 +117,70 @@ router.put('/:id', (req, res) => {
     return res.status(400).json({ message: 'Nom du centre, adresse et téléphone sont obligatoires' });
   }
 
-  const connection = new Connection(getConfig());
-
-  connection.on('connect', (err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+  try {
+    const duplicate = await db.query(
+      'SELECT CentreId FROM dbo.DIM_CENTRE WHERE Nom_Centre = @nom_centre AND CentreId <> @id',
+      [
+        { name: 'nom_centre', type: TYPES.NVarChar, value: nom_centre },
+        { name: 'id', type: TYPES.Int, value: parseInt(id, 10) }
+      ]
+    );
+    if (duplicate.length > 0) {
+      return res.status(409).json({ message: 'Un centre avec ce nom existe déjà' });
     }
 
-    const query = `
+    const updateSql = `
       UPDATE dbo.DIM_CENTRE 
       SET 
         Nom_Centre = @nom_centre,
         Adresse = @adresse,
         Telephone = @telephone,
         Email = @email,
-        Fax = @fax
-      WHERE CentreId = @id
-    `;
+        Fax = @fax,
+        ModifiedAt = SYSUTCDATETIME()
+      WHERE CentreId = @id`;
 
-    const request = new Request(query, (err, rowCount) => {
-      if (err) {
-        connection.close();
-        if (err.message.includes('UNIQUE')) {
-          return res.status(409).json({ message: 'Un centre avec ce nom existe déjà' });
-        }
-        return res.status(500).json({ message: 'Erreur lors de la modification', error: err.message });
-      }
-      connection.close();
-      res.json({ 
-        message: 'Centre modifié avec succès',
-        rowsAffected: rowCount
-      });
-    });
+    await db.query(updateSql, [
+      { name: 'id', type: TYPES.Int, value: parseInt(id, 10) },
+      { name: 'nom_centre', type: TYPES.NVarChar, value: nom_centre },
+      { name: 'adresse', type: TYPES.NVarChar, value: adresse },
+      { name: 'telephone', type: TYPES.NVarChar, value: telephone },
+      { name: 'email', type: TYPES.NVarChar, value: email || null },
+      { name: 'fax', type: TYPES.NVarChar, value: fax || null }
+    ]);
 
-    request.addParameter('id', TYPES.Int, parseInt(id));
-    request.addParameter('nom_centre', TYPES.NVarChar, nom_centre);
-    request.addParameter('adresse', TYPES.NVarChar, adresse);
-    request.addParameter('telephone', TYPES.NVarChar, telephone);
-    request.addParameter('email', TYPES.NVarChar, email || null);
-    request.addParameter('fax', TYPES.NVarChar, fax || null);
-
-    connection.execSql(request);
-  });
-
-  connection.connect();
+    return res.json({ message: 'Centre modifié avec succès' });
+  } catch (err) {
+    console.error('Erreur PUT /centres/:id:', err);
+    return res.status(500).json({ message: 'Erreur lors de la modification', error: err.message });
+  }
 });
 
 // DELETE /api/centres/:id - Supprimer un centre
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   const role = getRole(req);
-  
   if (role !== 'Administrateur') {
     return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent supprimer les centres.' });
   }
-
   const { id } = req.params;
-  const connection = new Connection(getConfig());
-
-  connection.on('connect', (err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+  try {
+    // Vérifier s'il existe des agences liées à ce centre
+    const dependants = await db.query(
+      'SELECT TOP 1 AgenceId FROM dbo.DIM_AGENCE WHERE FK_Centre = @id',
+      [{ name: 'id', type: TYPES.Int, value: parseInt(id, 10) }]
+    );
+    if (dependants.length > 0) {
+      return res.status(409).json({ message: 'Impossible de supprimer ce centre car des agences y sont rattachées.' });
     }
 
-    const query = `DELETE FROM dbo.DIM_CENTRE WHERE CentreId = @id`;
-
-    const request = new Request(query, (err, rowCount) => {
-      if (err) {
-        connection.close();
-        return res.status(500).json({ message: 'Erreur lors de la suppression', error: err.message });
-      }
-      connection.close();
-      res.json({ 
-        message: 'Centre supprimé avec succès',
-        rowsAffected: rowCount
-      });
-    });
-
-    request.addParameter('id', TYPES.Int, parseInt(id));
-
-    connection.execSql(request);
-  });
-
-  connection.connect();
+    await db.query('DELETE FROM dbo.DIM_CENTRE WHERE CentreId = @id', [
+      { name: 'id', type: TYPES.Int, value: parseInt(id, 10) }
+    ]);
+    return res.json({ message: 'Centre supprimé avec succès' });
+  } catch (err) {
+    console.error('Erreur DELETE /centres/:id:', err);
+    return res.status(500).json({ message: 'Erreur lors de la suppression', error: err.message });
+  }
 });
 
 // GET /api/centres/count - Nombre total de centres (lecture pour tous les utilisateurs connectés)

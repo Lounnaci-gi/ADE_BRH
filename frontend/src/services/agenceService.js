@@ -34,7 +34,7 @@ const agenceService = {
   },
   async getCount() {
     const response = await api.get('/agences/count');
-    return response.data.count;
+    return response.data?.count ?? 0;
   }
 };
 

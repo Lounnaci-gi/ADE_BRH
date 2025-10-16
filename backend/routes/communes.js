@@ -220,37 +220,20 @@ router.get('/agences', async (req, res) => {
 });
 
 // GET /api/communes/count - Nombre total de communes (lecture pour tous les utilisateurs connectés)
-router.get('/count', (req, res) => {
+router.get('/count', async (req, res) => {
   const role = getRole(req);
   
   // Permettre la lecture pour tous les utilisateurs connectés (Administrateur et Standard)
   if (!role || (role !== 'Administrateur' && role !== 'Standard')) {
     return res.status(403).json({ message: 'Accès refusé. Connexion requise.' });
   }
-
-  const connection = new Connection(getConfig());
-
-  connection.on('connect', (err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
-    }
-
-    const query = 'SELECT COUNT(*) as count FROM dbo.DIM_COMMUNE';
-    const request = new Request(query, (err) => {
-      if (err) {
-        return res.status(500).json({ message: 'Erreur lors de l\'exécution de la requête', error: err.message });
-      }
-    });
-
-    request.on('row', (columns) => {
-      const count = columns[0].value;
-      res.json({ count });
-    });
-
-    connection.execSql(request);
-  });
-
-  connection.connect();
+  try {
+    const rows = await db.query('SELECT COUNT(*) as count FROM dbo.DIM_COMMUNE');
+    return res.json({ count: rows[0]?.count || 0 });
+  } catch (err) {
+    console.error('Erreur GET /communes/count:', err);
+    return res.status(500).json({ message: 'Erreur lors de la récupération du nombre de communes' });
+  }
 });
 
 module.exports = router;

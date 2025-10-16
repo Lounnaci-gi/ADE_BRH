@@ -8,16 +8,10 @@ const instance = axios.create({
 
 instance.interceptors.request.use((config) => {
   const user = authService.getCurrentUser();
-  console.log('API interceptor - Current user:', user);
-  
   // Toujours ajouter le rôle par défaut si pas d'utilisateur connecté
   config.headers['X-Role'] = user?.role || 'Administrateur';
-  
-  if (user?.agenceId) {
-    config.headers['X-User-Agence'] = user.agenceId;
-  }
-  
-  console.log('API interceptor - Headers:', config.headers);
+  if (user?.id) config.headers['X-User-Id'] = String(user.id);
+  if (user?.agenceId) config.headers['X-User-Agence'] = user.agenceId;
   return config;
 });
 
