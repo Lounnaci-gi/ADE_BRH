@@ -57,7 +57,7 @@ const Login = () => {
             <div className="login-card">
                 <div className="login-header">
                     <h1>ADE BRH</h1>
-                    <p>Système de gestion des utilisateurs</p>
+                    <p>Système de gestion commercial - Unité Médéa</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">

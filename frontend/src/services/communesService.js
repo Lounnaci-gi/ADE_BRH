@@ -24,7 +24,7 @@ const communesService = {
   },
 
   async remove(id) {
-    const user = authService.getCurrentUser();
+    const user = authService.getCurrentUser();      
     const res = await api.delete(`/communes/${id}`, {
       headers: { 'X-Role': user?.role || 'Administrateur' }
     });

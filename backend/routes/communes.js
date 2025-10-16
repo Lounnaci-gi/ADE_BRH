@@ -126,10 +126,8 @@ router.put('/:id', requireAdmin, async (req, res) => {
 // DELETE /api/communes/:id - Supprimer une commune
 router.delete('/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
-
   const connection = new Connection(config);
   let hasResponded = false;
-
   connection.on('connect', (err) => {
     if (err) {
       console.error('Erreur de connexion à la base de données:', err);

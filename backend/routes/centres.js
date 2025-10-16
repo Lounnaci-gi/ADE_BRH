@@ -137,7 +137,7 @@ router.put('/:id', async (req, res) => {
         Telephone = @telephone,
         Email = @email,
         Fax = @fax,
-        ModifiedAt = SYSUTCDATETIME()
+        CreatedAt = SYSUTCDATETIME()
       WHERE CentreId = @id`;
 
     await db.query(updateSql, [

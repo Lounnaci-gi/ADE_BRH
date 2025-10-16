@@ -142,13 +142,13 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez le nom du centre"
-              maxLength={200}
+              maxLength={60}
             />
             {errors.nom_centre && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.nom_centre}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.nom_centre.length}/200 caractères
+              {formData.nom_centre.length}/60 caractères
             </p>
           </div>
 
@@ -169,13 +169,13 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez l'adresse complète du centre"
-              maxLength={400}
+              maxLength={300}
             />
             {errors.adresse && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.adresse}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.adresse.length}/400 caractères
+              {formData.adresse.length}/300 caractères
             </p>
           </div>
 
@@ -196,13 +196,13 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez le numéro de téléphone"
-              maxLength={50}
+              maxLength={10}
             />
             {errors.telephone && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.telephone}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.telephone.length}/50 caractères
+              {formData.telephone.length}/10 caractères
             </p>
           </div>
 
@@ -223,13 +223,13 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez l'adresse email (optionnel)"
-              maxLength={200}
+              maxLength={80}
             />
             {errors.email && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.email.length}/200 caractères
+              {formData.email.length}/80 caractères
             </p>
           </div>
 
@@ -250,13 +250,13 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez le numéro de fax (optionnel)"
-              maxLength={50}
+              maxLength={10}
             />
             {errors.fax && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fax}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.fax.length}/50 caractères
+              {formData.fax.length}/10 caractères
             </p>
           </div>
 
