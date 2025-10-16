@@ -33,7 +33,7 @@ const centresService = {
 
   // Obtenir le nombre total de centres
   getCount: () => {
-    return api.get('/centres/count');
+    return api.get('/centres/count').then((res) => res.data?.count ?? 0);
   }
 };
 

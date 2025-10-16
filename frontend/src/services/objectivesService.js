@@ -30,6 +30,17 @@ const objectivesService = {
     return res.data;
   },
 
+  async update(payload) {
+    const user = authService.getCurrentUser();
+    const res = await api.put('/objectives', payload, {
+      headers: {
+        'X-Role': user?.role || 'Administrateur',
+        'X-User-Id': user?.id || ''
+      }
+    });
+    return res.data;
+  },
+
   async remove(payload) {
     const user = authService.getCurrentUser();
     const res = await api.delete('/objectives', {

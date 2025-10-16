@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
 });
 
 // ✅ Ajouter une nouvelle agence
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const roleHeader = (req.headers['x-role'] || '').toString();
     if (roleHeader !== 'Administrateur') {
         return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
@@ -100,65 +100,41 @@ router.post('/', (req, res) => {
         });
     }
 
-    const connection = new Connection(getConfig());
-
-    connection.on('connect', (err) => {
-        if (err) {
-            return res.status(500).json({ 
-                message: 'Erreur de connexion à la base de données', 
-                error: err.message 
-            });
+    try {
+        const exists = await db.query(
+            'SELECT AgenceId FROM dbo.DIM_AGENCE WHERE Nom_Agence = @Nom_Agence',
+            [{ name: 'Nom_Agence', type: TYPES.NVarChar, value: Nom_Agence }]
+        );
+        if (exists.length > 0) {
+            return res.status(409).json({ message: 'Une agence avec ce nom existe déjà' });
         }
 
-        const query = `
-            INSERT INTO DIM_AGENCE 
+        const insertSql = `
+            DECLARE @t TABLE(AgenceId INT);
+            INSERT INTO dbo.DIM_AGENCE 
             (FK_Centre, Nom_Agence, Adresse, Telephone, Email, Fax, Nom_Banque, Compte_Bancaire, NIF, NCI, CreatedAt)
-            OUTPUT INSERTED.AgenceId
-            VALUES (@FK_Centre, @Nom_Agence, @Adresse, @Telephone, @Email, @Fax, @Nom_Banque, @Compte_Bancaire, @NIF, @NCI, @CreatedAt)
-        `;
+            OUTPUT INSERTED.AgenceId INTO @t
+            VALUES (@FK_Centre, @Nom_Agence, @Adresse, @Telephone, @Email, @Fax, @Nom_Banque, @Compte_Bancaire, @NIF, @NCI, SYSUTCDATETIME());
+            SELECT AgenceId FROM @t;`;
 
-        let insertedId = null;
+        const rows = await db.query(insertSql, [
+            { name: 'FK_Centre', type: TYPES.Int, value: parseInt(FK_Centre, 10) },
+            { name: 'Nom_Agence', type: TYPES.NVarChar, value: Nom_Agence },
+            { name: 'Adresse', type: TYPES.NVarChar, value: Adresse },
+            { name: 'Telephone', type: TYPES.NVarChar, value: Telephone },
+            { name: 'Email', type: TYPES.NVarChar, value: Email || null },
+            { name: 'Fax', type: TYPES.NVarChar, value: Fax || null },
+            { name: 'Nom_Banque', type: TYPES.NVarChar, value: Nom_Banque || null },
+            { name: 'Compte_Bancaire', type: TYPES.NVarChar, value: Compte_Bancaire || null },
+            { name: 'NIF', type: TYPES.NVarChar, value: NIF || null },
+            { name: 'NCI', type: TYPES.NVarChar, value: NCI || null }
+        ]);
 
-        const request = new Request(query, (err, rowCount) => {
-            connection.close();
-
-            if (err) {
-                return res.status(500).json({ 
-                    message: 'Erreur lors de l\'ajout de l\'agence', 
-                    error: err.message 
-                });
-            }
-
-            res.json({ 
-                message: 'Agence ajoutée avec succès', 
-                id: insertedId 
-            });
-        });
-
-        request.addParameter('FK_Centre', TYPES.Int, parseInt(FK_Centre));
-        request.addParameter('Nom_Agence', TYPES.NVarChar, Nom_Agence);
-        request.addParameter('Adresse', TYPES.NVarChar, Adresse);
-        request.addParameter('Telephone', TYPES.NVarChar, Telephone);
-        request.addParameter('Email', TYPES.NVarChar, Email || null);
-        request.addParameter('Fax', TYPES.NVarChar, Fax || null);
-        request.addParameter('Nom_Banque', TYPES.NVarChar, Nom_Banque || null);
-        request.addParameter('Compte_Bancaire', TYPES.NVarChar, Compte_Bancaire || null);
-        request.addParameter('NIF', TYPES.NVarChar, NIF || null);
-        request.addParameter('NCI', TYPES.NVarChar, NCI || null);
-        request.addParameter('CreatedAt', TYPES.DateTime2, new Date());
-
-        request.on('row', (columns) => {
-            columns.forEach(column => {
-                if (column.metadata.colName === 'AgenceId') {
-                    insertedId = column.value;
-                }
-            });
-        });
-
-        connection.execSql(request);
-    });
-
-    connection.connect();
+        return res.status(201).json({ message: 'Agence ajoutée avec succès', id: rows[0]?.AgenceId });
+    } catch (err) {
+        console.error('Erreur POST /agences:', err);
+        return res.status(500).json({ message: 'Erreur lors de l\'ajout de l\'agence', error: err.message });
+    }
 });
 
 // ✅ Modifier une agence existante
@@ -253,45 +229,18 @@ router.put('/:id', (req, res) => {
 });
 
 // ✅ Récupérer la liste des centres pour le formulaire
-router.get('/centres', (req, res) => {
-    const connection = new Connection(getConfig());
-
-    connection.on('connect', (err) => {
-        if (err) {
-            return res.status(500).json({ 
-                message: 'Erreur de connexion à la base de données', 
-                error: err.message 
-            });
-        }
-
+router.get('/centres', async (req, res) => {
+    try {
         const query = 'SELECT CentreId, Nom_Centre FROM DIM_CENTRE ORDER BY Nom_Centre';
-        const centres = [];
-
-        const request = new Request(query, (err, rowCount) => {
-            connection.close();
-
-            if (err) {
-                return res.status(500).json({ 
-                    message: 'Erreur lors du chargement des centres', 
-                    error: err.message 
-                });
-            }
-
-            res.json(centres);
+        const centres = await db.query(query);
+        res.json(centres);
+    } catch (err) {
+        console.error('Erreur GET /agences/centres:', err);
+        res.status(500).json({ 
+            message: 'Erreur lors du chargement des centres', 
+            error: err.message 
         });
-
-        request.on('row', (columns) => {
-            let row = {};
-            columns.forEach(column => {
-                row[column.metadata.colName] = column.value;
-            });
-            centres.push(row);
-        });
-
-        connection.execSql(request);
-    });
-
-    connection.connect();
+    }
 });
 
 // ✅ Supprimer une agence (admin uniquement)
@@ -332,55 +281,7 @@ router.delete('/:id', (req, res) => {
 });
 
 // GET /api/agences/centres - Récupérer la liste des centres
-router.get('/centres', (req, res) => {
-    const connection = new Connection(config);
-    let hasResponded = false;
-
-    connection.on('connect', (err) => {
-        if (err) {
-            console.error('Erreur de connexion à la base de données:', err);
-            if (!hasResponded) {
-                hasResponded = true;
-                res.status(500).json({ message: 'Erreur de connexion à la base de données' });
-                connection.close();
-            }
-            return;
-        }
-
-        const query = 'SELECT CentreId, Nom_Centre FROM DIM_CENTRE ORDER BY Nom_Centre';
-        const request = new Request(query, (err) => {
-            if (err) {
-                console.error('Erreur lors de l\'exécution de la requête:', err);
-                if (!hasResponded) {
-                    hasResponded = true;
-                    res.status(500).json({ message: 'Erreur lors de la récupération des centres' });
-                    connection.close();
-                }
-            }
-        });
-
-        const centres = [];
-        request.on('row', (columns) => {
-            const centre = {};
-            columns.forEach((column) => {
-                centre[column.metadata.colName] = column.value;
-            });
-            centres.push(centre);
-        });
-
-        request.on('requestCompleted', () => {
-            if (!hasResponded) {
-                hasResponded = true;
-                res.json(centres);
-                connection.close();
-            }
-        });
-
-        connection.execSql(request);
-    });
-
-    connection.connect();
-});
+// Duplicate legacy handler removed; unified above using db.query
 
 // GET /api/agences/count - Nombre total d'agences (lecture pour tous les utilisateurs connectés)
 router.get('/count', async (req, res) => {

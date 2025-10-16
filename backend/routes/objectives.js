@@ -208,6 +208,9 @@ router.post('/', async (req, res) => {
   try {
     // Calculer DateKey (YYYYMM01)
     const dateKey = parseInt(`${annee}${mois.toString().padStart(2, '0')}01`);
+    const nextMonth = mois === 12 ? 1 : mois + 1;
+    const nextYear = mois === 12 ? annee + 1 : annee;
+    const nextMonthDateKey = parseInt(`${nextYear}${nextMonth.toString().padStart(2, '0')}01`);
 
     // Vérifier d'abord si la table existe
     const checkTableQuery = `
@@ -222,6 +225,26 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ 
         message: 'Table FAIT_KPI_ADE non trouvée', 
         error: 'La table des objectifs n\'existe pas dans la base de données' 
+      });
+    }
+    
+    // Règle de gestion: empêcher un doublon d'objectif pour la même agence et la même période (mois/année)
+    const existsQuery = `
+      SELECT COUNT(*) as count
+      FROM dbo.FAIT_KPI_ADE
+      WHERE AgenceId = @agenceId
+        AND DateKey >= @dateKey
+        AND DateKey < @nextMonthDateKey
+    `;
+    const existsParams = [
+      { name: 'agenceId', type: TYPES.Int, value: agenceId },
+      { name: 'dateKey', type: TYPES.Int, value: dateKey },
+      { name: 'nextMonthDateKey', type: TYPES.Int, value: nextMonthDateKey }
+    ];
+    const existsRows = await db.query(existsQuery, existsParams);
+    if (existsRows?.[0]?.count > 0) {
+      return res.status(409).json({
+        message: 'Un objectif existe déjà pour cette agence à cette période (mois/année).'
       });
     }
     
@@ -258,6 +281,80 @@ router.post('/', async (req, res) => {
   } catch (err) {
     console.error('Erreur POST /objectives:', err);
     res.status(500).json({ message: 'Erreur lors de la sauvegarde', error: err.message });
+  }
+});
+
+// PUT /api/objectives - Mettre à jour un objectif existant pour une agence et une période
+router.put('/', async (req, res) => {
+  const role = getRole(req);
+  if (role !== 'Administrateur') {
+    return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent modifier les objectifs.' });
+  }
+
+  const {
+    agenceId,
+    annee,
+    mois,
+    objectif_Coupures,
+    objectif_Dossiers_Juridiques,
+    objectif_MisesEnDemeure_Envoyees,
+    objectif_Relances_Envoyees
+  } = req.body;
+
+  if (!agenceId || !annee || !mois) {
+    return res.status(400).json({ message: 'Agence, année et mois sont requis' });
+  }
+  if (mois < 1 || mois > 12) {
+    return res.status(400).json({ message: 'Le mois doit être entre 1 et 12' });
+  }
+  if (annee < 2020 || annee > 2030) {
+    return res.status(400).json({ message: 'L\'année doit être entre 2020 et 2030' });
+  }
+
+  try {
+    const dateKey = parseInt(`${annee}${mois.toString().padStart(2, '0')}01`);
+    const nextMonth = mois === 12 ? 1 : mois + 1;
+    const nextYear = mois === 12 ? annee + 1 : annee;
+    const nextMonthDateKey = parseInt(`${nextYear}${nextMonth.toString().padStart(2, '0')}01`);
+
+    // Vérifier existence
+    const exists = await db.query(
+      `SELECT TOP 1 1 as ok FROM dbo.FAIT_KPI_ADE
+       WHERE AgenceId = @agenceId AND DateKey >= @dateKey AND DateKey < @nextMonthDateKey`,
+      [
+        { name: 'agenceId', type: TYPES.Int, value: agenceId },
+        { name: 'dateKey', type: TYPES.Int, value: dateKey },
+        { name: 'nextMonthDateKey', type: TYPES.Int, value: nextMonthDateKey }
+      ]
+    );
+    if (exists.length === 0) {
+      return res.status(404).json({ message: 'Aucun objectif trouvé pour cette agence et cette période' });
+    }
+
+    const updateSql = `
+      UPDATE dbo.FAIT_KPI_ADE
+      SET 
+        Obj_Coupures = @objectif_Coupures,
+        Obj_Dossiers_Juridiques = @objectif_Dossiers_Juridiques,
+        Obj_MisesEnDemeure_Envoyees = @objectif_MisesEnDemeure_Envoyees,
+        Obj_Relances_Envoyees = @objectif_Relances_Envoyees,
+        ModifiedAt = SYSUTCDATETIME()
+      WHERE AgenceId = @agenceId AND DateKey >= @dateKey AND DateKey < @nextMonthDateKey`;
+
+    await db.query(updateSql, [
+      { name: 'agenceId', type: TYPES.Int, value: agenceId },
+      { name: 'dateKey', type: TYPES.Int, value: dateKey },
+      { name: 'nextMonthDateKey', type: TYPES.Int, value: nextMonthDateKey },
+      { name: 'objectif_Coupures', type: TYPES.Int, value: objectif_Coupures || null },
+      { name: 'objectif_Dossiers_Juridiques', type: TYPES.Int, value: objectif_Dossiers_Juridiques || null },
+      { name: 'objectif_MisesEnDemeure_Envoyees', type: TYPES.Int, value: objectif_MisesEnDemeure_Envoyees || null },
+      { name: 'objectif_Relances_Envoyees', type: TYPES.Int, value: objectif_Relances_Envoyees || null }
+    ]);
+
+    return res.json({ message: 'Objectifs mis à jour avec succès' });
+  } catch (err) {
+    console.error('Erreur PUT /objectives:', err);
+    return res.status(500).json({ message: 'Erreur lors de la mise à jour', error: err.message });
   }
 });
 
