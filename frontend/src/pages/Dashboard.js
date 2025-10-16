@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Users, LogOut, Droplets, Building2, Activity, PlusCircle, ShieldCheck, BarChart3, MapPin } from 'lucide-react';
+import { Users, Building2, Activity, PlusCircle, MapPin } from 'lucide-react';
 import authService from '../services/authService';
 import centresService from '../services/centresService';
 import agenceService from '../services/agenceService';
@@ -8,7 +8,6 @@ import communesService from '../services/communesService';
 import userService from '../services/userService';
 
 const Dashboard = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState({
     users: 0,
     centres: 0,
@@ -18,10 +17,6 @@ const Dashboard = () => {
   });
   const user = authService.getCurrentUser();
 
-  const handleLogout = () => {
-    authService.logout();
-    window.location.href = '/login';
-  };
 
   useEffect(() => {
     const loadStats = async () => {
@@ -50,65 +45,11 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-50 to-sky-100 text-gray-800 font-sans">
-      {/* === Sidebar === */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-30 w-64 bg-white/90 backdrop-blur-md border-r border-blue-100 shadow-lg transform 
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          transition-transform duration-300 ease-in-out md:translate-x-0`}
-      >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-blue-100">
-          <div className="flex items-center space-x-2">
-            <Droplets className="w-6 h-6 text-sky-600" />
-            <h1 className="text-xl font-semibold text-sky-700">ADE BRH</h1>
-          </div>
-          <button
-            className="md:hidden text-gray-600 hover:text-sky-600"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X size={22} />
-          </button>
-        </div>
-
-        <nav className="mt-6 space-y-1">
-          <Link
-            to="/dashboard/users"
-            className="flex items-center px-6 py-3 text-gray-700 hover:bg-sky-50 hover:text-sky-600 transition rounded-lg"
-          >
-            <Users className="w-5 h-5 mr-3" />
-            Gestion des utilisateurs
-          </Link>
-
-          <Link
-            to="/dashboard/agences"
-            className="flex items-center px-6 py-3 text-gray-700 hover:bg-sky-50 hover:text-sky-600 transition rounded-lg"
-          >
-            <Building2 className="w-5 h-5 mr-3" />
-            Gestion des agences commerciales
-          </Link>
-        </nav>
-
-        <div className="absolute bottom-0 left-0 w-full border-t border-blue-100 px-6 py-4 bg-white/80">
-          <button
-            onClick={handleLogout}
-            className="flex items-center text-gray-700 hover:text-red-500 transition"
-          >
-            <LogOut className="w-5 h-5 mr-2" />
-            Déconnexion
-          </button>
-        </div>
-      </aside>
-
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 text-gray-800 font-sans">
       {/* === Main content === */}
-      <div className="flex-1 flex flex-col md:ml-64">
+      <div className="w-full">
         {/* Navbar */}
         <header className="flex items-center justify-between bg-gradient-to-r from-white/70 to-sky-50/70 backdrop-blur-md shadow-sm px-6 py-4 border-b border-blue-100">
-          <button
-            className="md:hidden text-gray-600 hover:text-sky-600"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu size={24} />
-          </button>
           <h2 className="text-lg font-semibold text-sky-700">Tableau de bord</h2>
           <div className="flex items-center space-x-4">
             <span className="text-gray-700 font-medium">{user?.username}</span>
@@ -121,20 +62,7 @@ const Dashboard = () => {
         </header>
 
         {/* Contenu principal */}
-        <main className="flex-1 overflow-y-auto p-6 fade-in space-y-6">
-          {/* Bandeau de bienvenue */}
-          <div className="relative overflow-hidden bg-white/90 rounded-2xl shadow-md border border-blue-50 p-6 transition hover:shadow-lg">
-            <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-sky-100 -z-10 pointer-events-none" aria-hidden="true" />
-            <div className="absolute -bottom-10 -left-10 w-52 h-52 rounded-full bg-blue-50 -z-10 pointer-events-none" aria-hidden="true" />
-            <h3 className="relative z-10 text-2xl font-semibold text-sky-700 mb-3">
-              Bienvenue {user?.username || ''}
-            </h3>
-            <p className="relative z-10 text-gray-600 leading-relaxed">
-              Ce tableau de bord vous permet de gérer efficacement les utilisateurs, les agences commerciales,
-              les clients et les opérations liées à la distribution d’eau.
-            </p>
-          </div>
-
+        <main className="p-6 fade-in space-y-6">
           {/* Cartes KPI */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-md transition">

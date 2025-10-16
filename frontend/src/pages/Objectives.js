@@ -28,6 +28,18 @@ function Objectives() {
     return months[month - 1] || '';
   };
 
+  // Fonction pour vérifier si un objectif est trop ancien pour être modifié (> 3 mois)
+  const isObjectiveTooOld = (annee, mois) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    
+    const objectiveDate = new Date(annee, mois - 1, 1);
+    const threeMonthsAgo = new Date(currentYear, currentMonth - 4, 1);
+    
+    return objectiveDate < threeMonthsAgo;
+  };
+
   // Charger les données
   const loadData = async () => {
     if (!isAdmin) {
@@ -205,22 +217,31 @@ function Objectives() {
                 </tr>
               </thead>
               <tbody>
-                {objectives.map((o) => (
-                  <tr key={`${o.AgenceId}-${o.DateKey}`} className="border-t">
-                    <td className="px-4 py-2">{o.Nom_Agence}</td>
-                    <td className="px-4 py-2">{getMonthName(o.Mois)} {o.Annee}</td>
-                    <td className="px-4 py-2">{o.Obj_Coupures ?? 0}</td>
-                    <td className="px-4 py-2">{o.Obj_Dossiers_Juridiques ?? 0}</td>
-                    <td className="px-4 py-2">{o.Obj_MisesEnDemeure_Envoyees ?? 0}</td>
-                    <td className="px-4 py-2">{o.Obj_Relances_Envoyees ?? 0}</td>
-                    <td className="px-4 py-2 text-right">
-                      <button onClick={() => openEdit(o)} className="inline-flex items-center gap-1 px-2 py-1 rounded border mr-2">
-                        <Pencil className="h-4 w-4" /> Modifier
-                      </button>
-                      {/* Suppression logique côté backend déjà disponible via DELETE, à brancher si souhaité */}
-                    </td>
-                  </tr>
-                ))}
+                {objectives.map((o) => {
+                  const isTooOld = isObjectiveTooOld(o.Annee, o.Mois);
+                  return (
+                    <tr key={`${o.AgenceId}-${o.DateKey}`} className="border-t">
+                      <td className="px-4 py-2">{o.Nom_Agence}</td>
+                      <td className="px-4 py-2">{getMonthName(o.Mois)} {o.Annee}</td>
+                      <td className="px-4 py-2">{o.Obj_Coupures ?? 0}</td>
+                      <td className="px-4 py-2">{o.Obj_Dossiers_Juridiques ?? 0}</td>
+                      <td className="px-4 py-2">{o.Obj_MisesEnDemeure_Envoyees ?? 0}</td>
+                      <td className="px-4 py-2">{o.Obj_Relances_Envoyees ?? 0}</td>
+                      <td className="px-4 py-2 text-right">
+                        {isTooOld ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded border mr-2 bg-gray-100 text-gray-500 cursor-not-allowed">
+                            <Pencil className="h-4 w-4" /> Verrouillé
+                          </span>
+                        ) : (
+                          <button onClick={() => openEdit(o)} className="inline-flex items-center gap-1 px-2 py-1 rounded border mr-2 hover:bg-blue-50">
+                            <Pencil className="h-4 w-4" /> Modifier
+                          </button>
+                        )}
+                        {/* Suppression logique côté backend déjà disponible via DELETE, à brancher si souhaité */}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

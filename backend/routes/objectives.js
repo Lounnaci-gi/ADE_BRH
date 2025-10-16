@@ -25,6 +25,37 @@ const getConfig = () => ({
 const getRole = (req) => (req.headers['x-role'] || '').toString();
 const getUserId = (req) => parseInt(req.headers['x-user-id'], 10) || null;
 
+// Helper pour valider les règles temporelles des objectifs
+const validateTemporalRules = (annee, mois) => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // getMonth() retourne 0-11, on veut 1-12
+  
+  // Créer la date de l'objectif
+  const objectiveDate = new Date(annee, mois - 1, 1); // mois - 1 car Date() utilise 0-11
+  
+  // Calculer les limites temporelles
+  const threeMonthsAgo = new Date(currentYear, currentMonth - 4, 1); // 3 mois dans le passé
+  const twoMonthsAhead = new Date(currentYear, currentMonth + 1, 1); // 2 mois dans le futur
+  
+  const errors = [];
+  
+  // Règle 1: Interdiction de créer/modifier dans le passé (> 3 mois)
+  if (objectiveDate < threeMonthsAgo) {
+    errors.push(`Impossible de créer ou modifier un objectif pour une période antérieure à 3 mois (${annee}-${mois.toString().padStart(2, '0')}). La période doit être postérieure à ${threeMonthsAgo.getFullYear()}-${(threeMonthsAgo.getMonth() + 1).toString().padStart(2, '0')}.`);
+  }
+  
+  // Règle 2: Interdiction de créer dans le futur (> 2 mois)
+  if (objectiveDate > twoMonthsAhead) {
+    errors.push(`Impossible de créer un objectif pour une période supérieure à 2 mois dans le futur (${annee}-${mois.toString().padStart(2, '0')}). La période doit être antérieure à ${twoMonthsAhead.getFullYear()}-${(twoMonthsAhead.getMonth() + 1).toString().padStart(2, '0')}.`);
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors: errors
+  };
+};
+
 // GET /api/objectives - Liste des objectifs (Admin seulement)
 router.get('/', async (req, res) => {
   const role = getRole(req);
@@ -205,6 +236,15 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ message: 'L\'année doit être entre 2020 et 2030' });
   }
 
+  // Validation des règles temporelles pour la création
+  const temporalValidation = validateTemporalRules(annee, mois);
+  if (!temporalValidation.isValid) {
+    return res.status(403).json({ 
+      message: 'Règles temporelles violées', 
+      errors: temporalValidation.errors 
+    });
+  }
+
   try {
     // Calculer DateKey (YYYYMM01)
     const dateKey = parseInt(`${annee}${mois.toString().padStart(2, '0')}01`);
@@ -309,6 +349,15 @@ router.put('/', async (req, res) => {
   }
   if (annee < 2020 || annee > 2030) {
     return res.status(400).json({ message: 'L\'année doit être entre 2020 et 2030' });
+  }
+
+  // Validation des règles temporelles pour la modification
+  const temporalValidation = validateTemporalRules(annee, mois);
+  if (!temporalValidation.isValid) {
+    return res.status(403).json({ 
+      message: 'Règles temporelles violées', 
+      errors: temporalValidation.errors 
+    });
   }
 
   try {

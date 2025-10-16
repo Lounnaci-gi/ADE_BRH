@@ -47,6 +47,66 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
   ][m - 1] || '';
 
+  // Fonction pour valider les règles temporelles
+  const validateTemporalRules = (annee, mois) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    
+    const objectiveDate = new Date(annee, mois - 1, 1);
+    const threeMonthsAgo = new Date(currentYear, currentMonth - 4, 1);
+    const twoMonthsAhead = new Date(currentYear, currentMonth + 1, 1);
+    
+    return {
+      isPastLimit: objectiveDate < threeMonthsAgo,
+      isFutureLimit: objectiveDate > twoMonthsAhead,
+      threeMonthsAgo,
+      twoMonthsAhead
+    };
+  };
+
+  // Générer les options d'années disponibles
+  const getAvailableYears = () => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const years = [];
+    
+    // Années passées (limitées à 3 mois)
+    for (let year = currentYear - 1; year <= currentYear + 1; year++) {
+      years.push(year);
+    }
+    
+    return years;
+  };
+
+  // Générer les options de mois disponibles pour une année donnée
+  const getAvailableMonths = (year) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    
+    const months = [];
+    const validation = validateTemporalRules(year, 1);
+    
+    for (let month = 1; month <= 12; month++) {
+      const monthValidation = validateTemporalRules(year, month);
+      
+      // Pour la création (pas d'initialValues), bloquer le passé > 3 mois et futur > 2 mois
+      if (!initialValues) {
+        if (!monthValidation.isPastLimit && !monthValidation.isFutureLimit) {
+          months.push(month);
+        }
+      } else {
+        // Pour la modification, seulement bloquer le passé > 3 mois
+        if (!monthValidation.isPastLimit) {
+          months.push(month);
+        }
+      }
+    }
+    
+    return months;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -123,20 +183,30 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
                   onChange={(e) => setFormData({ ...formData, mois: parseInt(e.target.value, 10) })}
                   required
                 >
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  {getAvailableMonths(formData.annee).map((m) => (
                     <option key={m} value={m}>{getMonthName(m)}</option>
                   ))}
                 </select>
+                {getAvailableMonths(formData.annee).length === 0 && (
+                  <p className="text-xs text-red-600 mt-1">
+                    Aucun mois disponible pour cette année selon les règles temporelles
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Année</label>
                 <select
                   className="w-full border rounded px-3 py-2"
                   value={formData.annee}
-                  onChange={(e) => setFormData({ ...formData, annee: parseInt(e.target.value, 10) })}
+                  onChange={(e) => {
+                    const newYear = parseInt(e.target.value, 10);
+                    const availableMonths = getAvailableMonths(newYear);
+                    const newMonth = availableMonths.length > 0 ? availableMonths[0] : formData.mois;
+                    setFormData({ ...formData, annee: newYear, mois: newMonth });
+                  }}
                   required
                 >
-                  {Array.from({ length: 11 }, (_, i) => 2020 + i).map((y) => (
+                  {getAvailableYears().map((y) => (
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>

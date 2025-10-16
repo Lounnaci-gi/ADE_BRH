@@ -124,86 +124,34 @@ router.put('/:id', requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/communes/:id - Supprimer une commune
-router.delete('/:id', requireAdmin, (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const connection = new Connection(config);
-  let hasResponded = false;
-  connection.on('connect', (err) => {
-    if (err) {
-      console.error('Erreur de connexion à la base de données:', err);
-      if (!hasResponded) {
-        hasResponded = true;
-        res.status(500).json({ message: 'Erreur de connexion à la base de données' });
-        connection.close();
-      }
-      return;
+  const communeId = parseInt(id, 10);
+
+  try {
+    // Vérifier existence
+    const exists = await db.query('SELECT CommuneId FROM dbo.DIM_COMMUNE WHERE CommuneId = @CommuneId', [
+      { name: 'CommuneId', type: TYPES.Int, value: communeId }
+    ]);
+    if (exists.length === 0) {
+      return res.status(404).json({ message: 'Commune non trouvée' });
     }
 
-    // Vérifier si la commune existe
-    const checkQuery = 'SELECT CommuneId FROM DIM_COMMUNE WHERE CommuneId = @CommuneId';
-    let communeExists = false;
-    const checkRequest = new Request(checkQuery, (err) => {
-      if (err) {
-        console.error('Erreur lors de la vérification:', err);
-        if (!hasResponded) {
-          hasResponded = true;
-          const message = `Erreur lors de la vérification (SQL ${err?.number || 'NA'}): ${err?.message || ''}`;
-          res.status(500).json({ message });
-          connection.close();
-        }
-        return;
-      }
-    });
+    // Tenter la suppression
+    await db.query('DELETE FROM dbo.DIM_COMMUNE WHERE CommuneId = @CommuneId', [
+      { name: 'CommuneId', type: TYPES.Int, value: communeId }
+    ]);
 
-    checkRequest.addParameter('CommuneId', TYPES.Int, parseInt(id, 10));
-
-    checkRequest.on('row', () => {
-      communeExists = true;
-    });
-
-    checkRequest.on('requestCompleted', () => {
-      if (!communeExists) {
-        if (!hasResponded) {
-          hasResponded = true;
-          res.status(404).json({ message: 'Commune non trouvée' });
-          connection.close();
-        }
-        return;
-      }
-
-      // Supprimer la commune (exécuter APRÈS la fin de la requête de vérification)
-      const deleteQuery = 'DELETE FROM DIM_COMMUNE WHERE CommuneId = @CommuneId';
-      const deleteRequest = new Request(deleteQuery, (err) => {
-        if (err) {
-          console.error('Erreur lors de la suppression de la commune:', err);
-          if (!hasResponded) {
-            hasResponded = true;
-            // Détecter une contrainte de clé étrangère (erreur SQL Server 547)
-            const isFkConstraint = err?.number === 547 || /REFERENCE constraint|conflicted with the REFERENCE constraint/i.test(String(err?.message || ''));
-            const status = isFkConstraint ? 409 : 500;
-            const message = isFkConstraint
-              ? 'Impossible de supprimer: la commune est utilisée ailleurs (contrainte de référence).'
-              : `Erreur lors de la suppression (SQL ${err?.number || 'NA'}): ${err?.message || ''}`;
-            res.status(status).json({ message });
-            connection.close();
-          }
-        } else {
-          if (!hasResponded) {
-            hasResponded = true;
-            res.json({ message: 'Commune supprimée avec succès' });
-            connection.close();
-          }
-        }
-      });
-
-      deleteRequest.addParameter('CommuneId', TYPES.Int, parseInt(id, 10));
-      connection.execSql(deleteRequest);
-    });
-
-    connection.execSql(checkRequest);
-  });
-
-  connection.connect();
+    return res.json({ message: 'Commune supprimée avec succès' });
+  } catch (err) {
+    // Gérer les contraintes FK (erreur SQL Server 547)
+    const isFkConstraint = err?.number === 547 || /REFERENCE constraint|conflicted with the REFERENCE constraint/i.test(String(err?.message || ''));
+    if (isFkConstraint) {
+      return res.status(409).json({ message: 'Impossible de supprimer cette commune: des données y sont rattachées.' });
+    }
+    console.error('Erreur DELETE /communes/:id:', err);
+    return res.status(500).json({ message: 'Erreur lors de la suppression de la commune', error: err.message });
+  }
 });
 
 // GET /api/communes/agences - Récupérer la liste des agences
