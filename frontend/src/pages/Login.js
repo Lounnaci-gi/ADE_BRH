@@ -9,6 +9,8 @@ const Login = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [lockRemaining, setLockRemaining] = useState(0); // seconds
+    const [attemptsRemaining, setAttemptsRemaining] = useState(null);
+    const [isShaking, setIsShaking] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -24,6 +26,11 @@ const Login = () => {
                 navigate('/dashboard');
             } else {
                 setError(response.error || 'Erreur de connexion');
+                if (typeof response.remainingAttempts === 'number') {
+                    setAttemptsRemaining(response.remainingAttempts);
+                }
+                setIsShaking(true);
+                setTimeout(() => setIsShaking(false), 500);
             }
         } catch (err) {
             if (err && typeof err.retryAfterSec === 'number') {
@@ -31,7 +38,12 @@ const Login = () => {
                 setError('Trop de tentatives. Réessayez dans quelques instants.');
             } else {
                 setError(err.error || 'Erreur de connexion au serveur');
+                if (typeof err.remainingAttempts === 'number') {
+                    setAttemptsRemaining(err.remainingAttempts);
+                }
             }
+            setIsShaking(true);
+            setTimeout(() => setIsShaking(false), 500);
         } finally {
             setLoading(false);
         }
@@ -54,7 +66,7 @@ const Login = () => {
 
     return (
         <div className="login-container">
-            <div className="login-card">
+            <div className={`login-card ${isShaking ? 'shake' : ''}`}>
                 <div className="login-header">
                     <h1>ADE BRH</h1>
                     <p>Système de gestion commercial - Unité Médéa</p>
@@ -66,7 +78,14 @@ const Login = () => {
                             {lockRemaining > 0 ? (
                                 <span>Compte temporairement bloqué. Réessayez dans {formatSeconds(lockRemaining)}.</span>
                             ) : (
-                                error
+                                <>
+                                    <span>{error}</span>
+                                    {typeof attemptsRemaining === 'number' && attemptsRemaining >= 0 && (
+                                        <span style={{ display: 'block', marginTop: 4 }}>
+                                            Tentatives restantes: {attemptsRemaining}
+                                        </span>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
