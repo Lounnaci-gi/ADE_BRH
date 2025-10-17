@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Building2, Tag, DollarSign, Target, Save, Plus } from 'lucide-react';
+import { Calendar, Building2, Save, Plus } from 'lucide-react';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
 import { swalSuccess, swalError } from '../utils/swal';
@@ -8,6 +8,7 @@ function KPI() {
   const [kpis, setKpis] = useState([]);
   const [agences, setAgences] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [entriesByCategory, setEntriesByCategory] = useState({});
   const [loading, setLoading] = useState(false);
   // Toast remplacé par SweetAlert2
   const [formData, setFormData] = useState({
@@ -25,10 +26,13 @@ function KPI() {
     mtRelancesEnvoyees: '',
     nbRelancesReglees: '',
     mtRelancesReglees: '',
-    objCoupures: '',
-    objDossiersJuridiques: '',
-    objMisesEnDemeureEnvoyees: '',
-    objRelancesEnvoyees: ''
+    // Nouveaux champs (frontend uniquement pour l'instant)
+    nbMisesEnDemeureReglees: '',
+    mtMisesEnDemeureReglees: '',
+    nbRetablissements: '',
+    mtRetablissements: '',
+    nbPoseCompteurs: '',
+    nbRemplacementCompteurs: ''
   });
 
   const loadData = async () => {
@@ -50,6 +54,19 @@ function KPI() {
       setKpis(kpisData);
       setAgences(agencesData);
       setCategories(categoriesData);
+      // Initialiser les valeurs par catégorie
+      const init = (categoriesData || []).reduce((acc, cat) => {
+        acc[cat.CategorieId] = {
+          nbRelancesEnvoyees: '', mtRelancesEnvoyees: '',
+          nbRelancesReglees: '', mtRelancesReglees: '',
+          nbMisesEnDemeureEnvoyees: '', mtMisesEnDemeureEnvoyees: '',
+          nbMisesEnDemeureReglees: '', mtMisesEnDemeureReglees: '',
+          nbDossiersJuridiques: '', mtDossiersJuridiques: '',
+          nbPoseCompteurs: '', nbRemplacementCompteurs: ''
+        };
+        return acc;
+      }, {});
+      setEntriesByCategory(init);
     } catch (e) {
       console.error(e);
       await swalError('Erreur lors du chargement des données');
@@ -59,14 +76,20 @@ function KPI() {
   };
 
   useEffect(() => {
+    // Pré-remplir la date du jour au chargement
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    setFormData(prev => ({ ...prev, dateKey: `${yyyy}-${mm}-${dd}` }));
     loadData();
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.dateKey || !formData.agenceId || !formData.categorieId) {
-      await swalError('Date, Agence et Catégorie sont requis', 'Validation');
+    if (!formData.dateKey || !formData.agenceId) {
+      await swalError('Date et Agence sont requis', 'Validation');
       return;
     }
 
@@ -79,21 +102,48 @@ function KPI() {
         date.getDate().toString().padStart(2, '0')
       );
 
-      const payload = {
-        ...formData,
-        dateKey,
-        agenceId: parseInt(formData.agenceId),
-        categorieId: parseInt(formData.categorieId)
-      };
+      // Pour chaque catégorie, envoyer une entrée si au moins un champ pertinent est renseigné
+      const agenceIdNum = parseInt(formData.agenceId);
+      const creates = (categories || []).map(async (cat) => {
+        const catId = parseInt(cat.CategorieId);
+        const e = entriesByCategory[cat.CategorieId] || {};
+        const hasData = [
+          e.nbRelancesEnvoyees, e.mtRelancesEnvoyees,
+          e.nbRelancesReglees, e.mtRelancesReglees,
+          e.nbMisesEnDemeureEnvoyees, e.mtMisesEnDemeureEnvoyees,
+          e.nbMisesEnDemeureReglees, e.mtMisesEnDemeureReglees,
+          e.nbDossiersJuridiques, e.mtDossiersJuridiques
+        ].some((v) => v !== '' && v != null);
+        if (!hasData) return null;
+        const payload = {
+          dateKey,
+          agenceId: agenceIdNum,
+          categorieId: catId,
+          // Champs supportés par le backend
+          nbRelancesEnvoyees: parseInt(e.nbRelancesEnvoyees || 0, 10),
+          mtRelancesEnvoyees: parseFloat(e.mtRelancesEnvoyees || 0),
+          nbRelancesReglees: parseInt(e.nbRelancesReglees || 0, 10),
+          mtRelancesReglees: parseFloat(e.mtRelancesReglees || 0),
+          nbMisesEnDemeureEnvoyees: parseInt(e.nbMisesEnDemeureEnvoyees || 0, 10),
+          mtMisesEnDemeureEnvoyees: parseFloat(e.mtMisesEnDemeureEnvoyees || 0),
+          // Le backend ne gère pas explicitement "reglées" pour MED: on n'envoie pas si non supporté
+          nbDossiersJuridiques: parseInt(e.nbDossiersJuridiques || 0, 10),
+          mtDossiersJuridiques: parseFloat(e.mtDossiersJuridiques || 0)
+        };
+        return kpiService.create(payload);
+      });
 
-      await kpiService.create(payload);
-      await swalSuccess('KPI sauvegardé avec succès');
+      await Promise.all(creates);
+      await swalSuccess('Données sauvegardées avec succès');
       
-      // Réinitialiser le formulaire
+      // Réinitialiser le formulaire (date du jour conservée)
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
       setFormData({
-        dateKey: '',
+        dateKey: `${y}-${m}-${d}`,
         agenceId: '',
-        categorieId: '',
         encaissementJournalierGlobal: '',
         nbCoupures: '',
         mtCoupures: '',
@@ -105,11 +155,26 @@ function KPI() {
         mtRelancesEnvoyees: '',
         nbRelancesReglees: '',
         mtRelancesReglees: '',
-        objCoupures: '',
-        objDossiersJuridiques: '',
-        objMisesEnDemeureEnvoyees: '',
-        objRelancesEnvoyees: ''
+        nbMisesEnDemeureReglees: '',
+        mtMisesEnDemeureReglees: '',
+        nbRetablissements: '',
+        mtRetablissements: '',
+        nbPoseCompteurs: '',
+        nbRemplacementCompteurs: ''
       });
+      // Réinitialiser les valeurs par catégorie
+      const initEmpty = Object.keys(entriesByCategory || {}).reduce((acc, key) => {
+        acc[key] = {
+          nbRelancesEnvoyees: '', mtRelancesEnvoyees: '',
+          nbRelancesReglees: '', mtRelancesReglees: '',
+          nbMisesEnDemeureEnvoyees: '', mtMisesEnDemeureEnvoyees: '',
+          nbMisesEnDemeureReglees: '', mtMisesEnDemeureReglees: '',
+          nbDossiersJuridiques: '', mtDossiersJuridiques: '',
+          nbPoseCompteurs: '', nbRemplacementCompteurs: ''
+        };
+        return acc;
+      }, {});
+      setEntriesByCategory(initEmpty);
       
       await loadData();
     } catch (e) {
@@ -138,20 +203,26 @@ function KPI() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">📊 Gestion des KPIs</h1>
+        <h1 className="text-2xl font-bold text-gray-800">📊 Saisie des Données Quotidiennes</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Formulaire */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+      <div className="grid grid-cols-1 gap-6">
+        {/* Bandeau (placeholder objectifs - à alimenter avec la BDD si dispo) */}
+        <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-4 shadow-sm">
+          <div className="text-sm text-sky-700">Objectifs mensuels</div>
+          <div className="text-xs text-sky-600">Affichage des objectifs et progression (à connecter aux données)</div>
+        </div>
+
+        {/* Formulaire élargi */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-blue-50">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-sky-800">
             <Plus className="h-5 w-5" />
-            Saisir un KPI
+            Saisie des données
           </h2>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Informations de base */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Calendar className="inline h-4 w-4 mr-1" />
@@ -186,244 +257,49 @@ function KPI() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Tag className="inline h-4 w-4 mr-1" />
-                  Catégorie *
-                </label>
-                <select
-                  value={formData.categorieId}
-                  onChange={(e) => setFormData({ ...formData, categorieId: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Sélectionner une catégorie</option>
-                  {categories.map(category => (
-                    <option key={category.CategorieId} value={category.CategorieId}>
-                      {category.Libelle}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
 
-            {/* Encaissements */}
+            {/* Saisie par catégorie */}
             <div className="border-t pt-4">
-              <h3 className="text-md font-medium text-gray-800 mb-3 flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                Encaissements
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Encaissement journalier global
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.encaissementJournalierGlobal}
-                    onChange={(e) => setFormData({ ...formData, encaissementJournalierGlobal: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Coupures */}
-            <div className="border-t pt-4">
-              <h3 className="text-md font-medium text-gray-800 mb-3">Coupures</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre de coupures
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.nbCoupures}
-                    onChange={(e) => setFormData({ ...formData, nbCoupures: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Montant des coupures
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.mtCoupures}
-                    onChange={(e) => setFormData({ ...formData, mtCoupures: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Target className="inline h-4 w-4 mr-1" />
-                    Objectif coupures
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.objCoupures}
-                    onChange={(e) => setFormData({ ...formData, objCoupures: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Dossiers juridiques */}
-            <div className="border-t pt-4">
-              <h3 className="text-md font-medium text-gray-800 mb-3">Dossiers juridiques</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre de dossiers
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.nbDossiersJuridiques}
-                    onChange={(e) => setFormData({ ...formData, nbDossiersJuridiques: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Montant des dossiers
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.mtDossiersJuridiques}
-                    onChange={(e) => setFormData({ ...formData, mtDossiersJuridiques: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Target className="inline h-4 w-4 mr-1" />
-                    Objectif dossiers
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.objDossiersJuridiques}
-                    onChange={(e) => setFormData({ ...formData, objDossiersJuridiques: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Mises en demeure */}
-            <div className="border-t pt-4">
-              <h3 className="text-md font-medium text-gray-800 mb-3">Mises en demeure</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre envoyées
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.nbMisesEnDemeureEnvoyees}
-                    onChange={(e) => setFormData({ ...formData, nbMisesEnDemeureEnvoyees: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Montant envoyées
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.mtMisesEnDemeureEnvoyees}
-                    onChange={(e) => setFormData({ ...formData, mtMisesEnDemeureEnvoyees: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Target className="inline h-4 w-4 mr-1" />
-                    Objectif mises en demeure
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.objMisesEnDemeureEnvoyees}
-                    onChange={(e) => setFormData({ ...formData, objMisesEnDemeureEnvoyees: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Relances */}
-            <div className="border-t pt-4">
-              <h3 className="text-md font-medium text-gray-800 mb-3">Relances</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre envoyées
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.nbRelancesEnvoyees}
-                    onChange={(e) => setFormData({ ...formData, nbRelancesEnvoyees: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Montant envoyées
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.mtRelancesEnvoyees}
-                    onChange={(e) => setFormData({ ...formData, mtRelancesEnvoyees: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Target className="inline h-4 w-4 mr-1" />
-                    Objectif relances
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.objRelancesEnvoyees}
-                    onChange={(e) => setFormData({ ...formData, objRelancesEnvoyees: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Relances réglées */}
-            <div className="border-t pt-4">
-              <h3 className="text-md font-medium text-gray-800 mb-3">Relances réglées</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre réglées
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.nbRelancesReglees}
-                    onChange={(e) => setFormData({ ...formData, nbRelancesReglees: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Montant réglées
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.mtRelancesReglees}
-                    onChange={(e) => setFormData({ ...formData, mtRelancesReglees: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+              <h3 className="text-md font-medium text-gray-800 mb-3">Saisie par catégorie</h3>
+              <div className="overflow-auto rounded-xl border border-gray-200">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-3 text-left font-semibold">Catégorie</th>
+                      <th className="px-3 py-3 text-left">Relances (Nb)</th>
+                      <th className="px-3 py-3 text-left">Relances (Mt)</th>
+                      <th className="px-3 py-3 text-left">Relances réglées (Nb)</th>
+                      <th className="px-3 py-3 text-left">Relances réglées (Mt)</th>
+                      <th className="px-3 py-3 text-left">Mises en demeure (Nb)</th>
+                      <th className="px-3 py-3 text-left">Mises en demeure (Mt)</th>
+                      <th className="px-3 py-3 text-left">Dossiers juridiques (Nb)</th>
+                      <th className="px-3 py-3 text-left">Dossiers juridiques (Mt)</th>
+                      <th className="px-3 py-3 text-left">Branchement (Nb)</th>
+                      <th className="px-3 py-3 text-left">Rempl. compteurs (Nb)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(categories || []).map((cat) => {
+                      const e = entriesByCategory[cat.CategorieId] || {};
+                      return (
+                        <tr key={cat.CategorieId} className="border-t">
+                          <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-900">{cat.Libelle}</td>
+                          <td className="px-3 py-2"><input type="number" value={e.nbRelancesEnvoyees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesEnvoyees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                          <td className="px-3 py-2"><input type="number" step="0.01" value={e.mtRelancesEnvoyees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesEnvoyees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                          <td className="px-3 py-2"><input type="number" value={e.nbRelancesReglees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesReglees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                          <td className="px-3 py-2"><input type="number" step="0.01" value={e.mtRelancesReglees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesReglees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                          <td className="px-3 py-2"><input type="number" value={e.nbMisesEnDemeureEnvoyees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureEnvoyees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                          <td className="px-3 py-2"><input type="number" step="0.01" value={e.mtMisesEnDemeureEnvoyees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureEnvoyees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                          <td className="px-3 py-2"><input type="number" value={e.nbDossiersJuridiques || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbDossiersJuridiques: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                          <td className="px-3 py-2"><input type="number" step="0.01" value={e.mtDossiersJuridiques || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtDossiersJuridiques: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                          <td className="px-3 py-2"><input type="number" value={e.nbPoseCompteurs || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbPoseCompteurs: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                          <td className="px-3 py-2"><input type="number" value={e.nbRemplacementCompteurs || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRemplacementCompteurs: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -439,7 +315,29 @@ function KPI() {
           </form>
         </div>
 
-        {/* Section "KPIs récents" supprimée pour désencombrer la page */}
+        {/* Données du jour */}
+        <div className="bg-white rounded-2xl shadow p-6 border border-blue-50">
+          <h2 className="text-lg font-semibold mb-4">Données du jour</h2>
+          {loading ? (
+            <div className="text-center py-6">Chargement...</div>
+          ) : (
+            <div className="grid gap-3">
+              {kpis.filter(k => String(k.DateKey || '').slice(0,8) === (
+                String(new Date().getFullYear()) + String(new Date().getMonth()+1).padStart(2,'0') + String(new Date().getDate()).padStart(2,'0')
+              )).map((kpi, index) => (
+                <div key={index} className="rounded-xl border border-gray-100 p-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium text-gray-800">{kpi.Nom_Agence} · {kpi.CategorieLibelle || 'KPI'}</div>
+                    <div className="text-sm text-gray-500">{formatDate(kpi.DateKey)}</div>
+                  </div>
+                </div>
+              ))}
+              {kpis.length === 0 && (
+                <div className="text-center py-6 text-gray-500">Aucune donnée saisie aujourd'hui.</div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Notifications gérées via SweetAlert2 */}

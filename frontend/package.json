@@ -27,6 +27,29 @@
     "extends": [
       "react-app",
       "react-app/jest"
+    ],
+    "rules": {
+      "no-restricted-globals": [
+        "error",
+        "Swal"
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          "paths": [
+            { "name": "sweetalert2", "message": "Utilisez utils/swal.js (swalSuccess/swalError/swalConfirm) au lieu d'importer sweetalert2 directement." }
+          ]
+        }
+      ]
+    },
+    "overrides": [
+      {
+        "files": ["src/utils/swal.js"],
+        "rules": {
+          "no-restricted-imports": "off",
+          "no-restricted-globals": "off"
+        }
+      }
     ]
   },
   "browserslist": {

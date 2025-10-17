@@ -97,7 +97,7 @@ const NavBar = () => {
           </NavLink>
           <NavLink to="/kpi" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
             <BarChart3 className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> 
-            <span className="hidden lg:inline">KPIs</span>
+            <span className="hidden lg:inline">Saisie des Données</span>
           </NavLink>
           <NavLink to="/objectives" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
             <Target className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> 

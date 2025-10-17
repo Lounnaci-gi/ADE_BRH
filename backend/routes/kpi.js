@@ -45,95 +45,78 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/kpi - créer/insérer un KPI
-router.post('/', (req, res) => {
-  const {
-    dateKey, agenceId, categorieId,
-    encaissementJournalierGlobal, nbCoupures, mtCoupures,
-    nbDossiersJuridiques, mtDossiersJuridiques,
-    nbMisesEnDemeureEnvoyees, mtMisesEnDemeureEnvoyees,
-    nbRelancesEnvoyees, mtRelancesEnvoyees,
-    nbRelancesReglees, mtRelancesReglees,
-    objCoupures, objDossiersJuridiques, objMisesEnDemeureEnvoyees, objRelancesEnvoyees
-  } = req.body || {};
+// POST /api/kpi - créer/insérer un KPI (refactor db.query)
+router.post('/', async (req, res) => {
+  try {
+    const {
+      dateKey, agenceId, categorieId,
+      encaissementJournalierGlobal, nbCoupures, mtCoupures,
+      nbDossiersJuridiques, mtDossiersJuridiques,
+      nbMisesEnDemeureEnvoyees, mtMisesEnDemeureEnvoyees,
+      nbRelancesEnvoyees, mtRelancesEnvoyees,
+      nbRelancesReglees, mtRelancesReglees,
+      objCoupures, objDossiersJuridiques, objMisesEnDemeureEnvoyees, objRelancesEnvoyees
+    } = req.body || {};
 
-  if (!dateKey || !agenceId || !categorieId) {
-    return res.status(400).json({ message: 'DateKey, AgenceId et CategorieId sont requis' });
-  }
-
-  const connection = new Connection(getConfig());
-
-  connection.on('connect', (err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+    if (!dateKey || !agenceId || !categorieId) {
+      return res.status(400).json({ message: 'DateKey, AgenceId et CategorieId sont requis' });
     }
 
+    // INSERT avec tous les champs
     const query = `
-      MERGE dbo.FAIT_KPI_ADE AS target
-      USING (SELECT @dateKey AS DateKey, @agenceId AS AgenceId, @categorieId AS CategorieId) AS source
-      ON target.DateKey = source.DateKey 
-         AND target.AgenceId = source.AgenceId 
-         AND target.CategorieId = source.CategorieId
-      WHEN MATCHED THEN
-        UPDATE SET
-          Encaissement_Journalier_Global = @encaissementJournalierGlobal,
-          Nb_Coupures = @nbCoupures,
-          Mt_Coupures = @mtCoupures,
-          Nb_Dossiers_Juridiques = @nbDossiersJuridiques,
-          Mt_Dossiers_Juridiques = @mtDossiersJuridiques,
-          Nb_MisesEnDemeure_Envoyees = @nbMisesEnDemeureEnvoyees,
-          Mt_MisesEnDemeure_Envoyees = @mtMisesEnDemeureEnvoyees,
-          Nb_Relances_Envoyees = @nbRelancesEnvoyees,
-          Mt_Relances_Envoyees = @mtRelancesEnvoyees,
-          Nb_RelancesReglees = @nbRelancesReglees,
-          Mt_RelancesReglees = @mtRelancesReglees,
-          Obj_Coupures = @objCoupures,
-          Obj_Dossiers_Juridiques = @objDossiersJuridiques,
-          Obj_MisesEnDemeure_Envoyees = @objMisesEnDemeureEnvoyees,
-          Obj_Relances_Envoyees = @objRelancesEnvoyees,
-          ModifiedAt = SYSUTCDATETIME()
-      WHEN NOT MATCHED THEN
-        INSERT (DateKey, AgenceId, CategorieId, Encaissement_Journalier_Global, Nb_Coupures, Mt_Coupures,
-                Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques, Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
-                Nb_Relances_Envoyees, Mt_Relances_Envoyees, Nb_RelancesReglees, Mt_RelancesReglees,
-                Obj_Coupures, Obj_Dossiers_Juridiques, Obj_MisesEnDemeure_Envoyees, Obj_Relances_Envoyees)
-        VALUES (@dateKey, @agenceId, @categorieId, @encaissementJournalierGlobal, @nbCoupures, @mtCoupures,
-                @nbDossiersJuridiques, @mtDossiersJuridiques, @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
-                @nbRelancesEnvoyees, @mtRelancesEnvoyees, @nbRelancesReglees, @mtRelancesReglees,
-                @objCoupures, @objDossiersJuridiques, @objMisesEnDemeureEnvoyees, @objRelancesEnvoyees);
+      INSERT INTO dbo.FAIT_KPI_ADE (
+        DateKey, AgenceId, CategorieId,
+        Nb_RelancesEnvoyees, Mt_RelancesEnvoyees,
+        Nb_RelancesReglees, Mt_RelancesReglees,
+        Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
+        Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques,
+        Nb_Coupures, Mt_Coupures,
+        Encaissement_Journalier_Global
+      ) VALUES (
+        @dateKey, @agenceId, @categorieId,
+        @nbRelancesEnvoyees, @mtRelancesEnvoyees,
+        @nbRelancesReglees, @mtRelancesReglees,
+        @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
+        @nbDossiersJuridiques, @mtDossiersJuridiques,
+        @nbCoupures, @mtCoupures,
+        @encaissementJournalierGlobal
+      )
     `;
 
-    const request = new Request(query, (err, rowCount) => {
-      connection.close();
-      if (err) {
-        return res.status(500).json({ message: 'Erreur lors de la sauvegarde du KPI', error: err.message });
-      }
-      res.status(201).json({ message: 'KPI sauvegardé avec succès' });
+    const params = [
+      { name: 'dateKey', type: TYPES.Int, value: parseInt(dateKey, 10) },
+      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
+      { name: 'categorieId', type: TYPES.Int, value: parseInt(categorieId, 10) },
+      { name: 'nbRelancesEnvoyees', type: TYPES.Int, value: parseInt(nbRelancesEnvoyees || 0, 10) },
+      { name: 'mtRelancesEnvoyees', type: TYPES.Money, value: parseFloat(mtRelancesEnvoyees || 0) },
+      { name: 'nbRelancesReglees', type: TYPES.Int, value: parseInt(nbRelancesReglees || 0, 10) },
+      { name: 'mtRelancesReglees', type: TYPES.Money, value: parseFloat(mtRelancesReglees || 0) },
+      { name: 'nbMisesEnDemeureEnvoyees', type: TYPES.Int, value: parseInt(nbMisesEnDemeureEnvoyees || 0, 10) },
+      { name: 'mtMisesEnDemeureEnvoyees', type: TYPES.Money, value: parseFloat(mtMisesEnDemeureEnvoyees || 0) },
+      { name: 'nbDossiersJuridiques', type: TYPES.Int, value: parseInt(nbDossiersJuridiques || 0, 10) },
+      { name: 'mtDossiersJuridiques', type: TYPES.Money, value: parseFloat(mtDossiersJuridiques || 0) },
+      { name: 'nbCoupures', type: TYPES.Int, value: parseInt(nbCoupures || 0, 10) },
+      { name: 'mtCoupures', type: TYPES.Money, value: parseFloat(mtCoupures || 0) },
+      { name: 'encaissementJournalierGlobal', type: TYPES.Money, value: parseFloat(encaissementJournalierGlobal || 0) }
+    ];
+
+    console.log('Attempting to insert KPI with all fields:', { 
+      dateKey, agenceId, categorieId,
+      nbRelancesEnvoyees, mtRelancesEnvoyees,
+      nbRelancesReglees, mtRelancesReglees,
+      nbMisesEnDemeureEnvoyees, mtMisesEnDemeureEnvoyees,
+      nbDossiersJuridiques, mtDossiersJuridiques,
+      nbCoupures, mtCoupures,
+      encaissementJournalierGlobal
     });
-
-    request.addParameter('dateKey', TYPES.Int, parseInt(dateKey, 10));
-    request.addParameter('agenceId', TYPES.Int, parseInt(agenceId, 10));
-    request.addParameter('categorieId', TYPES.Int, parseInt(categorieId, 10));
-    request.addParameter('encaissementJournalierGlobal', TYPES.Money, parseFloat(encaissementJournalierGlobal || 0));
-    request.addParameter('nbCoupures', TYPES.Int, parseInt(nbCoupures || 0, 10));
-    request.addParameter('mtCoupures', TYPES.Money, parseFloat(mtCoupures || 0));
-    request.addParameter('nbDossiersJuridiques', TYPES.Int, parseInt(nbDossiersJuridiques || 0, 10));
-    request.addParameter('mtDossiersJuridiques', TYPES.Money, parseFloat(mtDossiersJuridiques || 0));
-    request.addParameter('nbMisesEnDemeureEnvoyees', TYPES.Int, parseInt(nbMisesEnDemeureEnvoyees || 0, 10));
-    request.addParameter('mtMisesEnDemeureEnvoyees', TYPES.Money, parseFloat(mtMisesEnDemeureEnvoyees || 0));
-    request.addParameter('nbRelancesEnvoyees', TYPES.Int, parseInt(nbRelancesEnvoyees || 0, 10));
-    request.addParameter('mtRelancesEnvoyees', TYPES.Money, parseFloat(mtRelancesEnvoyees || 0));
-    request.addParameter('nbRelancesReglees', TYPES.Int, parseInt(nbRelancesReglees || 0, 10));
-    request.addParameter('mtRelancesReglees', TYPES.Money, parseFloat(mtRelancesReglees || 0));
-    request.addParameter('objCoupures', TYPES.Int, parseInt(objCoupures || 0, 10));
-    request.addParameter('objDossiersJuridiques', TYPES.Int, parseInt(objDossiersJuridiques || 0, 10));
-    request.addParameter('objMisesEnDemeureEnvoyees', TYPES.Int, parseInt(objMisesEnDemeureEnvoyees || 0, 10));
-    request.addParameter('objRelancesEnvoyees', TYPES.Int, parseInt(objRelancesEnvoyees || 0, 10));
-
-    connection.execSql(request);
-  });
-
-  connection.connect();
+    await db.query(query, params);
+    res.status(201).json({ message: 'KPI sauvegardé avec succès' });
+  } catch (err) {
+    console.error('Erreur POST /kpi:', err);
+    console.error('Query:', query);
+    console.error('Params:', params);
+    res.status(500).json({ message: 'Erreur lors de la sauvegarde du KPI', error: err.message });
+  }
 });
 
 // GET /api/kpi/agences - liste des agences pour le formulaire (avec restriction par rôle)

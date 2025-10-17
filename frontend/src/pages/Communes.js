@@ -55,7 +55,7 @@ const Communes = () => {
       setColumns(ordered);
     } catch (error) {
       console.error('Erreur lors du chargement des communes:', error);
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: 'Erreur lors du chargement des communes' });
+      await swalError('Erreur lors du chargement des communes');
     } finally {
       setLoading(false);
     }
@@ -116,16 +116,16 @@ const Communes = () => {
     try {
       if (editingCommune) {
         await communesService.update(editingCommune.CommuneId, formData);
-        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Commune modifiée avec succès' });
+        await swalSuccess('Commune modifiée avec succès');
       } else {
         await communesService.create(formData);
-        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Commune créée avec succès' });
+        await swalSuccess('Commune créée avec succès');
       }
       loadCommunes();
       handleModalClose();
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: error.response?.data?.message || 'Erreur lors de la sauvegarde' });
+      await swalError(error.response?.data?.message || 'Erreur lors de la sauvegarde');
     }
   };
 

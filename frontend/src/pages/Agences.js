@@ -84,7 +84,7 @@ export default function Agences() {
     } catch (err) {
       console.error('Erreur lors du chargement des agences:', err);
       setError('Erreur lors du chargement des agences: ' + (err?.response?.data?.message || err.message));
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: 'Erreur lors du chargement des agences' });
+      await swalError('Erreur lors du chargement des agences');
     } finally {
       setLoading(false);
     }
@@ -102,16 +102,16 @@ export default function Agences() {
       if (!editId) {
         const exists = agences.some((a) => normalized(a.Nom_Agence) === normalized(data.Nom_Agence));
         if (exists) {
-          await Swal.fire({ icon: 'error', title: 'Validation', text: 'Cette agence existe déjà.' });
+          await swalError('Cette agence existe déjà.', 'Validation');
           return;
         }
       }
       if (editId) {
         await agenceService.update(editId, data);
-        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Agence modifiée avec succès.' });
+        await swalSuccess('Agence modifiée avec succès.');
       } else {
         await agenceService.create(data);
-        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Agence enregistrée avec succès.' });
+        await swalSuccess('Agence enregistrée avec succès.');
       }
       setModalOpen(false);
       setEditId(null);
@@ -119,7 +119,7 @@ export default function Agences() {
       loadAgences();
     } catch (err) {
       const msg = err?.response?.data?.message || "Une erreur est survenue lors de l'enregistrement.";
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
+      await swalError(msg);
     }
   };
 

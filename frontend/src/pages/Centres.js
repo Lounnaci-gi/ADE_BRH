@@ -86,14 +86,17 @@ const Centres = () => {
     try {
       if (editingCentre) {
         await centresService.update(editingCentre.CentreId, centreData);
+        await swalSuccess('Centre modifié avec succès.');
       } else {
         await centresService.create(centreData);
+        await swalSuccess('Centre créé avec succès.');
       }
       await loadCentres();
       handleModalClose();
     } catch (err) {
       console.error('Erreur lors de la sauvegarde:', err);
-      alert('Erreur lors de la sauvegarde du centre');
+      const message = err?.response?.data?.message || 'Erreur lors de la sauvegarde du centre';
+      await swalError(message);
     }
   };
 

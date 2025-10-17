@@ -70,7 +70,7 @@ function Users() {
     e.preventDefault();
     
     if (profileForm.newPassword && profileForm.newPassword !== profileForm.confirmPassword) {
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: 'Les mots de passe ne correspondent pas.' });
+      await swalError('Les mots de passe ne correspondent pas.', 'Erreur');
       return;
     }
 
@@ -87,7 +87,7 @@ function Users() {
       }
       
       await userService.updateOwnProfile(payload);
-      await Swal.fire({ icon: 'success', title: 'Succès', text: 'Profil mis à jour avec succès.' });
+      await swalSuccess('Profil mis à jour avec succès.');
       
       // Réinitialiser les champs de mot de passe
       setProfileForm(prev => ({
@@ -98,7 +98,7 @@ function Users() {
       }));
     } catch (e) {
       const msg = e?.response?.data?.message || 'Erreur lors de la mise à jour du profil.';
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
+      await swalError(msg);
     } finally {
       setProfileLoading(false);
     }
