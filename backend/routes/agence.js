@@ -1,5 +1,5 @@
 const express = require('express');
-const { TYPES } = require('tedious');
+const { Connection, Request, TYPES } = require('tedious');
 const db = require('../utils/db');
 
 const router = express.Router();

@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Pencil, Trash2, Printer } from 'lucide-react';
-import ConfirmationDialog from '../components/ConfirmationDialog';
+import Swal from 'sweetalert2';
 import AddAgencyModal from "../components/AddAgencyModal";
-import Toast from "../components/Toast";
 import agenceService from "../services/agenceService";
 import authService from "../services/authService";
 
@@ -12,9 +11,6 @@ export default function Agences() {
   const [editId, setEditId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [initialValues, setInitialValues] = useState(null);
-  const [toast, setToast] = useState({ open: false, type: "success", message: "" });
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmProps, setConfirmProps] = useState({});
   const [selectedAgence, setSelectedAgence] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -88,7 +84,7 @@ export default function Agences() {
     } catch (err) {
       console.error('Erreur lors du chargement des agences:', err);
       setError('Erreur lors du chargement des agences: ' + (err?.response?.data?.message || err.message));
-      setToast({ open: true, type: 'error', message: 'Erreur lors du chargement des agences' });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: 'Erreur lors du chargement des agences' });
     } finally {
       setLoading(false);
     }
@@ -106,16 +102,16 @@ export default function Agences() {
       if (!editId) {
         const exists = agences.some((a) => normalized(a.Nom_Agence) === normalized(data.Nom_Agence));
         if (exists) {
-          setToast({ open: true, type: "error", message: "Cette agence existe déjà." });
+          await Swal.fire({ icon: 'error', title: 'Validation', text: 'Cette agence existe déjà.' });
           return;
         }
       }
       if (editId) {
         await agenceService.update(editId, data);
-        setToast({ open: true, type: "success", message: "Agence modifiée avec succès." });
+        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Agence modifiée avec succès.' });
       } else {
         await agenceService.create(data);
-        setToast({ open: true, type: "success", message: "Agence enregistrée avec succès." });
+        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Agence enregistrée avec succès.' });
       }
       setModalOpen(false);
       setEditId(null);
@@ -123,7 +119,7 @@ export default function Agences() {
       loadAgences();
     } catch (err) {
       const msg = err?.response?.data?.message || "Une erreur est survenue lors de l'enregistrement.";
-      setToast({ open: true, type: "error", message: msg });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
     }
   };
 
@@ -139,28 +135,36 @@ export default function Agences() {
     setModalOpen(true);
   };
 
-  const askDelete = (agence) => {
+  const askDelete = async (agence) => {
     setSelectedAgence(agence);
-    setConfirmProps({
-      title: 'Confirmer la suppression',
-      message: `Supprimer l\'agence "${agence.Nom_Agence}" ? Cette action est irréversible.`,
-      confirmText: 'Supprimer',
-      type: 'danger'
+    const result = await Swal.fire({
+      title: 'Supprimer cette agence ? ',
+      text: `"${agence.Nom_Agence}" sera définitivement supprimée.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler'
     });
-    setConfirmOpen(true);
+    if (result.isConfirmed) {
+      await handleDelete(agence);
+    } else {
+      setSelectedAgence(null);
+    }
   };
 
-  const handleDelete = async () => {
-    if (!selectedAgence?.AgenceId) { setConfirmOpen(false); return; }
+  const handleDelete = async (agenceParam) => {
+    const agence = agenceParam || selectedAgence;
+    if (!agence?.AgenceId) { return; }
     try {
-      await agenceService.remove(selectedAgence.AgenceId);
-      setToast({ open: true, type: 'success', message: 'Agence supprimée avec succès.' });
+      await agenceService.remove(agence.AgenceId);
+      await Swal.fire({ icon: 'success', title: 'Succès', text: 'Agence supprimée avec succès.' });
       await loadAgences();
     } catch (err) {
       const msg = err?.response?.data?.message || 'Erreur lors de la suppression.';
-      setToast({ open: true, type: 'error', message: msg });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
     } finally {
-      setConfirmOpen(false);
       setSelectedAgence(null);
     }
   };
@@ -267,23 +271,9 @@ export default function Agences() {
         initialValues={initialValues}
       />
 
-      {/* ✅ Messages bulle (toasts) */}
-      <Toast
-        open={toast.open}
-        type={toast.type}
-        message={toast.message}
-        onClose={() => setToast({ ...toast, open: false })}
-      />
+      {/* Notifications gérées via SweetAlert2 */}
 
-      <ConfirmationDialog
-        isOpen={confirmOpen}
-        title={confirmProps.title}
-        message={confirmProps.message}
-        confirmText={confirmProps.confirmText}
-        type={confirmProps.type}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={handleDelete}
-      />
+      {/* Confirmation via SweetAlert2 gérée dans askDelete */}
     </div>
   );
 }

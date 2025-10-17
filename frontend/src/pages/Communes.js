@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Printer, MapPin } from 'lucide-react';
 import communesService from '../services/communesService';
 import CommunesAddModal from '../components/CommunesAddModal';
-import ConfirmationDialog from '../components/ConfirmationDialog';
+import Swal from 'sweetalert2';
 import authService from '../services/authService';
-import { toast } from 'react-hot-toast';
 
 const Communes = () => {
   const [communes, setCommunes] = useState([]);
@@ -12,8 +11,6 @@ const Communes = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCommune, setEditingCommune] = useState(null);
   const [columns, setColumns] = useState([]);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmProps, setConfirmProps] = useState({});
   const [selectedCommune, setSelectedCommune] = useState(null);
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
@@ -58,7 +55,7 @@ const Communes = () => {
       setColumns(ordered);
     } catch (error) {
       console.error('Erreur lors du chargement des communes:', error);
-      toast.error('Erreur lors du chargement des communes');
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: 'Erreur lors du chargement des communes' });
     } finally {
       setLoading(false);
     }
@@ -78,33 +75,40 @@ const Communes = () => {
     setModalOpen(true);
   };
 
-  const askDelete = (commune) => {
+  const askDelete = async (commune) => {
     if (!commune?.CommuneId) return;
     setSelectedCommune(commune);
-    setConfirmProps({
-      title: 'Confirmer la suppression',
-      message: `Supprimer la commune "${commune.Nom_Commune}" ? Cette action est irréversible.`,
-      confirmText: 'Supprimer',
-      type: 'danger'
+    const result = await Swal.fire({
+      title: 'Supprimer cette commune ? ',
+      text: `"${commune.Nom_Commune}" sera définitivement supprimée.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler'
     });
-    setConfirmOpen(true);
+    if (result.isConfirmed) {
+      await handleDelete(commune);
+    } else {
+      setSelectedCommune(null);
+    }
   };
 
-  const handleDelete = async () => {
-    if (!selectedCommune?.CommuneId) {
-      setConfirmOpen(false);
+  const handleDelete = async (communeParam) => {
+    const commune = communeParam || selectedCommune;
+    if (!commune?.CommuneId) {
       return;
     }
     try {
-      await communesService.remove(selectedCommune.CommuneId);
-      toast.success('Commune supprimée avec succès');
+      await communesService.remove(commune.CommuneId);
+      await Swal.fire({ icon: 'success', title: 'Succès', text: 'Commune supprimée avec succès' });
       await loadCommunes();
     } catch (error) {
       const message = error?.response?.data?.message || error?.message || 'Erreur lors de la suppression';
       console.error('Erreur lors de la suppression:', message, error);
-      toast.error(message);
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: message });
     } finally {
-      setConfirmOpen(false);
       setSelectedCommune(null);
     }
   };
@@ -118,16 +122,16 @@ const Communes = () => {
     try {
       if (editingCommune) {
         await communesService.update(editingCommune.CommuneId, formData);
-        toast.success('Commune modifiée avec succès');
+        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Commune modifiée avec succès' });
       } else {
         await communesService.create(formData);
-        toast.success('Commune créée avec succès');
+        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Commune créée avec succès' });
       }
       loadCommunes();
       handleModalClose();
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: error.response?.data?.message || 'Erreur lors de la sauvegarde' });
     }
   };
 
@@ -235,15 +239,7 @@ const Communes = () => {
           />
         )}
 
-        <ConfirmationDialog
-          isOpen={confirmOpen}
-          title={confirmProps.title}
-          message={confirmProps.message}
-          confirmText={confirmProps.confirmText}
-          type={confirmProps.type}
-          onClose={() => setConfirmOpen(false)}
-          onConfirm={handleDelete}
-        />
+        {/* Confirmation via SweetAlert2 gérée dans askDelete */}
       </div>
     </div>
   );

@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Building2, Tag, DollarSign, Target, Save, Plus } from 'lucide-react';
 import kpiService from '../services/kpiService';
-import Toast from '../components/Toast';
+import Swal from 'sweetalert2';
 
 function KPI() {
   const [kpis, setKpis] = useState([]);
   const [agences, setAgences] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ open: false, type: 'success', message: '' });
+  // Toast remplacé par SweetAlert2
   const [formData, setFormData] = useState({
     dateKey: '',
     agenceId: '',
@@ -43,7 +43,7 @@ function KPI() {
       setCategories(categoriesData);
     } catch (e) {
       console.error(e);
-      setToast({ open: true, type: 'error', message: 'Erreur lors du chargement des données' });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: 'Erreur lors du chargement des données' });
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ function KPI() {
     e.preventDefault();
     
     if (!formData.dateKey || !formData.agenceId || !formData.categorieId) {
-      setToast({ open: true, type: 'error', message: 'Date, Agence et Catégorie sont requis' });
+      await Swal.fire({ icon: 'error', title: 'Validation', text: 'Date, Agence et Catégorie sont requis' });
       return;
     }
 
@@ -78,7 +78,7 @@ function KPI() {
       };
 
       await kpiService.create(payload);
-      setToast({ open: true, type: 'success', message: 'KPI sauvegardé avec succès' });
+      await Swal.fire({ icon: 'success', title: 'Succès', text: 'KPI sauvegardé avec succès' });
       
       // Réinitialiser le formulaire
       setFormData({
@@ -105,7 +105,7 @@ function KPI() {
       await loadData();
     } catch (e) {
       const msg = e?.response?.data?.message || 'Une erreur est survenue';
-      setToast({ open: true, type: 'error', message: msg });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
     }
   };
 
@@ -479,12 +479,7 @@ function KPI() {
         </div>
       </div>
 
-      <Toast
-        open={toast.open}
-        type={toast.type}
-        message={toast.message}
-        onClose={() => setToast({ ...toast, open: false })}
-      />
+      {/* Notifications gérées via SweetAlert2 */}
     </div>
   );
 }

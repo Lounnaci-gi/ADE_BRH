@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Pencil, Trash2, Printer, User, Mail, Lock, Save } from 'lucide-react';
 import UsersAddModal from '../components/UsersAddModal';
-import Toast from '../components/Toast';
-import ConfirmationDialog from '../components/ConfirmationDialog';
+import Swal from 'sweetalert2';
 import userService from '../services/userService';
 import authService from '../services/authService';
 
@@ -12,12 +11,8 @@ function Users() {
   const [editUser, setEditUser] = useState(null);
   const [editUserId, setEditUserId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ open: false, type: 'success', message: '' });
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmProps, setConfirmProps] = useState({});
+  // Toast remplacé par SweetAlert2
   const [selectedUser, setSelectedUser] = useState(null);
-  const [successOpen, setSuccessOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   const [profileForm, setProfileForm] = useState({
     username: '',
     email: '',
@@ -75,7 +70,7 @@ function Users() {
     e.preventDefault();
     
     if (profileForm.newPassword && profileForm.newPassword !== profileForm.confirmPassword) {
-      setToast({ open: true, type: 'error', message: 'Les mots de passe ne correspondent pas.' });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: 'Les mots de passe ne correspondent pas.' });
       return;
     }
 
@@ -92,7 +87,7 @@ function Users() {
       }
       
       await userService.updateOwnProfile(payload);
-      setToast({ open: true, type: 'success', message: 'Profil mis à jour avec succès.' });
+      await Swal.fire({ icon: 'success', title: 'Succès', text: 'Profil mis à jour avec succès.' });
       
       // Réinitialiser les champs de mot de passe
       setProfileForm(prev => ({
@@ -103,7 +98,7 @@ function Users() {
       }));
     } catch (e) {
       const msg = e?.response?.data?.message || 'Erreur lors de la mise à jour du profil.';
-      setToast({ open: true, type: 'error', message: msg });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
     } finally {
       setProfileLoading(false);
     }
@@ -133,19 +128,18 @@ function Users() {
     try {
       if (editUserId != null) {
         await userService.update(editUserId, payload);
-        setSuccessMessage('Utilisateur modifié avec succès.');
+        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Utilisateur modifié avec succès.' });
       } else {
         await userService.create(payload);
-        setSuccessMessage('Utilisateur créé avec succès.');
+        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Utilisateur créé avec succès.' });
       }
       setOpen(false);
       setEditUser(null);
       setEditUserId(null);
       await loadUsers();
-      setSuccessOpen(true);
     } catch (e) {
       const msg = e?.response?.data?.message || 'Une erreur est survenue lors de la création.';
-      setToast({ open: true, type: 'error', message: msg });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
     }
   };
 
@@ -155,31 +149,38 @@ function Users() {
     setOpen(true);
   };
 
-  const askDelete = (u) => {
+  const askDelete = async (u) => {
     setSelectedUser(u);
-    setConfirmProps({
-      title: 'Confirmer la suppression',
-      message: `Supprimer l'utilisateur "${u.username}" ? Cette action est irréversible.`,
-      confirmText: 'Supprimer',
-      type: 'danger'
+    const result = await Swal.fire({
+      title: 'Supprimer cet utilisateur ? ',
+      text: `"${u.username}" sera définitivement supprimé.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler'
     });
-    setConfirmOpen(true);
+    if (result.isConfirmed) {
+      await handleDelete(u);
+    } else {
+      setSelectedUser(null);
+    }
   };
 
-  const handleDelete = async () => {
-    if (!selectedUser?.UtilisateurId) {
-      setConfirmOpen(false);
+  const handleDelete = async (userParam) => {
+    const userToDelete = userParam || selectedUser;
+    if (!userToDelete?.UtilisateurId) {
       return;
     }
     try {
-      await userService.remove(selectedUser.UtilisateurId);
+      await userService.remove(userToDelete.UtilisateurId);
       await loadUsers();
-      setToast({ open: true, type: 'success', message: 'Utilisateur supprimé.' });
+      await Swal.fire({ icon: 'success', title: 'Succès', text: 'Utilisateur supprimé.' });
     } catch (e) {
       const msg = e?.response?.data?.message || 'Erreur lors de la suppression.';
-      setToast({ open: true, type: 'error', message: msg });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
     } finally {
-      setConfirmOpen(false);
       setSelectedUser(null);
     }
   };
@@ -355,32 +356,9 @@ function Users() {
         </div>
       )}
 
-      <Toast
-        open={toast.open}
-        type={toast.type}
-        message={toast.message}
-        onClose={() => setToast({ ...toast, open: false })}
-      />
+      {/* Notifications gérées via SweetAlert2 */}
 
-      <ConfirmationDialog
-        isOpen={confirmOpen}
-        title={confirmProps.title}
-        message={confirmProps.message}
-        confirmText={confirmProps.confirmText}
-        type={confirmProps.type}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={handleDelete}
-      />
-
-      <ConfirmationDialog
-        isOpen={successOpen}
-        title="Opération Réussie"
-        message={successMessage}
-        confirmText="OK"
-        type="success"
-        onClose={() => setSuccessOpen(false)}
-        onConfirm={() => setSuccessOpen(false)}
-      />
+      {/* Confirmations et succès gérés avec SweetAlert2 */}
     </div>
   );
 }

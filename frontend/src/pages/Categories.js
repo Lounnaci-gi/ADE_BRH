@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
 import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
 import categoriesService from '../services/categoriesService';
-import Toast from '../components/Toast';
 
 function Categories() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ open: false, type: 'success', message: '' });
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({
@@ -24,7 +23,7 @@ function Categories() {
       setCategories(data);
     } catch (e) {
       console.error('Erreur lors du chargement:', e);
-      setToast({ open: true, type: 'error', message: 'Erreur lors du chargement des catégories' });
+      Swal.fire({ icon: 'error', title: 'Erreur', text: 'Erreur lors du chargement des catégories' });
     } finally {
       setLoading(false);
     }
@@ -39,37 +38,37 @@ function Categories() {
     
     // Validation côté client
     if (!formData.codeCategorie.trim()) {
-      setToast({ open: true, type: 'error', message: 'Le code catégorie est requis' });
+      await Swal.fire({ icon: 'error', title: 'Validation', text: 'Le code catégorie est requis' });
       return;
     }
     
     if (!formData.libelle.trim()) {
-      setToast({ open: true, type: 'error', message: 'Le libellé est requis' });
+      await Swal.fire({ icon: 'error', title: 'Validation', text: 'Le libellé est requis' });
       return;
     }
     
     if (formData.codeCategorie.length > 50) {
-      setToast({ open: true, type: 'error', message: 'Le code catégorie ne peut pas dépasser 50 caractères' });
+      await Swal.fire({ icon: 'error', title: 'Validation', text: 'Le code catégorie ne peut pas dépasser 50 caractères' });
       return;
     }
     
     if (formData.libelle.length > 100) {
-      setToast({ open: true, type: 'error', message: 'Le libellé ne peut pas dépasser 100 caractères' });
+      await Swal.fire({ icon: 'error', title: 'Validation', text: 'Le libellé ne peut pas dépasser 100 caractères' });
       return;
     }
     
     if (formData.description && formData.description.length > 250) {
-      setToast({ open: true, type: 'error', message: 'La description ne peut pas dépasser 250 caractères' });
+      await Swal.fire({ icon: 'error', title: 'Validation', text: 'La description ne peut pas dépasser 250 caractères' });
       return;
     }
     
     try {
       if (editingCategory) {
         await categoriesService.update(editingCategory.CategorieId, formData);
-        setToast({ open: true, type: 'success', message: 'Catégorie mise à jour avec succès' });
+        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Catégorie mise à jour avec succès' });
       } else {
         await categoriesService.create(formData);
-        setToast({ open: true, type: 'success', message: 'Catégorie créée avec succès' });
+        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Catégorie créée avec succès' });
       }
       
       setShowModal(false);
@@ -78,7 +77,7 @@ function Categories() {
       await loadCategories();
     } catch (e) {
       const msg = e?.response?.data?.message || 'Une erreur est survenue';
-      setToast({ open: true, type: 'error', message: msg });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
     }
   };
 
@@ -93,15 +92,25 @@ function Categories() {
   };
 
   const handleDelete = async (category) => {
-    if (!window.confirm(`Supprimer la catégorie "${category.Libelle}" ?`)) return;
-    
+    const result = await Swal.fire({
+      title: 'Supprimer la catégorie ? ',
+      text: `"${category.Libelle}" sera définitivement supprimée.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler'
+    });
+
+    if (!result.isConfirmed) return;
     try {
       await categoriesService.remove(category.CategorieId);
-      setToast({ open: true, type: 'success', message: 'Catégorie supprimée avec succès' });
+      await Swal.fire({ icon: 'success', title: 'Succès', text: 'Catégorie supprimée avec succès' });
       await loadCategories();
     } catch (e) {
       const msg = e?.response?.data?.message || 'Erreur lors de la suppression';
-      setToast({ open: true, type: 'error', message: msg });
+      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
     }
   };
 
@@ -262,12 +271,7 @@ function Categories() {
         </div>
       )}
 
-      <Toast
-        open={toast.open}
-        type={toast.type}
-        message={toast.message}
-        onClose={() => setToast({ ...toast, open: false })}
-      />
+      {/* Notifications gérées via SweetAlert2 */}
     </div>
   );
 }

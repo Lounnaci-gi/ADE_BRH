@@ -215,13 +215,13 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez le nom de l'agence"
-              maxLength={200}
+              maxLength={80}
             />
             {errors.Nom_Agence && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Nom_Agence}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Nom_Agence.length}/200 caractères
+              {formData.Nom_Agence.length}/80 caractères
             </p>
           </div>
 
@@ -242,13 +242,13 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez l'adresse complète de l'agence"
-              maxLength={400}
+              maxLength={200}
             />
             {errors.Adresse && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Adresse}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Adresse.length}/400 caractères
+              {formData.Adresse.length}/200 caractères
             </p>
           </div>
 
@@ -269,13 +269,13 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez le numéro de téléphone"
-              maxLength={50}
+              maxLength={10}
             />
             {errors.Telephone && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Telephone}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Telephone.length}/50 caractères
+              {formData.Telephone.length}/10 caractères
             </p>
           </div>
 
@@ -296,13 +296,13 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez l'adresse email (optionnel)"
-              maxLength={200}
+              maxLength={80}
             />
             {errors.Email && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Email}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Email.length}/200 caractères
+              {formData.Email.length}/80 caractères
             </p>
           </div>
 
@@ -323,13 +323,13 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez le numéro de fax (optionnel)"
-              maxLength={50}
+              maxLength={10}
             />
             {errors.Fax && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Fax}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Fax.length}/50 caractères
+              {formData.Fax.length}/10 caractères
             </p>
           </div>
 

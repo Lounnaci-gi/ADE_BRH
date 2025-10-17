@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Pencil, Trash2, Printer, Plus, Building2, MapPin, Phone, Mail, FileText } from 'lucide-react';
 import centresService from '../services/centresService';
 import CentresAddModal from '../components/CentresAddModal';
-import ConfirmationDialog from '../components/ConfirmationDialog';
+import Swal from 'sweetalert2';
 import authService from '../services/authService';
 
 const Centres = () => {
@@ -11,8 +11,6 @@ const Centres = () => {
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCentre, setEditingCentre] = useState(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmProps, setConfirmProps] = useState({});
   const [selectedCentre, setSelectedCentre] = useState(null);
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
@@ -46,26 +44,34 @@ const Centres = () => {
     setIsModalOpen(true);
   };
 
-  const askDelete = (centre) => {
+  const askDelete = async (centre) => {
     setSelectedCentre(centre);
-    setConfirmProps({
-      title: 'Confirmer la suppression',
-      message: `Supprimer le centre "${centre.Nom_Centre}" ? Cette action est irréversible.`,
-      confirmText: 'Supprimer',
-      type: 'danger'
+    const result = await Swal.fire({
+      title: 'Supprimer ce centre ? ',
+      text: `"${centre.Nom_Centre}" sera définitivement supprimé.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler'
     });
-    setConfirmOpen(true);
+    if (result.isConfirmed) {
+      await handleDelete(centre);
+    } else {
+      setSelectedCentre(null);
+    }
   };
 
-  const handleDelete = async () => {
-    if (!selectedCentre?.CentreId) { setConfirmOpen(false); return; }
+  const handleDelete = async (centreParam) => {
+    const centre = centreParam || selectedCentre;
+    if (!centre?.CentreId) { return; }
     try {
-      await centresService.remove(selectedCentre.CentreId);
+      await centresService.remove(centre.CentreId);
       await loadCentres();
     } catch (err) {
       console.error('Erreur lors de la suppression:', err);
     } finally {
-      setConfirmOpen(false);
       setSelectedCentre(null);
     }
   };
@@ -220,15 +226,7 @@ const Centres = () => {
           />
         )}
 
-        <ConfirmationDialog
-          isOpen={confirmOpen}
-          title={confirmProps.title}
-          message={confirmProps.message}
-          confirmText={confirmProps.confirmText}
-          type={confirmProps.type}
-          onClose={() => setConfirmOpen(false)}
-          onConfirm={handleDelete}
-        />
+        {/* Confirmation via SweetAlert2 gérée dans askDelete */}
     </div>
   );
 };
