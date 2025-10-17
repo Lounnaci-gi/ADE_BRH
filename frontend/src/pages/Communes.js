@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Printer, MapPin } from 'lucide-react';
 import communesService from '../services/communesService';
 import CommunesAddModal from '../components/CommunesAddModal';
-import Swal from 'sweetalert2';
+import { swal, swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
 import authService from '../services/authService';
 
 const Communes = () => {
@@ -78,15 +78,9 @@ const Communes = () => {
   const askDelete = async (commune) => {
     if (!commune?.CommuneId) return;
     setSelectedCommune(commune);
-    const result = await Swal.fire({
+    const result = await swalConfirmDelete({
       title: 'Supprimer cette commune ? ',
       text: `"${commune.Nom_Commune}" sera définitivement supprimée.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Oui, supprimer',
-      cancelButtonText: 'Annuler'
     });
     if (result.isConfirmed) {
       await handleDelete(commune);
@@ -102,12 +96,12 @@ const Communes = () => {
     }
     try {
       await communesService.remove(commune.CommuneId);
-      await Swal.fire({ icon: 'success', title: 'Succès', text: 'Commune supprimée avec succès' });
+      await swalSuccess('Commune supprimée avec succès');
       await loadCommunes();
     } catch (error) {
       const message = error?.response?.data?.message || error?.message || 'Erreur lors de la suppression';
       console.error('Erreur lors de la suppression:', message, error);
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: message });
+      await swalError(message);
     } finally {
       setSelectedCommune(null);
     }

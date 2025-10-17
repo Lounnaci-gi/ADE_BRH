@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Pencil, Trash2, Printer, Plus, Building2, MapPin, Phone, Mail, FileText } from 'lucide-react';
 import centresService from '../services/centresService';
 import CentresAddModal from '../components/CentresAddModal';
-import Swal from 'sweetalert2';
+import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
 import authService from '../services/authService';
 
 const Centres = () => {
@@ -46,15 +46,9 @@ const Centres = () => {
 
   const askDelete = async (centre) => {
     setSelectedCentre(centre);
-    const result = await Swal.fire({
+    const result = await swalConfirmDelete({
       title: 'Supprimer ce centre ? ',
       text: `"${centre.Nom_Centre}" sera définitivement supprimé.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Oui, supprimer',
-      cancelButtonText: 'Annuler'
     });
     if (result.isConfirmed) {
       await handleDelete(centre);
@@ -69,8 +63,10 @@ const Centres = () => {
     try {
       await centresService.remove(centre.CentreId);
       await loadCentres();
+      await swalSuccess('Centre supprimé avec succès.');
     } catch (err) {
-      console.error('Erreur lors de la suppression:', err);
+      const message = err?.response?.data?.message || 'Erreur lors de la suppression.';
+      await swalError(message);
     } finally {
       setSelectedCentre(null);
     }

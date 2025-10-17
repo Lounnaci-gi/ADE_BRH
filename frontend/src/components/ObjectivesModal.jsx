@@ -139,15 +139,15 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-2xl bg-white rounded-xl shadow-xl border">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="text-lg font-semibold">
+      <div className="relative z-10 w-full max-w-xl bg-white rounded-xl shadow-xl border">
+        <div className="flex items-center justify-between p-3 border-b">
+          <h3 className="text-base font-semibold">
             {initialValues ? 'Modifier les objectifs' : 'Ajouter des objectifs'}
           </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="h-5 w-5" />
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 p-1.5 rounded hover:bg-gray-100">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -157,7 +157,7 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-3 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Agence</label>
@@ -174,7 +174,7 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">Mois</label>
                 <select
@@ -214,7 +214,7 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium mb-1">Coupures</label>
               <input type="number" className="w-full border rounded px-3 py-2" value={formData.objectif_Coupures}
@@ -238,8 +238,8 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-gray-200">Annuler</button>
-            <button type="submit" disabled={loading} className="px-5 py-2 rounded bg-blue-600 text-white">
+            <button type="button" onClick={onClose} className="px-3 py-2 rounded bg-gray-200">Annuler</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 rounded bg-blue-600 text-white">
               {loading ? 'Enregistrement...' : (initialValues ? 'Mettre à jour' : 'Enregistrer')}
             </button>
           </div>

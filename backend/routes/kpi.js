@@ -1,5 +1,6 @@
 const express = require('express');
 const { Connection, Request, TYPES } = require('tedious');
+const db = require('../utils/db');
 
 const router = express.Router();
 
@@ -21,66 +22,27 @@ const getConfig = () => ({
   }
 });
 
-// GET /api/kpi - liste des KPIs avec jointures
-router.get('/', (req, res) => {
-  const connection = new Connection(getConfig());
-
-  connection.on('connect', (err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
-    }
-
-    const kpis = [];
+// GET /api/kpi - liste des KPIs avec jointures (refactor db.query)
+router.get('/', async (req, res) => {
+  try {
     const query = `
-      SELECT 
+      SELECT TOP 500
         k.DateKey,
         k.AgenceId,
         k.CategorieId,
-        d.TheDate,
         a.Nom_Agence,
-        c.Libelle AS CategorieLibelle,
-        k.Encaissement_Journalier_Global,
-        k.Nb_Coupures,
-        k.Mt_Coupures,
-        k.Nb_Dossiers_Juridiques,
-        k.Mt_Dossiers_Juridiques,
-        k.Nb_MisesEnDemeure_Envoyees,
-        k.Mt_MisesEnDemeure_Envoyees,
-        k.Nb_Relances_Envoyees,
-        k.Mt_Relances_Envoyees,
-        k.Nb_RelancesReglees,
-        k.Mt_RelancesReglees,
-        k.Obj_Coupures,
-        k.Obj_Dossiers_Juridiques,
-        k.Obj_MisesEnDemeure_Envoyees,
-        k.Obj_Relances_Envoyees,
-        k.CreatedAt,
-        k.ModifiedAt
-      FROM dbo.FAIT_KPI_ADE k
-      LEFT JOIN dbo.DIM_DATE d ON k.DateKey = d.DateKey
-      LEFT JOIN dbo.DIM_AGENCE a ON k.AgenceId = a.AgenceId
-      LEFT JOIN dbo.DIM_CATEGORIE c ON k.CategorieId = c.CategorieId
-      ORDER BY d.TheDate DESC, a.Nom_Agence, c.Libelle
-    `;
+        c.Libelle AS CategorieLibelle
+      FROM dbo.FAIT_KPI_ADE AS k
+      LEFT JOIN dbo.DIM_AGENCE AS a ON k.AgenceId = a.AgenceId
+      LEFT JOIN dbo.DIM_CATEGORIE AS c ON k.CategorieId = c.CategorieId
+      ORDER BY k.DateKey DESC, a.Nom_Agence, c.Libelle`;
 
-    const request = new Request(query, (err) => {
-      connection.close();
-      if (err) {
-        return res.status(500).json({ message: 'Erreur lors de la lecture des KPIs', error: err.message });
-      }
-      res.json(kpis);
-    });
-
-    request.on('row', (columns) => {
-      const row = {};
-      columns.forEach((c) => { row[c.metadata.colName] = c.value; });
-      kpis.push(row);
-    });
-
-    connection.execSql(request);
-  });
-
-  connection.connect();
+    const rows = await db.query(query, []);
+    res.json(rows || []);
+  } catch (err) {
+    console.error('Erreur GET /kpi:', err);
+    res.status(500).json({ message: 'Erreur lors de la lecture des KPIs', error: err.message });
+  }
 });
 
 // POST /api/kpi - créer/insérer un KPI
@@ -174,8 +136,10 @@ router.post('/', (req, res) => {
   connection.connect();
 });
 
-// GET /api/kpi/agences - liste des agences pour le formulaire
+// GET /api/kpi/agences - liste des agences pour le formulaire (avec restriction par rôle)
 router.get('/agences', (req, res) => {
+  const role = (req.headers['x-role'] || '').toString();
+  const userAgenceId = parseInt(req.headers['x-user-agence'], 10) || null;
   const connection = new Connection(getConfig());
 
   connection.on('connect', (err) => {
@@ -184,11 +148,19 @@ router.get('/agences', (req, res) => {
     }
 
     const agences = [];
-    const query = `
-      SELECT AgenceId, Nom_Agence
-      FROM dbo.DIM_AGENCE
-      ORDER BY Nom_Agence
-    `;
+    const isAdmin = role === 'Administrateur';
+    const query = isAdmin || !userAgenceId
+      ? `
+        SELECT AgenceId, Nom_Agence
+        FROM dbo.DIM_AGENCE
+        ORDER BY Nom_Agence
+      `
+      : `
+        SELECT AgenceId, Nom_Agence
+        FROM dbo.DIM_AGENCE
+        WHERE AgenceId = @agenceId
+        ORDER BY Nom_Agence
+      `;
 
     const request = new Request(query, (err) => {
       connection.close();
@@ -197,6 +169,10 @@ router.get('/agences', (req, res) => {
       }
       res.json(agences);
     });
+
+    if (!isAdmin && userAgenceId) {
+      request.addParameter('agenceId', TYPES.Int, userAgenceId);
+    }
 
     request.on('row', (columns) => {
       const row = {};

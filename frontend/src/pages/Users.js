@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Pencil, Trash2, Printer, User, Mail, Lock, Save } from 'lucide-react';
 import UsersAddModal from '../components/UsersAddModal';
-import Swal from 'sweetalert2';
+import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
 import userService from '../services/userService';
 import authService from '../services/authService';
 
@@ -128,10 +128,10 @@ function Users() {
     try {
       if (editUserId != null) {
         await userService.update(editUserId, payload);
-        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Utilisateur modifié avec succès.' });
+        await swalSuccess('Utilisateur modifié avec succès.');
       } else {
         await userService.create(payload);
-        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Utilisateur créé avec succès.' });
+        await swalSuccess('Utilisateur créé avec succès.');
       }
       setOpen(false);
       setEditUser(null);
@@ -139,7 +139,7 @@ function Users() {
       await loadUsers();
     } catch (e) {
       const msg = e?.response?.data?.message || 'Une erreur est survenue lors de la création.';
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
+      await swalError(msg);
     }
   };
 
@@ -151,15 +151,9 @@ function Users() {
 
   const askDelete = async (u) => {
     setSelectedUser(u);
-    const result = await Swal.fire({
+    const result = await swalConfirmDelete({
       title: 'Supprimer cet utilisateur ? ',
       text: `"${u.username}" sera définitivement supprimé.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Oui, supprimer',
-      cancelButtonText: 'Annuler'
     });
     if (result.isConfirmed) {
       await handleDelete(u);
@@ -176,10 +170,10 @@ function Users() {
     try {
       await userService.remove(userToDelete.UtilisateurId);
       await loadUsers();
-      await Swal.fire({ icon: 'success', title: 'Succès', text: 'Utilisateur supprimé.' });
+      await swalSuccess('Utilisateur supprimé.');
     } catch (e) {
       const msg = e?.response?.data?.message || 'Erreur lors de la suppression.';
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
+      await swalError(msg);
     } finally {
       setSelectedUser(null);
     }

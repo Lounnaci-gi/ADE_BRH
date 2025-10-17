@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Swal from 'sweetalert2';
+import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
 import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
 import categoriesService from '../services/categoriesService';
 
@@ -23,7 +23,7 @@ function Categories() {
       setCategories(data);
     } catch (e) {
       console.error('Erreur lors du chargement:', e);
-      Swal.fire({ icon: 'error', title: 'Erreur', text: 'Erreur lors du chargement des catégories' });
+      await swalError('Erreur lors du chargement des catégories');
     } finally {
       setLoading(false);
     }
@@ -38,37 +38,37 @@ function Categories() {
     
     // Validation côté client
     if (!formData.codeCategorie.trim()) {
-      await Swal.fire({ icon: 'error', title: 'Validation', text: 'Le code catégorie est requis' });
+      await swalError('Le code catégorie est requis', 'Validation');
       return;
     }
     
     if (!formData.libelle.trim()) {
-      await Swal.fire({ icon: 'error', title: 'Validation', text: 'Le libellé est requis' });
+      await swalError('Le libellé est requis', 'Validation');
       return;
     }
     
     if (formData.codeCategorie.length > 50) {
-      await Swal.fire({ icon: 'error', title: 'Validation', text: 'Le code catégorie ne peut pas dépasser 50 caractères' });
+      await swalError('Le code catégorie ne peut pas dépasser 50 caractères', 'Validation');
       return;
     }
     
     if (formData.libelle.length > 100) {
-      await Swal.fire({ icon: 'error', title: 'Validation', text: 'Le libellé ne peut pas dépasser 100 caractères' });
+      await swalError('Le libellé ne peut pas dépasser 100 caractères', 'Validation');
       return;
     }
     
     if (formData.description && formData.description.length > 250) {
-      await Swal.fire({ icon: 'error', title: 'Validation', text: 'La description ne peut pas dépasser 250 caractères' });
+      await swalError('La description ne peut pas dépasser 250 caractères', 'Validation');
       return;
     }
     
     try {
       if (editingCategory) {
         await categoriesService.update(editingCategory.CategorieId, formData);
-        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Catégorie mise à jour avec succès' });
+        await swalSuccess('Catégorie mise à jour avec succès');
       } else {
         await categoriesService.create(formData);
-        await Swal.fire({ icon: 'success', title: 'Succès', text: 'Catégorie créée avec succès' });
+        await swalSuccess('Catégorie créée avec succès');
       }
       
       setShowModal(false);
@@ -77,7 +77,7 @@ function Categories() {
       await loadCategories();
     } catch (e) {
       const msg = e?.response?.data?.message || 'Une erreur est survenue';
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
+      await swalError(msg);
     }
   };
 
@@ -92,25 +92,19 @@ function Categories() {
   };
 
   const handleDelete = async (category) => {
-    const result = await Swal.fire({
+    const result = await swalConfirmDelete({
       title: 'Supprimer la catégorie ? ',
       text: `"${category.Libelle}" sera définitivement supprimée.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Oui, supprimer',
-      cancelButtonText: 'Annuler'
     });
 
     if (!result.isConfirmed) return;
     try {
       await categoriesService.remove(category.CategorieId);
-      await Swal.fire({ icon: 'success', title: 'Succès', text: 'Catégorie supprimée avec succès' });
+      await swalSuccess('Catégorie supprimée avec succès');
       await loadCategories();
     } catch (e) {
       const msg = e?.response?.data?.message || 'Erreur lors de la suppression';
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
+      await swalError(msg);
     }
   };
 

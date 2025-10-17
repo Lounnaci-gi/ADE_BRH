@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Building2, Tag, DollarSign, Target, Save, Plus } from 'lucide-react';
 import kpiService from '../services/kpiService';
-import Swal from 'sweetalert2';
+import authService from '../services/authService';
+import { swalSuccess, swalError } from '../utils/swal';
 
 function KPI() {
   const [kpis, setKpis] = useState([]);
@@ -33,17 +34,25 @@ function KPI() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [kpisData, agencesData, categoriesData] = await Promise.all([
+      const user = authService.getCurrentUser();
+      const isAdmin = (user?.role || '').toString() === 'Administrateur';
+      const userAgenceId = user?.agenceId ? Number(user.agenceId) : null;
+
+      const [kpisData, categoriesData] = await Promise.all([
         kpiService.list(),
-        kpiService.getAgences(),
         kpiService.getCategories()
       ]);
+
+      let agencesData = await kpiService.getAgences();
+      if (!isAdmin && userAgenceId) {
+        agencesData = agencesData.filter(a => Number(a.AgenceId) === userAgenceId);
+      }
       setKpis(kpisData);
       setAgences(agencesData);
       setCategories(categoriesData);
     } catch (e) {
       console.error(e);
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: 'Erreur lors du chargement des données' });
+      await swalError('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
@@ -57,7 +66,7 @@ function KPI() {
     e.preventDefault();
     
     if (!formData.dateKey || !formData.agenceId || !formData.categorieId) {
-      await Swal.fire({ icon: 'error', title: 'Validation', text: 'Date, Agence et Catégorie sont requis' });
+      await swalError('Date, Agence et Catégorie sont requis', 'Validation');
       return;
     }
 
@@ -78,7 +87,7 @@ function KPI() {
       };
 
       await kpiService.create(payload);
-      await Swal.fire({ icon: 'success', title: 'Succès', text: 'KPI sauvegardé avec succès' });
+      await swalSuccess('KPI sauvegardé avec succès');
       
       // Réinitialiser le formulaire
       setFormData({
@@ -105,7 +114,7 @@ function KPI() {
       await loadData();
     } catch (e) {
       const msg = e?.response?.data?.message || 'Une erreur est survenue';
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
+      await swalError(msg);
     }
   };
 
@@ -430,53 +439,7 @@ function KPI() {
           </form>
         </div>
 
-        {/* Liste des KPIs */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">KPIs récents</h2>
-          
-          {loading ? (
-            <div className="text-center py-8">Chargement...</div>
-          ) : (
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {kpis.slice(0, 10).map((kpi, index) => (
-                <div key={index} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-medium">{kpi.Nom_Agence}</h3>
-                      <p className="text-sm text-gray-600">{kpi.CategorieLibelle}</p>
-                    </div>
-                    <span className="text-sm text-gray-500">{formatDate(kpi.DateKey)}</span>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-600">Encaissement:</span>
-                      <span className="ml-1 font-medium">{formatCurrency(kpi.Encaissement_Journalier_Global)}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Coupures:</span>
-                      <span className="ml-1 font-medium">{kpi.Nb_Coupures || 0}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Dossiers:</span>
-                      <span className="ml-1 font-medium">{kpi.Nb_Dossiers_Juridiques || 0}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Relances:</span>
-                      <span className="ml-1 font-medium">{kpi.Nb_Relances_Envoyees || 0}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {kpis.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  Aucun KPI trouvé
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {/* Section "KPIs récents" supprimée pour désencombrer la page */}
       </div>
 
       {/* Notifications gérées via SweetAlert2 */}

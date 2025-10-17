@@ -141,28 +141,28 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-water-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
+      <div className="bg-white dark:bg-water-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-water-200 dark:border-water-700">
+        <div className="flex items-center justify-between p-3 border-b border-water-200 dark:border-water-700">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-water-600 rounded-lg">
-              <Building2 className="h-6 w-6 text-white" />
+            <div className="p-1.5 bg-water-600 rounded-lg">
+              <Building2 className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-water-900 dark:text-white">
+            <h2 className="text-xl font-bold text-water-900 dark:text-white">
               {initialValues ? 'Modifier l\'Agence' : 'Nouvelle Agence'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-water-500 hover:text-water-700 dark:text-water-400 dark:hover:text-water-200 hover:bg-water-100 dark:hover:bg-water-700 rounded-lg transition-colors"
+            className="p-1.5 text-water-500 hover:text-water-700 dark:text-water-400 dark:hover:text-water-200 hover:bg-water-100 dark:hover:bg-water-700 rounded-lg transition-colors"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-3 space-y-3">
           {/* Centre */}
           <div>
             <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
@@ -173,7 +173,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
               name="FK_Centre"
               value={formData.FK_Centre}
               onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.FK_Centre
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -209,7 +209,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
               name="Nom_Agence"
               value={formData.Nom_Agence}
               onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.Nom_Agence
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -235,8 +235,8 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
               name="Adresse"
               value={formData.Adresse}
               onChange={handleChange}
-              rows={3}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 resize-none ${
+              rows={2}
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 resize-none ${
                 errors.Adresse
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -263,7 +263,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
               name="Telephone"
               value={formData.Telephone}
               onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.Telephone
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -290,7 +290,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
               name="Email"
               value={formData.Email}
               onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.Email
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -317,7 +317,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
               name="Fax"
               value={formData.Fax}
               onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.Fax
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -344,7 +344,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
               name="Nom_Banque"
               value={formData.Nom_Banque}
               onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.Nom_Banque
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -371,7 +371,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
               name="Compte_Bancaire"
               value={formData.Compte_Bancaire}
               onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.Compte_Bancaire
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -398,7 +398,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
               name="NIF"
               value={formData.NIF}
               onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.NIF
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -425,7 +425,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
               name="NCI"
               value={formData.NCI}
               onChange={handleChange}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.NCI
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -442,17 +442,17 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-4 pt-6 border-t border-water-200 dark:border-water-700">
+          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-water-200 dark:border-water-700">
             <button
               type="button"
               onClick={handleCancel}
-              className="px-6 py-3 text-water-600 dark:text-water-400 hover:bg-water-100 dark:hover:bg-water-700 rounded-xl transition-colors font-semibold"
+              className="px-4 py-2 text-water-600 dark:text-water-400 hover:bg-water-100 dark:hover:bg-water-700 rounded-xl transition-colors font-semibold"
             >
               Annuler
             </button>
             <button
               type="submit"
-              className="px-6 py-3 bg-water-600 hover:bg-water-700 text-white rounded-xl transition-colors font-semibold shadow-lg hover:shadow-xl"
+              className="px-4 py-2 bg-water-600 hover:bg-water-700 text-white rounded-xl transition-colors font-semibold shadow-lg hover:shadow-xl"
             >
               {initialValues ? 'Modifier' : 'Créer'}
             </button>

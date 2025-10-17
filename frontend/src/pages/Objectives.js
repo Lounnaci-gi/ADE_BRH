@@ -213,7 +213,7 @@ function Objectives() {
                   <th className="px-4 py-2 text-left">Dossiers Juridiques</th>
                   <th className="px-4 py-2 text-left">Mises en Demeure</th>
                   <th className="px-4 py-2 text-left">Relances</th>
-                  <th className="px-4 py-2 text-right">Actions</th>
+                  <th className="px-4 py-2 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -227,17 +227,17 @@ function Objectives() {
                       <td className="px-4 py-2">{o.Obj_Dossiers_Juridiques ?? 0}</td>
                       <td className="px-4 py-2">{o.Obj_MisesEnDemeure_Envoyees ?? 0}</td>
                       <td className="px-4 py-2">{o.Obj_Relances_Envoyees ?? 0}</td>
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-4 py-2 text-center space-x-2">
                         {isTooOld ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded border mr-2 bg-gray-100 text-gray-500 cursor-not-allowed">
-                            <Pencil className="h-4 w-4" /> Verrouillé
-                          </span>
+                          <button title="Verrouillé" disabled className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
                         ) : (
-                          <button onClick={() => openEdit(o)} className="inline-flex items-center gap-1 px-2 py-1 rounded border mr-2 hover:bg-blue-50">
-                            <Pencil className="h-4 w-4" /> Modifier
+                          <button onClick={() => openEdit(o)} title="Modifier" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50">
+                            <Pencil className="h-3.5 w-3.5 text-blue-600" />
                           </button>
                         )}
-                        {/* Suppression logique côté backend déjà disponible via DELETE, à brancher si souhaité */}
+                        {/* Optionnel: ajouter un bouton supprimer ici si nécessaire */}
                       </td>
                     </tr>
                   );

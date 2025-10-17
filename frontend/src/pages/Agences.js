@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Pencil, Trash2, Printer } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
 import AddAgencyModal from "../components/AddAgencyModal";
 import agenceService from "../services/agenceService";
 import authService from "../services/authService";
@@ -137,15 +137,9 @@ export default function Agences() {
 
   const askDelete = async (agence) => {
     setSelectedAgence(agence);
-    const result = await Swal.fire({
+    const result = await swalConfirmDelete({
       title: 'Supprimer cette agence ? ',
       text: `"${agence.Nom_Agence}" sera définitivement supprimée.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Oui, supprimer',
-      cancelButtonText: 'Annuler'
     });
     if (result.isConfirmed) {
       await handleDelete(agence);
@@ -159,11 +153,11 @@ export default function Agences() {
     if (!agence?.AgenceId) { return; }
     try {
       await agenceService.remove(agence.AgenceId);
-      await Swal.fire({ icon: 'success', title: 'Succès', text: 'Agence supprimée avec succès.' });
+      await swalSuccess('Agence supprimée avec succès.');
       await loadAgences();
     } catch (err) {
       const msg = err?.response?.data?.message || 'Erreur lors de la suppression.';
-      await Swal.fire({ icon: 'error', title: 'Erreur', text: msg });
+      await swalError(msg);
     } finally {
       setSelectedAgence(null);
     }
