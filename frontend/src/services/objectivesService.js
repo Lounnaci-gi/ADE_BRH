@@ -19,6 +19,11 @@ const objectivesService = {
     return res.data || [];
   },
 
+  async getCategories() {
+    const res = await api.get('/objectives/categories');
+    return res.data || [];
+  },
+
   async save(payload) {
     const user = authService.getCurrentUser();
     const res = await api.post('/objectives', payload, {

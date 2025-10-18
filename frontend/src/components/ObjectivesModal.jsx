@@ -1,246 +1,495 @@
 import React, { useEffect, useState } from 'react';
-import { X, Building2, Calendar } from 'lucide-react';
+import { X, Building2, Target, Calendar, DollarSign, Zap, Wrench, FileText, AlertTriangle, RotateCcw, CheckCircle, Hash } from 'lucide-react';
 import objectivesService from '../services/objectivesService';
 
-export default function ObjectivesModal({ open, onClose, onSubmit, initialValues, agences = [] }) {
+export default function ObjectivesModal({ open, onClose, onSubmit, initialValues, agences = [], categories = [] }) {
   const [formData, setFormData] = useState({
     agenceId: '',
-    annee: new Date().getFullYear(),
-    mois: new Date().getMonth() + 1,
-    objectif_Coupures: '',
-    objectif_Dossiers_Juridiques: '',
-    objectif_MisesEnDemeure_Envoyees: '',
-    objectif_Relances_Envoyees: ''
+    categorieId: '',
+    dateDebut: '',
+    dateFin: '',
+    typePeriode: 'Mensuel',
+    obj_Encaissement: '',
+    obj_Coupures: '',
+    obj_Retablissements: '',
+    obj_Branchements: '',
+    obj_Dossiers_Juridiques: '',
+    obj_MisesEnDemeure: '',
+    obj_Relances: '',
+    obj_Controles: '',
+    obj_Compteurs_Remplaces: '',
+    commentaire: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (open) {
       setError('');
+      setErrors({});
       if (initialValues) {
         setFormData({
           agenceId: initialValues.AgenceId || '',
-          annee: initialValues.Annee || new Date().getFullYear(),
-          mois: initialValues.Mois || (new Date().getMonth() + 1),
-          objectif_Coupures: initialValues.Obj_Coupures ?? '',
-          objectif_Dossiers_Juridiques: initialValues.Obj_Dossiers_Juridiques ?? '',
-          objectif_MisesEnDemeure_Envoyees: initialValues.Obj_MisesEnDemeure_Envoyees ?? '',
-          objectif_Relances_Envoyees: initialValues.Obj_Relances_Envoyees ?? ''
+          categorieId: initialValues.CategorieId || '',
+          dateDebut: initialValues.DateDebut ? new Date(initialValues.DateDebut).toISOString().split('T')[0] : '',
+          dateFin: initialValues.DateFin ? new Date(initialValues.DateFin).toISOString().split('T')[0] : '',
+          typePeriode: initialValues.TypePeriode || 'Mensuel',
+          obj_Encaissement: initialValues.Obj_Encaissement ?? '',
+          obj_Coupures: initialValues.Obj_Coupures ?? '',
+          obj_Retablissements: initialValues.Obj_Retablissements ?? '',
+          obj_Branchements: initialValues.Obj_Branchements ?? '',
+          obj_Dossiers_Juridiques: initialValues.Obj_Dossiers_Juridiques ?? '',
+          obj_MisesEnDemeure: initialValues.Obj_MisesEnDemeure ?? '',
+          obj_Relances: initialValues.Obj_Relances ?? '',
+          obj_Controles: initialValues.Obj_Controles ?? '',
+          obj_Compteurs_Remplaces: initialValues.Obj_Compteurs_Remplaces ?? '',
+          commentaire: initialValues.Commentaire ?? ''
         });
       } else {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        
         setFormData({
           agenceId: '',
-          annee: new Date().getFullYear(),
-          mois: new Date().getMonth() + 1,
-          objectif_Coupures: '',
-          objectif_Dossiers_Juridiques: '',
-          objectif_MisesEnDemeure_Envoyees: '',
-          objectif_Relances_Envoyees: ''
+          categorieId: '',
+          dateDebut: firstDay.toISOString().split('T')[0],
+          dateFin: lastDay.toISOString().split('T')[0],
+          typePeriode: 'Mensuel',
+          obj_Encaissement: '',
+          obj_Coupures: '',
+          obj_Retablissements: '',
+          obj_Branchements: '',
+          obj_Dossiers_Juridiques: '',
+          obj_MisesEnDemeure: '',
+          obj_Relances: '',
+          obj_Controles: '',
+          obj_Compteurs_Remplaces: '',
+          commentaire: ''
         });
       }
     }
   }, [open, initialValues]);
 
-  const getMonthName = (m) => [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-  ][m - 1] || '';
-
-  // Fonction pour valider les règles temporelles
-  const validateTemporalRules = (annee, mois) => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     
-    const objectiveDate = new Date(annee, mois - 1, 1);
-    const threeMonthsAgo = new Date(currentYear, currentMonth - 4, 1);
-    const twoMonthsAhead = new Date(currentYear, currentMonth + 1, 1);
-    
-    return {
-      isPastLimit: objectiveDate < threeMonthsAgo,
-      isFutureLimit: objectiveDate > twoMonthsAhead,
-      threeMonthsAgo,
-      twoMonthsAhead
-    };
-  };
-
-  // Générer les options d'années disponibles
-  const getAvailableYears = () => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const years = [];
-    
-    // Années passées (limitées à 3 mois)
-    for (let year = currentYear - 1; year <= currentYear + 1; year++) {
-      years.push(year);
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
-    
-    return years;
   };
 
-  // Générer les options de mois disponibles pour une année donnée
-  const getAvailableMonths = (year) => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    
-    const months = [];
-    const validation = validateTemporalRules(year, 1);
-    
-    for (let month = 1; month <= 12; month++) {
-      const monthValidation = validateTemporalRules(year, month);
-      
-      // Pour la création (pas d'initialValues), bloquer le passé > 3 mois et futur > 2 mois
-      if (!initialValues) {
-        if (!monthValidation.isPastLimit && !monthValidation.isFutureLimit) {
-          months.push(month);
-        }
-      } else {
-        // Pour la modification, seulement bloquer le passé > 3 mois
-        if (!monthValidation.isPastLimit) {
-          months.push(month);
-        }
-      }
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.agenceId) {
+      newErrors.agenceId = 'L\'agence est obligatoire';
     }
-    
-    return months;
+
+    if (!formData.dateDebut) {
+      newErrors.dateDebut = 'La date de début est obligatoire';
+    }
+
+    if (!formData.dateFin) {
+      newErrors.dateFin = 'La date de fin est obligatoire';
+    }
+
+    if (formData.dateDebut && formData.dateFin && new Date(formData.dateFin) < new Date(formData.dateDebut)) {
+      newErrors.dateFin = 'La date de fin doit être postérieure à la date de début';
+    }
+
+    if (!formData.typePeriode) {
+      newErrors.typePeriode = 'Le type de période est obligatoire';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    
+    if (validateForm()) {
+      try {
+        setLoading(true);
+        const payload = {
+          agenceId: parseInt(formData.agenceId, 10),
+          categorieId: formData.categorieId ? parseInt(formData.categorieId, 10) : null,
+          dateDebut: formData.dateDebut,
+          dateFin: formData.dateFin,
+          typePeriode: formData.typePeriode,
+          obj_Encaissement: formData.obj_Encaissement ? parseFloat(formData.obj_Encaissement) : null,
+          obj_Coupures: formData.obj_Coupures ? parseInt(formData.obj_Coupures, 10) : null,
+          obj_Retablissements: formData.obj_Retablissements ? parseInt(formData.obj_Retablissements, 10) : null,
+          obj_Branchements: formData.obj_Branchements ? parseInt(formData.obj_Branchements, 10) : null,
+          obj_Dossiers_Juridiques: formData.obj_Dossiers_Juridiques ? parseInt(formData.obj_Dossiers_Juridiques, 10) : null,
+          obj_MisesEnDemeure: formData.obj_MisesEnDemeure ? parseInt(formData.obj_MisesEnDemeure, 10) : null,
+          obj_Relances: formData.obj_Relances ? parseInt(formData.obj_Relances, 10) : null,
+          obj_Controles: formData.obj_Controles ? parseInt(formData.obj_Controles, 10) : null,
+          obj_Compteurs_Remplaces: formData.obj_Compteurs_Remplaces ? parseInt(formData.obj_Compteurs_Remplaces, 10) : null,
+          commentaire: formData.commentaire || null
+        };
 
-    if (!formData.agenceId || !formData.annee || !formData.mois) {
-      setError('Agence, Année et Mois sont requis');
-      return;
-    }
+        if (initialValues) {
+          payload.objectifId = initialValues.ObjectifId;
+        }
 
-    try {
-      setLoading(true);
-      await onSubmit({
-        agenceId: parseInt(formData.agenceId, 10),
-        annee: parseInt(formData.annee, 10),
-        mois: parseInt(formData.mois, 10),
-        objectif_Coupures: formData.objectif_Coupures ? parseInt(formData.objectif_Coupures, 10) : null,
-        objectif_Dossiers_Juridiques: formData.objectif_Dossiers_Juridiques ? parseInt(formData.objectif_Dossiers_Juridiques, 10) : null,
-        objectif_MisesEnDemeure_Envoyees: formData.objectif_MisesEnDemeure_Envoyees ? parseInt(formData.objectif_MisesEnDemeure_Envoyees, 10) : null,
-        objectif_Relances_Envoyees: formData.objectif_Relances_Envoyees ? parseInt(formData.objectif_Relances_Envoyees, 10) : null
-      });
-      onClose();
-    } catch (err) {
-      const msg = err?.response?.data?.message || 'Erreur lors de l\'enregistrement';
-      setError(msg);
-    } finally {
-      setLoading(false);
+        await onSubmit(payload);
+        onClose();
+      } catch (err) {
+        const msg = err?.response?.data?.message || 'Erreur lors de l\'enregistrement';
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
     }
+  };
+
+  const handleCancel = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClose();
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-xl bg-white rounded-xl shadow-xl border">
-        <div className="flex items-center justify-between p-3 border-b">
-          <h3 className="text-base font-semibold">
-            {initialValues ? 'Modifier les objectifs' : 'Ajouter des objectifs'}
-          </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 p-1.5 rounded hover:bg-gray-100">
-            <X className="h-4 w-4" />
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
+      <div className="bg-white dark:bg-water-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-3 border-b border-water-200 dark:border-water-700">
+          <div className="flex items-center space-x-3">
+            <div className="p-1.5 bg-water-600 rounded-lg">
+              <Target className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-water-900 dark:text-white">
+              {initialValues ? 'Modifier l\'Objectif' : 'Nouvel Objectif'}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-water-500 hover:text-water-700 dark:text-water-400 dark:hover:text-water-200 hover:bg-water-100 dark:hover:bg-water-700 rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
 
+        {/* Error Message */}
         {error && (
           <div className="m-4 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm">
             {error}
           </div>
         )}
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="p-3 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Agence et Catégorie */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1">Agence</label>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <Building2 className="inline h-4 w-4 mr-2" />
+                Agence *
+              </label>
               <select
-                className="w-full border rounded px-3 py-2"
+                name="agenceId"
                 value={formData.agenceId}
-                onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+                  errors.agenceId
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
+                }`}
                 required
-                disabled={!!initialValues}
               >
-                <option value="">Sélectionner une agence</option>
+                <option value="">Sélectionnez une agence</option>
                 {agences.map((a) => (
                   <option key={a.AgenceId} value={a.AgenceId}>{a.Nom_Agence}</option>
                 ))}
               </select>
+              {errors.agenceId && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.agenceId}</p>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">Mois</label>
-                <select
-                  className="w-full border rounded px-3 py-2"
-                  value={formData.mois}
-                  onChange={(e) => setFormData({ ...formData, mois: parseInt(e.target.value, 10) })}
-                  required
-                >
-                  {getAvailableMonths(formData.annee).map((m) => (
-                    <option key={m} value={m}>{getMonthName(m)}</option>
-                  ))}
-                </select>
-                {getAvailableMonths(formData.annee).length === 0 && (
-                  <p className="text-xs text-red-600 mt-1">
-                    Aucun mois disponible pour cette année selon les règles temporelles
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Année</label>
-                <select
-                  className="w-full border rounded px-3 py-2"
-                  value={formData.annee}
-                  onChange={(e) => {
-                    const newYear = parseInt(e.target.value, 10);
-                    const availableMonths = getAvailableMonths(newYear);
-                    const newMonth = availableMonths.length > 0 ? availableMonths[0] : formData.mois;
-                    setFormData({ ...formData, annee: newYear, mois: newMonth });
-                  }}
-                  required
-                >
-                  {getAvailableYears().map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <FileText className="inline h-4 w-4 mr-2" />
+                Catégorie
+              </label>
+              <select
+                name="categorieId"
+                value={formData.categorieId}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+              >
+                <option value="">Toutes catégories</option>
+                {categories.map((c) => (
+                  <option key={c.CategorieId} value={c.CategorieId}>{c.Libelle}</option>
+                ))}
+              </select>
             </div>
           </div>
 
+          {/* Période */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <Calendar className="inline h-4 w-4 mr-2" />
+                Date de début *
+              </label>
+              <input
+                type="date"
+                name="dateDebut"
+                value={formData.dateDebut}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+                  errors.dateDebut
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
+                }`}
+                required
+              />
+              {errors.dateDebut && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dateDebut}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <Calendar className="inline h-4 w-4 mr-2" />
+                Date de fin *
+              </label>
+              <input
+                type="date"
+                name="dateFin"
+                value={formData.dateFin}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+                  errors.dateFin
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
+                }`}
+                required
+              />
+              {errors.dateFin && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dateFin}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <Hash className="inline h-4 w-4 mr-2" />
+                Type de période *
+              </label>
+              <select
+                name="typePeriode"
+                value={formData.typePeriode}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+                  errors.typePeriode
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
+                }`}
+                required
+              >
+                <option value="Mensuel">Mensuel</option>
+                <option value="Trimestriel">Trimestriel</option>
+                <option value="Annuel">Annuel</option>
+                <option value="Personnalise">Personnalisé</option>
+              </select>
+              {errors.typePeriode && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.typePeriode}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Objectifs financiers */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1">Coupures</label>
-              <input type="number" className="w-full border rounded px-3 py-2" value={formData.objectif_Coupures}
-                     onChange={(e) => setFormData({ ...formData, objectif_Coupures: e.target.value })} />
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <DollarSign className="inline h-4 w-4 mr-2" />
+                Encaissement (DZD)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                name="obj_Encaissement"
+                value={formData.obj_Encaissement}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+                placeholder="Montant d'encaissement"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Dossiers Juridiques</label>
-              <input type="number" className="w-full border rounded px-3 py-2" value={formData.objectif_Dossiers_Juridiques}
-                     onChange={(e) => setFormData({ ...formData, objectif_Dossiers_Juridiques: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Mises en Demeure</label>
-              <input type="number" className="w-full border rounded px-3 py-2" value={formData.objectif_MisesEnDemeure_Envoyees}
-                     onChange={(e) => setFormData({ ...formData, objectif_MisesEnDemeure_Envoyees: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Relances</label>
-              <input type="number" className="w-full border rounded px-3 py-2" value={formData.objectif_Relances_Envoyees}
-                     onChange={(e) => setFormData({ ...formData, objectif_Relances_Envoyees: e.target.value })} />
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <Zap className="inline h-4 w-4 mr-2" />
+                Coupures
+              </label>
+              <input
+                type="number"
+                name="obj_Coupures"
+                value={formData.obj_Coupures}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+                placeholder="Nombre de coupures"
+              />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-3 py-2 rounded bg-gray-200">Annuler</button>
-            <button type="submit" disabled={loading} className="px-4 py-2 rounded bg-blue-600 text-white">
-              {loading ? 'Enregistrement...' : (initialValues ? 'Mettre à jour' : 'Enregistrer')}
+          {/* Objectifs opérationnels */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <RotateCcw className="inline h-4 w-4 mr-2" />
+                Rétablissements
+              </label>
+              <input
+                type="number"
+                name="obj_Retablissements"
+                value={formData.obj_Retablissements}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+                placeholder="Nombre de rétablissements"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <Wrench className="inline h-4 w-4 mr-2" />
+                Branchements
+              </label>
+              <input
+                type="number"
+                name="obj_Branchements"
+                value={formData.obj_Branchements}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+                placeholder="Nombre de branchements"
+              />
+            </div>
+          </div>
+
+          {/* Objectifs juridiques et administratifs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <FileText className="inline h-4 w-4 mr-2" />
+                Dossiers Juridiques
+              </label>
+              <input
+                type="number"
+                name="obj_Dossiers_Juridiques"
+                value={formData.obj_Dossiers_Juridiques}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+                placeholder="Nombre de dossiers"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <AlertTriangle className="inline h-4 w-4 mr-2" />
+                Mises en Demeure
+              </label>
+              <input
+                type="number"
+                name="obj_MisesEnDemeure"
+                value={formData.obj_MisesEnDemeure}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+                placeholder="Nombre de mises en demeure"
+              />
+            </div>
+          </div>
+
+          {/* Objectifs de suivi */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <CheckCircle className="inline h-4 w-4 mr-2" />
+                Relances
+              </label>
+              <input
+                type="number"
+                name="obj_Relances"
+                value={formData.obj_Relances}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+                placeholder="Nombre de relances"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+                <CheckCircle className="inline h-4 w-4 mr-2" />
+                Contrôles
+              </label>
+              <input
+                type="number"
+                name="obj_Controles"
+                value={formData.obj_Controles}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+                placeholder="Nombre de contrôles"
+              />
+            </div>
+          </div>
+
+          {/* Compteurs */}
+          <div>
+            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+              <Wrench className="inline h-4 w-4 mr-2" />
+              Compteurs Remplacés
+            </label>
+            <input
+              type="number"
+              name="obj_Compteurs_Remplaces"
+              value={formData.obj_Compteurs_Remplaces}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+              placeholder="Nombre de compteurs remplacés"
+            />
+          </div>
+
+          {/* Commentaire */}
+          <div>
+            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+              <FileText className="inline h-4 w-4 mr-2" />
+              Commentaire
+            </label>
+            <textarea
+              name="commentaire"
+              value={formData.commentaire}
+              onChange={handleChange}
+              rows={2}
+              className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 resize-none border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+              placeholder="Commentaires sur cet objectif..."
+              maxLength={500}
+            />
+            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
+              {formData.commentaire.length}/500 caractères
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-water-200 dark:border-water-700">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 text-water-600 dark:text-water-400 hover:bg-water-100 dark:hover:bg-water-700 rounded-xl transition-colors font-semibold"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-water-600 hover:bg-water-700 text-white rounded-xl transition-colors font-semibold shadow-lg hover:shadow-xl disabled:opacity-50"
+            >
+              {loading ? 'Enregistrement...' : (initialValues ? 'Modifier' : 'Créer')}
             </button>
           </div>
         </form>

@@ -7,6 +7,7 @@ import ObjectivesModal from '../components/ObjectivesModal';
 function Objectives() {
   const [objectives, setObjectives] = useState([]);
   const [agences, setAgences] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,14 +52,16 @@ function Objectives() {
       setLoading(true);
       setError(null);
       
-      // Charger les agences et les objectifs en parallèle
-      const [objectivesData, agencesData] = await Promise.all([
+      // Charger les agences, catégories et les objectifs en parallèle
+      const [objectivesData, agencesData, categoriesData] = await Promise.all([
         objectivesService.list(filters),
-        objectivesService.getAgences()
+        objectivesService.getAgences(),
+        objectivesService.getCategories()
       ]);
       
       setObjectives(objectivesData);
       setAgences(agencesData);
+      setCategories(categoriesData);
     } catch (e) {
       console.error('Erreur:', e);
       setError('Erreur lors du chargement des données');
@@ -71,17 +74,28 @@ function Objectives() {
   const openEdit = (row) => { setEditing(row); setModalOpen(true); };
 
   const handleSubmitModal = async (payload) => {
-    // Règle: doublon côté client avant POST
-    if (!editing) {
-      const dup = objectives.some(o => o.AgenceId === payload.agenceId && o.Mois === payload.mois && o.Annee === payload.annee);
-      if (dup) {
-        throw { response: { data: { message: 'Un objectif existe déjà pour cette agence et cette période.' } } };
+    try {
+      if (!editing) {
+        await objectivesService.save(payload);
+      } else {
+        await objectivesService.update(payload);
       }
-      await objectivesService.save(payload);
-    } else {
-      await objectivesService.update(payload);
+      await loadData();
+    } catch (error) {
+      throw error;
     }
-    await loadData();
+  };
+
+  const handleDelete = async (objective) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer cet objectif pour ${objective.Nom_Agence} ?`)) {
+      try {
+        await objectivesService.remove({ objectifId: objective.ObjectifId });
+        await loadData();
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        alert('Erreur lors de la suppression de l\'objectif');
+      }
+    }
   };
 
   // Chargement initial
@@ -208,11 +222,18 @@ function Objectives() {
               <thead className="bg-gray-50 text-gray-700">
                 <tr>
                   <th className="px-4 py-2 text-left">Agence</th>
-                  <th className="px-4 py-2 text-left">Mois/Année</th>
+                  <th className="px-4 py-2 text-left">Catégorie</th>
+                  <th className="px-4 py-2 text-left">Période</th>
+                  <th className="px-4 py-2 text-left">Type</th>
+                  <th className="px-4 py-2 text-left">Encaissement</th>
                   <th className="px-4 py-2 text-left">Coupures</th>
+                  <th className="px-4 py-2 text-left">Rétablissements</th>
+                  <th className="px-4 py-2 text-left">Branchements</th>
                   <th className="px-4 py-2 text-left">Dossiers Juridiques</th>
                   <th className="px-4 py-2 text-left">Mises en Demeure</th>
                   <th className="px-4 py-2 text-left">Relances</th>
+                  <th className="px-4 py-2 text-left">Contrôles</th>
+                  <th className="px-4 py-2 text-left">Compteurs</th>
                   <th className="px-4 py-2 text-center">Actions</th>
                 </tr>
               </thead>
@@ -220,13 +241,22 @@ function Objectives() {
                 {objectives.map((o) => {
                   const isTooOld = isObjectiveTooOld(o.Annee, o.Mois);
                   return (
-                    <tr key={`${o.AgenceId}-${o.DateKey}`} className="border-t">
+                    <tr key={`${o.ObjectifId}`} className="border-t">
                       <td className="px-4 py-2">{o.Nom_Agence}</td>
-                      <td className="px-4 py-2">{getMonthName(o.Mois)} {o.Annee}</td>
-                      <td className="px-4 py-2">{o.Obj_Coupures ?? 0}</td>
-                      <td className="px-4 py-2">{o.Obj_Dossiers_Juridiques ?? 0}</td>
-                      <td className="px-4 py-2">{o.Obj_MisesEnDemeure_Envoyees ?? 0}</td>
-                      <td className="px-4 py-2">{o.Obj_Relances_Envoyees ?? 0}</td>
+                      <td className="px-4 py-2">{o.CategorieLibelle || 'Toutes catégories'}</td>
+                      <td className="px-4 py-2">
+                        {new Date(o.DateDebut).toLocaleDateString('fr-FR')} - {new Date(o.DateFin).toLocaleDateString('fr-FR')}
+                      </td>
+                      <td className="px-4 py-2">{o.TypePeriode}</td>
+                      <td className="px-4 py-2">{o.Obj_Encaissement ? new Intl.NumberFormat('fr-DZ', { style: 'currency', currency: 'DZD' }).format(o.Obj_Encaissement) : '-'}</td>
+                      <td className="px-4 py-2">{o.Obj_Coupures ?? '-'}</td>
+                      <td className="px-4 py-2">{o.Obj_Retablissements ?? '-'}</td>
+                      <td className="px-4 py-2">{o.Obj_Branchements ?? '-'}</td>
+                      <td className="px-4 py-2">{o.Obj_Dossiers_Juridiques ?? '-'}</td>
+                      <td className="px-4 py-2">{o.Obj_MisesEnDemeure ?? '-'}</td>
+                      <td className="px-4 py-2">{o.Obj_Relances ?? '-'}</td>
+                      <td className="px-4 py-2">{o.Obj_Controles ?? '-'}</td>
+                      <td className="px-4 py-2">{o.Obj_Compteurs_Remplaces ?? '-'}</td>
                       <td className="px-4 py-2 text-center space-x-2">
                         {isTooOld ? (
                           <button title="Verrouillé" disabled className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
@@ -237,7 +267,9 @@ function Objectives() {
                             <Pencil className="h-3.5 w-3.5 text-blue-600" />
                           </button>
                         )}
-                        {/* Optionnel: ajouter un bouton supprimer ici si nécessaire */}
+                        <button onClick={() => handleDelete(o)} title="Supprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50">
+                          <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -292,6 +324,7 @@ function Objectives() {
       onSubmit={handleSubmitModal}
       initialValues={editing}
       agences={agences}
+      categories={categories}
     />
     </>
   );

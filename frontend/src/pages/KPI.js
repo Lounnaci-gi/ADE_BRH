@@ -917,8 +917,8 @@ function KPI() {
                         <div className="text-sm text-orange-700 font-medium">Coupures</div>
                         <div className="text-lg font-bold text-orange-800">{summary.objectives.Obj_Coupures || 0}</div>
                       </div>
-                    </div>
                   </div>
+                </div>
                 )}
               </div>
             ) : (
@@ -926,9 +926,9 @@ function KPI() {
                 <Building2 className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                 <p>Aucune donnée enregistrée pour cette agence à cette date.</p>
               </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
       </div>
 
       {/* Notifications gérées via SweetAlert2 */}

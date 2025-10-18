@@ -68,34 +68,46 @@ router.get('/', async (req, res) => {
     // Récupérer les paramètres de filtrage
     const { annee, mois } = req.query;
     
-    let whereClause = `WHERE 1=1`;
+    let whereClause = `WHERE o.IsActive = 1`;
     
     // Ajouter le filtrage par année et mois si spécifiés
     if (annee && mois) {
-      whereClause += ` AND CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 1, 4) AS INT) = ${parseInt(annee)} AND CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 5, 2) AS INT) = ${parseInt(mois)}`;
+      whereClause += ` AND YEAR(o.DateDebut) = ${parseInt(annee)} AND MONTH(o.DateDebut) = ${parseInt(mois)}`;
     } else if (annee) {
-      whereClause += ` AND CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 1, 4) AS INT) = ${parseInt(annee)}`;
+      whereClause += ` AND YEAR(o.DateDebut) = ${parseInt(annee)}`;
     } else if (mois) {
-      whereClause += ` AND CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 5, 2) AS INT) = ${parseInt(mois)}`;
+      whereClause += ` AND MONTH(o.DateDebut) = ${parseInt(mois)}`;
     }
 
     const query = `
-      SELECT DISTINCT
-        f.AgenceId,
+      SELECT 
+        o.ObjectifId,
+        o.FK_Agence AS AgenceId,
         a.Nom_Agence,
-        CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 1, 4) AS INT) AS Annee,
-        CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 5, 2) AS INT) AS Mois,
-        f.DateKey,
-        f.Obj_Coupures,
-        f.Obj_Dossiers_Juridiques,
-        f.Obj_MisesEnDemeure_Envoyees,
-        f.Obj_Relances_Envoyees,
-        f.CreatedAt,
-        f.ModifiedAt
-      FROM dbo.FAIT_KPI_ADE f
-      INNER JOIN dbo.DIM_AGENCE a ON f.AgenceId = a.AgenceId
+        o.FK_Categorie AS CategorieId,
+        c.Libelle AS CategorieLibelle,
+        YEAR(o.DateDebut) AS Annee,
+        MONTH(o.DateDebut) AS Mois,
+        o.DateDebut,
+        o.DateFin,
+        o.TypePeriode,
+        o.Obj_Encaissement,
+        o.Obj_Coupures,
+        o.Obj_Retablissements,
+        o.Obj_Branchements,
+        o.Obj_Dossiers_Juridiques,
+        o.Obj_MisesEnDemeure,
+        o.Obj_Relances,
+        o.Obj_Controles,
+        o.Obj_Compteurs_Remplaces,
+        o.Commentaire,
+        o.CreatedAt,
+        o.ModifiedAt
+      FROM dbo.DIM_OBJECTIF o
+      INNER JOIN dbo.DIM_AGENCE a ON o.FK_Agence = a.AgenceId
+      LEFT JOIN dbo.DIM_CATEGORIE c ON o.FK_Categorie = c.CategorieId
       ${whereClause}
-      ORDER BY Annee DESC, Mois DESC, a.Nom_Agence
+      ORDER BY o.DateDebut DESC, a.Nom_Agence, c.Libelle
     `;
 
     const results = await db.query(query);
@@ -121,6 +133,24 @@ router.get('/agences', async (req, res) => {
   } catch (err) {
     console.error('Erreur GET /objectives/agences:', err);
     res.status(500).json({ message: 'Erreur lors de la récupération des agences', error: err.message });
+  }
+});
+
+// GET /api/objectives/categories - Liste des catégories pour le formulaire
+router.get('/categories', async (req, res) => {
+  const role = getRole(req);
+  
+  if (role !== 'Administrateur') {
+    return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent consulter les catégories.' });
+  }
+
+  try {
+    const query = 'SELECT CategorieId, CodeCategorie, Libelle FROM dbo.DIM_CATEGORIE ORDER BY CodeCategorie';
+    const results = await db.query(query);
+    res.json(results);
+  } catch (err) {
+    console.error('Erreur GET /objectives/categories:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération des catégories', error: err.message });
   }
 });
 
@@ -200,7 +230,7 @@ router.get('/debug', async (req, res) => {
   }
 });
 
-// POST /api/objectives - Créer ou mettre à jour un objectif
+// POST /api/objectives - Créer un objectif
 router.post('/', async (req, res) => {
   const role = getRole(req);
   const userId = getUserId(req);
@@ -211,28 +241,34 @@ router.post('/', async (req, res) => {
 
   const {
     agenceId,
-    annee,
-    mois,
-    objectif_Coupures,
-    objectif_Dossiers_Juridiques,
-    objectif_MisesEnDemeure_Envoyees,
-    objectif_Relances_Envoyees
+    categorieId,
+    dateDebut,
+    dateFin,
+    typePeriode,
+    obj_Encaissement,
+    obj_Coupures,
+    obj_Retablissements,
+    obj_Branchements,
+    obj_Dossiers_Juridiques,
+    obj_MisesEnDemeure,
+    obj_Relances,
+    obj_Controles,
+    obj_Compteurs_Remplaces,
+    commentaire
   } = req.body;
 
   // Validation
-  if (!agenceId || !annee || !mois) {
-    return res.status(400).json({ message: 'Agence, année et mois sont requis' });
+  if (!agenceId || !dateDebut || !dateFin || !typePeriode) {
+    return res.status(400).json({ message: 'Agence, dates de début/fin et type de période sont requis' });
   }
 
-  if (mois < 1 || mois > 12) {
-    return res.status(400).json({ message: 'Le mois doit être entre 1 et 12' });
-  }
-
-  if (annee < 2020 || annee > 2030) {
-    return res.status(400).json({ message: 'L\'année doit être entre 2020 et 2030' });
+  if (new Date(dateFin) < new Date(dateDebut)) {
+    return res.status(400).json({ message: 'La date de fin doit être postérieure à la date de début' });
   }
 
   // Validation des règles temporelles pour la création
+  const annee = new Date(dateDebut).getFullYear();
+  const mois = new Date(dateDebut).getMonth() + 1;
   const temporalValidation = validateTemporalRules(annee, mois);
   if (!temporalValidation.isValid) {
     return res.status(403).json({ 
@@ -242,112 +278,123 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Calculer DateKey (YYYYMM01)
-    const dateKey = parseInt(`${annee}${mois.toString().padStart(2, '0')}01`);
-    const nextMonth = mois === 12 ? 1 : mois + 1;
-    const nextYear = mois === 12 ? annee + 1 : annee;
-    const nextMonthDateKey = parseInt(`${nextYear}${nextMonth.toString().padStart(2, '0')}01`);
-
-    // Vérifier d'abord si la table existe
-    const checkTableQuery = `
-      SELECT COUNT(*) as count 
-      FROM INFORMATION_SCHEMA.TABLES 
-      WHERE TABLE_NAME = 'FAIT_KPI_ADE' AND TABLE_SCHEMA = 'dbo'
-    `;
-    
-    const tableCheck = await db.query(checkTableQuery);
-    
-    if (tableCheck[0].count === 0) {
-      return res.status(500).json({ 
-        message: 'Table FAIT_KPI_ADE non trouvée', 
-        error: 'La table des objectifs n\'existe pas dans la base de données' 
-      });
-    }
-    
-    // Règle de gestion: empêcher un doublon d'objectif pour la même agence et la même période (mois/année)
+    // Vérifier s'il existe déjà un objectif pour cette agence, catégorie et période
     const existsQuery = `
       SELECT COUNT(*) as count
-      FROM dbo.FAIT_KPI_ADE
-      WHERE AgenceId = @agenceId
-        AND DateKey >= @dateKey
-        AND DateKey < @nextMonthDateKey
+      FROM dbo.DIM_OBJECTIF
+      WHERE FK_Agence = @agenceId
+        AND (@categorieId IS NULL AND FK_Categorie IS NULL OR FK_Categorie = @categorieId)
+        AND IsActive = 1
+        AND (
+          (DateDebut <= @dateDebut AND DateFin >= @dateDebut) OR
+          (DateDebut <= @dateFin AND DateFin >= @dateFin) OR
+          (DateDebut >= @dateDebut AND DateFin <= @dateFin)
+        )
     `;
     const existsParams = [
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
-      { name: 'dateKey', type: TYPES.Int, value: dateKey },
-      { name: 'nextMonthDateKey', type: TYPES.Int, value: nextMonthDateKey }
+      { name: 'categorieId', type: TYPES.Int, value: categorieId || null },
+      { name: 'dateDebut', type: TYPES.Date, value: new Date(dateDebut) },
+      { name: 'dateFin', type: TYPES.Date, value: new Date(dateFin) }
     ];
     const existsRows = await db.query(existsQuery, existsParams);
     if (existsRows?.[0]?.count > 0) {
       return res.status(409).json({
-        message: 'Un objectif existe déjà pour cette agence à cette période (mois/année).'
+        message: 'Un objectif existe déjà pour cette agence, catégorie et période.'
       });
     }
     
-    // Si la table existe, procéder à l'insertion
+    // Insérer le nouvel objectif
     const insertQuery = `
-      INSERT INTO dbo.FAIT_KPI_ADE (
-        DateKey, AgenceId, CategorieId, 
-        Obj_Coupures, Obj_Dossiers_Juridiques, 
-        Obj_MisesEnDemeure_Envoyees, Obj_Relances_Envoyees,
-        CreatedAt
+      INSERT INTO dbo.DIM_OBJECTIF (
+        FK_Agence, FK_Categorie, DateDebut, DateFin, TypePeriode,
+        Obj_Encaissement, Obj_Coupures, Obj_Retablissements, Obj_Branchements,
+        Obj_Dossiers_Juridiques, Obj_MisesEnDemeure, Obj_Relances,
+        Obj_Controles, Obj_Compteurs_Remplaces, Commentaire,
+        IsActive, CreatedBy, CreatedAt
       )
       VALUES (
-        @dateKey, @agenceId, 1,
-        @objectif_Coupures, @objectif_Dossiers_Juridiques,
-        @objectif_MisesEnDemeure_Envoyees, @objectif_Relances_Envoyees,
-        SYSUTCDATETIME()
+        @agenceId, @categorieId, @dateDebut, @dateFin, @typePeriode,
+        @obj_Encaissement, @obj_Coupures, @obj_Retablissements, @obj_Branchements,
+        @obj_Dossiers_Juridiques, @obj_MisesEnDemeure, @obj_Relances,
+        @obj_Controles, @obj_Compteurs_Remplaces, @commentaire,
+        1, @createdBy, SYSUTCDATETIME()
       )
     `;
     
     const params = [
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
-      { name: 'dateKey', type: TYPES.Int, value: dateKey },
-      { name: 'objectif_Coupures', type: TYPES.Int, value: objectif_Coupures || null },
-      { name: 'objectif_Dossiers_Juridiques', type: TYPES.Int, value: objectif_Dossiers_Juridiques || null },
-      { name: 'objectif_MisesEnDemeure_Envoyees', type: TYPES.Int, value: objectif_MisesEnDemeure_Envoyees || null },
-      { name: 'objectif_Relances_Envoyees', type: TYPES.Int, value: objectif_Relances_Envoyees || null }
+      { name: 'categorieId', type: TYPES.Int, value: categorieId || null },
+      { name: 'dateDebut', type: TYPES.Date, value: new Date(dateDebut) },
+      { name: 'dateFin', type: TYPES.Date, value: new Date(dateFin) },
+      { name: 'typePeriode', type: TYPES.NVarChar, value: typePeriode },
+      { name: 'obj_Encaissement', type: TYPES.Money, value: obj_Encaissement || null },
+      { name: 'obj_Coupures', type: TYPES.Int, value: obj_Coupures || null },
+      { name: 'obj_Retablissements', type: TYPES.Int, value: obj_Retablissements || null },
+      { name: 'obj_Branchements', type: TYPES.Int, value: obj_Branchements || null },
+      { name: 'obj_Dossiers_Juridiques', type: TYPES.Int, value: obj_Dossiers_Juridiques || null },
+      { name: 'obj_MisesEnDemeure', type: TYPES.Int, value: obj_MisesEnDemeure || null },
+      { name: 'obj_Relances', type: TYPES.Int, value: obj_Relances || null },
+      { name: 'obj_Controles', type: TYPES.Int, value: obj_Controles || null },
+      { name: 'obj_Compteurs_Remplaces', type: TYPES.Int, value: obj_Compteurs_Remplaces || null },
+      { name: 'commentaire', type: TYPES.NVarChar, value: commentaire || null },
+      { name: 'createdBy', type: TYPES.Int, value: userId }
     ];
     
     const result = await db.query(insertQuery, params);
     res.json({ 
-      message: 'Objectifs sauvegardés avec succès',
+      message: 'Objectif créé avec succès',
       result: result
     });
   } catch (err) {
     console.error('Erreur POST /objectives:', err);
-    res.status(500).json({ message: 'Erreur lors de la sauvegarde', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la création', error: err.message });
   }
 });
 
-// PUT /api/objectives - Mettre à jour un objectif existant pour une agence et une période
+// PUT /api/objectives - Mettre à jour un objectif existant
 router.put('/', async (req, res) => {
   const role = getRole(req);
+  const userId = getUserId(req);
+  
   if (role !== 'Administrateur') {
     return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent modifier les objectifs.' });
   }
 
   const {
+    objectifId,
     agenceId,
-    annee,
-    mois,
-    objectif_Coupures,
-    objectif_Dossiers_Juridiques,
-    objectif_MisesEnDemeure_Envoyees,
-    objectif_Relances_Envoyees
+    categorieId,
+    dateDebut,
+    dateFin,
+    typePeriode,
+    obj_Encaissement,
+    obj_Coupures,
+    obj_Retablissements,
+    obj_Branchements,
+    obj_Dossiers_Juridiques,
+    obj_MisesEnDemeure,
+    obj_Relances,
+    obj_Controles,
+    obj_Compteurs_Remplaces,
+    commentaire
   } = req.body;
 
-  if (!agenceId || !annee || !mois) {
-    return res.status(400).json({ message: 'Agence, année et mois sont requis' });
+  if (!objectifId) {
+    return res.status(400).json({ message: 'ID de l\'objectif requis' });
   }
-  if (mois < 1 || mois > 12) {
-    return res.status(400).json({ message: 'Le mois doit être entre 1 et 12' });
+
+  if (!agenceId || !dateDebut || !dateFin || !typePeriode) {
+    return res.status(400).json({ message: 'Agence, dates de début/fin et type de période sont requis' });
   }
-  if (annee < 2020 || annee > 2030) {
-    return res.status(400).json({ message: 'L\'année doit être entre 2020 et 2030' });
+
+  if (new Date(dateFin) < new Date(dateDebut)) {
+    return res.status(400).json({ message: 'La date de fin doit être postérieure à la date de début' });
   }
 
   // Validation des règles temporelles pour la modification
+  const annee = new Date(dateDebut).getFullYear();
+  const mois = new Date(dateDebut).getMonth() + 1;
   const temporalValidation = validateTemporalRules(annee, mois);
   if (!temporalValidation.isValid) {
     return res.status(403).json({ 
@@ -357,112 +404,111 @@ router.put('/', async (req, res) => {
   }
 
   try {
-    const dateKey = parseInt(`${annee}${mois.toString().padStart(2, '0')}01`);
-    const nextMonth = mois === 12 ? 1 : mois + 1;
-    const nextYear = mois === 12 ? annee + 1 : annee;
-    const nextMonthDateKey = parseInt(`${nextYear}${nextMonth.toString().padStart(2, '0')}01`);
-
-    // Vérifier existence
+    // Vérifier que l'objectif existe
     const exists = await db.query(
-      `SELECT TOP 1 1 as ok FROM dbo.FAIT_KPI_ADE
-       WHERE AgenceId = @agenceId AND DateKey >= @dateKey AND DateKey < @nextMonthDateKey`,
-      [
-        { name: 'agenceId', type: TYPES.Int, value: agenceId },
-        { name: 'dateKey', type: TYPES.Int, value: dateKey },
-        { name: 'nextMonthDateKey', type: TYPES.Int, value: nextMonthDateKey }
-      ]
+      `SELECT TOP 1 1 as ok FROM dbo.DIM_OBJECTIF WHERE ObjectifId = @objectifId AND IsActive = 1`,
+      [{ name: 'objectifId', type: TYPES.Int, value: objectifId }]
     );
     if (exists.length === 0) {
-      return res.status(404).json({ message: 'Aucun objectif trouvé pour cette agence et cette période' });
+      return res.status(404).json({ message: 'Objectif non trouvé' });
     }
 
     const updateSql = `
-      UPDATE dbo.FAIT_KPI_ADE
+      UPDATE dbo.DIM_OBJECTIF
       SET 
-        Obj_Coupures = @objectif_Coupures,
-        Obj_Dossiers_Juridiques = @objectif_Dossiers_Juridiques,
-        Obj_MisesEnDemeure_Envoyees = @objectif_MisesEnDemeure_Envoyees,
-        Obj_Relances_Envoyees = @objectif_Relances_Envoyees,
+        FK_Agence = @agenceId,
+        FK_Categorie = @categorieId,
+        DateDebut = @dateDebut,
+        DateFin = @dateFin,
+        TypePeriode = @typePeriode,
+        Obj_Encaissement = @obj_Encaissement,
+        Obj_Coupures = @obj_Coupures,
+        Obj_Retablissements = @obj_Retablissements,
+        Obj_Branchements = @obj_Branchements,
+        Obj_Dossiers_Juridiques = @obj_Dossiers_Juridiques,
+        Obj_MisesEnDemeure = @obj_MisesEnDemeure,
+        Obj_Relances = @obj_Relances,
+        Obj_Controles = @obj_Controles,
+        Obj_Compteurs_Remplaces = @obj_Compteurs_Remplaces,
+        Commentaire = @commentaire,
+        ModifiedBy = @modifiedBy,
         ModifiedAt = SYSUTCDATETIME()
-      WHERE AgenceId = @agenceId AND DateKey >= @dateKey AND DateKey < @nextMonthDateKey`;
+      WHERE ObjectifId = @objectifId`;
 
     await db.query(updateSql, [
+      { name: 'objectifId', type: TYPES.Int, value: objectifId },
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
-      { name: 'dateKey', type: TYPES.Int, value: dateKey },
-      { name: 'nextMonthDateKey', type: TYPES.Int, value: nextMonthDateKey },
-      { name: 'objectif_Coupures', type: TYPES.Int, value: objectif_Coupures || null },
-      { name: 'objectif_Dossiers_Juridiques', type: TYPES.Int, value: objectif_Dossiers_Juridiques || null },
-      { name: 'objectif_MisesEnDemeure_Envoyees', type: TYPES.Int, value: objectif_MisesEnDemeure_Envoyees || null },
-      { name: 'objectif_Relances_Envoyees', type: TYPES.Int, value: objectif_Relances_Envoyees || null }
+      { name: 'categorieId', type: TYPES.Int, value: categorieId || null },
+      { name: 'dateDebut', type: TYPES.Date, value: new Date(dateDebut) },
+      { name: 'dateFin', type: TYPES.Date, value: new Date(dateFin) },
+      { name: 'typePeriode', type: TYPES.NVarChar, value: typePeriode },
+      { name: 'obj_Encaissement', type: TYPES.Money, value: obj_Encaissement || null },
+      { name: 'obj_Coupures', type: TYPES.Int, value: obj_Coupures || null },
+      { name: 'obj_Retablissements', type: TYPES.Int, value: obj_Retablissements || null },
+      { name: 'obj_Branchements', type: TYPES.Int, value: obj_Branchements || null },
+      { name: 'obj_Dossiers_Juridiques', type: TYPES.Int, value: obj_Dossiers_Juridiques || null },
+      { name: 'obj_MisesEnDemeure', type: TYPES.Int, value: obj_MisesEnDemeure || null },
+      { name: 'obj_Relances', type: TYPES.Int, value: obj_Relances || null },
+      { name: 'obj_Controles', type: TYPES.Int, value: obj_Controles || null },
+      { name: 'obj_Compteurs_Remplaces', type: TYPES.Int, value: obj_Compteurs_Remplaces || null },
+      { name: 'commentaire', type: TYPES.NVarChar, value: commentaire || null },
+      { name: 'modifiedBy', type: TYPES.Int, value: userId }
     ]);
 
-    return res.json({ message: 'Objectifs mis à jour avec succès' });
+    return res.json({ message: 'Objectif mis à jour avec succès' });
   } catch (err) {
     console.error('Erreur PUT /objectives:', err);
     return res.status(500).json({ message: 'Erreur lors de la mise à jour', error: err.message });
   }
 });
 
-// DELETE /api/objectives - Supprimer les objectifs d'une agence pour un mois
-router.delete('/', (req, res) => {
+// DELETE /api/objectives - Supprimer un objectif (soft delete)
+router.delete('/', async (req, res) => {
   const role = getRole(req);
+  const userId = getUserId(req);
   
   if (role !== 'Administrateur') {
     return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent supprimer les objectifs.' });
   }
 
-  const { agenceId, annee, mois } = req.body;
+  const { objectifId } = req.body;
   
-  if (!agenceId || !annee || !mois) {
-    return res.status(400).json({ message: 'Agence, année et mois sont requis' });
+  if (!objectifId) {
+    return res.status(400).json({ message: 'ID de l\'objectif requis' });
   }
 
-  const connection = new Connection(getConfig());
-
-  connection.on('connect', (err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+  try {
+    // Vérifier que l'objectif existe
+    const exists = await db.query(
+      `SELECT TOP 1 1 as ok FROM dbo.DIM_OBJECTIF WHERE ObjectifId = @objectifId AND IsActive = 1`,
+      [{ name: 'objectifId', type: TYPES.Int, value: objectifId }]
+    );
+    if (exists.length === 0) {
+      return res.status(404).json({ message: 'Objectif non trouvé' });
     }
 
-    // Calculer DateKey (YYYYMM01)
-    const dateKey = parseInt(`${annee}${mois.toString().padStart(2, '0')}01`);
-    const nextMonth = mois === 12 ? 1 : mois + 1;
-    const nextYear = mois === 12 ? annee + 1 : annee;
-    const nextMonthDateKey = parseInt(`${nextYear}${nextMonth.toString().padStart(2, '0')}01`);
-
-    const query = `
-      UPDATE dbo.FAIT_KPI_ADE 
+    // Soft delete - marquer comme inactif
+    const deleteQuery = `
+      UPDATE dbo.DIM_OBJECTIF 
       SET 
-        Obj_Coupures = NULL,
-        Obj_Dossiers_Juridiques = NULL,
-        Obj_MisesEnDemeure_Envoyees = NULL,
-        Obj_Relances_Envoyees = NULL,
+        IsActive = 0,
+        ModifiedBy = @modifiedBy,
         ModifiedAt = SYSUTCDATETIME()
-      WHERE AgenceId = @agenceId 
-        AND DateKey >= @dateKey 
-        AND DateKey < @nextMonthDateKey
+      WHERE ObjectifId = @objectifId
     `;
 
-    const request = new Request(query, (err, rowCount) => {
-      if (err) {
-        connection.close();
-        return res.status(500).json({ message: 'Erreur lors de la suppression', error: err.message });
-      }
-      connection.close();
-      
-      res.json({ 
-        message: 'Objectifs supprimés avec succès',
-        rowsAffected: rowCount
-      });
+    await db.query(deleteQuery, [
+      { name: 'objectifId', type: TYPES.Int, value: objectifId },
+      { name: 'modifiedBy', type: TYPES.Int, value: userId }
+    ]);
+    
+    res.json({ 
+      message: 'Objectif supprimé avec succès'
     });
-
-    request.addParameter('agenceId', TYPES.Int, agenceId);
-    request.addParameter('dateKey', TYPES.Int, dateKey);
-    request.addParameter('nextMonthDateKey', TYPES.Int, nextMonthDateKey);
-    connection.execSql(request);
-  });
-
-  connection.connect();
+  } catch (err) {
+    console.error('Erreur DELETE /objectives:', err);
+    res.status(500).json({ message: 'Erreur lors de la suppression', error: err.message });
+  }
 });
 
 module.exports = router;
