@@ -68,26 +68,23 @@ router.get('/', async (req, res) => {
     // Récupérer les paramètres de filtrage
     const { annee, mois } = req.query;
     
-    let whereClause = `WHERE (f.Obj_Coupures IS NOT NULL 
-         OR f.Obj_Dossiers_Juridiques IS NOT NULL 
-         OR f.Obj_MisesEnDemeure_Envoyees IS NOT NULL 
-         OR f.Obj_Relances_Envoyees IS NOT NULL)`;
+    let whereClause = `WHERE 1=1`;
     
     // Ajouter le filtrage par année et mois si spécifiés
     if (annee && mois) {
-      whereClause += ` AND d.[Year] = ${parseInt(annee)} AND d.[Month] = ${parseInt(mois)}`;
+      whereClause += ` AND CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 1, 4) AS INT) = ${parseInt(annee)} AND CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 5, 2) AS INT) = ${parseInt(mois)}`;
     } else if (annee) {
-      whereClause += ` AND d.[Year] = ${parseInt(annee)}`;
+      whereClause += ` AND CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 1, 4) AS INT) = ${parseInt(annee)}`;
     } else if (mois) {
-      whereClause += ` AND d.[Month] = ${parseInt(mois)}`;
+      whereClause += ` AND CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 5, 2) AS INT) = ${parseInt(mois)}`;
     }
 
     const query = `
       SELECT DISTINCT
         f.AgenceId,
         a.Nom_Agence,
-        d.[Year] AS Annee,
-        d.[Month] AS Mois,
+        CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 1, 4) AS INT) AS Annee,
+        CAST(SUBSTRING(CAST(f.DateKey AS VARCHAR), 5, 2) AS INT) AS Mois,
         f.DateKey,
         f.Obj_Coupures,
         f.Obj_Dossiers_Juridiques,
@@ -97,9 +94,8 @@ router.get('/', async (req, res) => {
         f.ModifiedAt
       FROM dbo.FAIT_KPI_ADE f
       INNER JOIN dbo.DIM_AGENCE a ON f.AgenceId = a.AgenceId
-      INNER JOIN dbo.DIM_DATE d ON f.DateKey = d.DateKey
       ${whereClause}
-      ORDER BY d.[Year] DESC, d.[Month] DESC, a.Nom_Agence
+      ORDER BY Annee DESC, Mois DESC, a.Nom_Agence
     `;
 
     const results = await db.query(query);

@@ -24,6 +24,16 @@ const kpiService = {
   async getExistingData(dateKey, agenceId) {
     const res = await api.get(`/kpi/existing?dateKey=${dateKey}&agenceId=${agenceId}`);
     return res.data || [];
+  },
+
+  async getObjectives(agenceId, year, month) {
+    const res = await api.get(`/kpi/objectives?agenceId=${agenceId}&year=${year}&month=${month}`);
+    return res.data;
+  },
+
+  async getSummary(agenceId, dateKey) {
+    const res = await api.get(`/kpi/summary?agenceId=${agenceId}&dateKey=${dateKey}`);
+    return res.data;
   }
 };
 

@@ -234,6 +234,142 @@ router.get('/agences', (req, res) => {
   connection.connect();
 });
 
+// GET /api/kpi/objectives - récupérer les objectifs pour une agence et période
+router.get('/objectives', async (req, res) => {
+  try {
+    const { agenceId, year, month } = req.query;
+    
+    if (!agenceId || !year || !month) {
+      return res.status(400).json({ message: 'AgenceId, year et month sont requis' });
+    }
+
+    const dateKey = parseInt(`${year}${month.toString().padStart(2, '0')}01`);
+    const nextMonth = month === 12 ? 1 : parseInt(month) + 1;
+    const nextYear = month === 12 ? parseInt(year) + 1 : parseInt(year);
+    const nextMonthDateKey = parseInt(`${nextYear}${nextMonth.toString().padStart(2, '0')}01`);
+
+    const query = `
+      SELECT 
+        o.AgenceId,
+        o.Obj_Relances_Envoyees,
+        o.Obj_MisesEnDemeure_Envoyees,
+        o.Obj_Dossiers_Juridiques,
+        o.Obj_Coupures,
+        a.Nom_Agence
+      FROM dbo.FAIT_KPI_ADE o
+      LEFT JOIN dbo.DIM_AGENCE a ON o.AgenceId = a.AgenceId
+      WHERE o.AgenceId = @agenceId 
+        AND o.DateKey >= @dateKey 
+        AND o.DateKey < @nextMonthDateKey
+        AND (o.Obj_Relances_Envoyees IS NOT NULL 
+             OR o.Obj_MisesEnDemeure_Envoyees IS NOT NULL 
+             OR o.Obj_Dossiers_Juridiques IS NOT NULL 
+             OR o.Obj_Coupures IS NOT NULL)
+    `;
+
+    const params = [
+      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
+      { name: 'dateKey', type: TYPES.Int, value: dateKey },
+      { name: 'nextMonthDateKey', type: TYPES.Int, value: nextMonthDateKey }
+    ];
+
+    const results = await db.query(query, params);
+    res.json(results[0] || null);
+  } catch (err) {
+    console.error('Erreur GET /kpi/objectives:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération des objectifs' });
+  }
+});
+
+// GET /api/kpi/summary - récupérer le résumé des données d'une agence pour une date
+router.get('/summary', async (req, res) => {
+  try {
+    const { agenceId, dateKey } = req.query;
+    
+    if (!agenceId || !dateKey) {
+      return res.status(400).json({ message: 'AgenceId et dateKey sont requis' });
+    }
+
+    // Récupérer les données du jour
+    const dailyQuery = `
+      SELECT 
+        SUM(k.Nb_RelancesEnvoyees) as Total_RelancesEnvoyees,
+        SUM(k.Mt_RelancesEnvoyees) as Total_Mt_RelancesEnvoyees,
+        SUM(k.Nb_RelancesReglees) as Total_RelancesReglees,
+        SUM(k.Mt_RelancesReglees) as Total_Mt_RelancesReglees,
+        SUM(k.Nb_MisesEnDemeure_Envoyees) as Total_MisesEnDemeureEnvoyees,
+        SUM(k.Mt_MisesEnDemeure_Envoyees) as Total_Mt_MisesEnDemeureEnvoyees,
+        SUM(k.Nb_MisesEnDemeure_Reglees) as Total_MisesEnDemeureReglees,
+        SUM(k.Mt_MisesEnDemeure_Reglees) as Total_Mt_MisesEnDemeureReglees,
+        SUM(k.Nb_Dossiers_Juridiques) as Total_DossiersJuridiques,
+        SUM(k.Mt_Dossiers_Juridiques) as Total_Mt_DossiersJuridiques,
+        SUM(k.Nb_Coupures) as Total_Coupures,
+        SUM(k.Mt_Coupures) as Total_Mt_Coupures,
+        SUM(k.Nb_Retablissements) as Total_Retablissements,
+        SUM(k.Mt_Retablissements) as Total_Mt_Retablissements,
+        SUM(k.Nb_Branchements) as Total_Branchements,
+        SUM(k.Mt_Branchements) as Total_Mt_Branchements,
+        SUM(k.Nb_Compteurs_Remplaces) as Total_CompteursRemplaces,
+        SUM(k.Mt_Compteurs_Remplaces) as Total_Mt_CompteursRemplaces,
+        SUM(k.Encaissement_Journalier_Global) as Total_EncaissementGlobal,
+        a.Nom_Agence
+      FROM dbo.FAIT_KPI_ADE k
+      LEFT JOIN dbo.DIM_AGENCE a ON k.AgenceId = a.AgenceId
+      WHERE k.AgenceId = @agenceId AND k.DateKey = @dateKey
+      GROUP BY a.Nom_Agence
+    `;
+
+    // Récupérer les objectifs du mois
+    const date = new Date(parseInt(dateKey.toString().substring(0,4)), parseInt(dateKey.toString().substring(4,6)) - 1, 1);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const monthDateKey = parseInt(`${year}${month.toString().padStart(2, '0')}01`);
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    const nextMonthDateKey = parseInt(`${nextYear}${nextMonth.toString().padStart(2, '0')}01`);
+
+    const objectivesQuery = `
+      SELECT 
+        o.Obj_Relances_Envoyees,
+        o.Obj_MisesEnDemeure_Envoyees,
+        o.Obj_Dossiers_Juridiques,
+        o.Obj_Coupures
+      FROM dbo.FAIT_KPI_ADE o
+      WHERE o.AgenceId = @agenceId 
+        AND o.DateKey >= @monthDateKey 
+        AND o.DateKey < @nextMonthDateKey
+        AND (o.Obj_Relances_Envoyees IS NOT NULL 
+             OR o.Obj_MisesEnDemeure_Envoyees IS NOT NULL 
+             OR o.Obj_Dossiers_Juridiques IS NOT NULL 
+             OR o.Obj_Coupures IS NOT NULL)
+    `;
+
+    const dailyParams = [
+      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
+      { name: 'dateKey', type: TYPES.Int, value: parseInt(dateKey, 10) }
+    ];
+
+    const objectivesParams = [
+      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
+      { name: 'monthDateKey', type: TYPES.Int, value: monthDateKey },
+      { name: 'nextMonthDateKey', type: TYPES.Int, value: nextMonthDateKey }
+    ];
+
+    const [dailyResults, objectivesResults] = await Promise.all([
+      db.query(dailyQuery, dailyParams),
+      db.query(objectivesQuery, objectivesParams)
+    ]);
+
+    res.json({
+      daily: dailyResults[0] || null,
+      objectives: objectivesResults[0] || null
+    });
+  } catch (err) {
+    console.error('Erreur GET /kpi/summary:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du résumé' });
+  }
+});
+
 // GET /api/kpi/categories - liste des catégories pour le formulaire
 router.get('/categories', (req, res) => {
   const connection = new Connection(getConfig());

@@ -68,10 +68,10 @@ router.get('/', async (req, res) => {
     } catch (err) {
         console.error('Erreur GET /agences:', err);
         res.status(500).json({ 
-            message: 'Erreur lors du chargement des agences', 
-            error: err.message 
-        });
-    }
+                    message: 'Erreur lors du chargement des agences', 
+                    error: err.message 
+                });
+            }
 });
 
 // ✅ Ajouter une nouvelle agence

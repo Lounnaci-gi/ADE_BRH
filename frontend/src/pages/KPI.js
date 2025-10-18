@@ -5,12 +5,14 @@ import authService from '../services/authService';
 import { swalSuccess, swalError } from '../utils/swal';
 
 function KPI() {
-      const [kpis, setKpis] = useState([]);
-      const [agences, setAgences] = useState([]);
-      const [categories, setCategories] = useState([]);
-      const [sortedCategories, setSortedCategories] = useState([]);
-      const [entriesByCategory, setEntriesByCategory] = useState({});
-      const [loading, setLoading] = useState(false);
+  const [kpis, setKpis] = useState([]);
+  const [agences, setAgences] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [sortedCategories, setSortedCategories] = useState([]);
+  const [entriesByCategory, setEntriesByCategory] = useState({});
+  const [objectives, setObjectives] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(false);
   // Toast remplacé par SweetAlert2
   const [formData, setFormData] = useState({
     dateKey: '',
@@ -155,10 +157,47 @@ function KPI() {
     loadData();
   }, []);
 
+  // Fonction pour charger les objectifs
+  const loadObjectives = async (agenceId, date) => {
+    if (!agenceId || !date) return;
+    
+    try {
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const objectivesData = await kpiService.getObjectives(agenceId, year, month);
+      setObjectives(objectivesData);
+    } catch (error) {
+      console.error('Erreur lors du chargement des objectifs:', error);
+      setObjectives(null);
+    }
+  };
+
+  // Fonction pour charger le résumé des données
+  const loadSummary = async (agenceId, dateKey) => {
+    if (!agenceId || !dateKey) return;
+    
+    try {
+      const date = new Date(dateKey);
+      const dateKeyInt = parseInt(
+        date.getFullYear().toString() + 
+        (date.getMonth() + 1).toString().padStart(2, '0') + 
+        date.getDate().toString().padStart(2, '0')
+      );
+      
+      const summaryData = await kpiService.getSummary(agenceId, dateKeyInt);
+      setSummary(summaryData);
+    } catch (error) {
+      console.error('Erreur lors du chargement du résumé:', error);
+      setSummary(null);
+    }
+  };
+
   // Charger les données existantes quand la date ou l'agence change
   useEffect(() => {
     if (formData.dateKey && formData.agenceId && categories.length > 0) {
       loadExistingData(formData.dateKey, formData.agenceId);
+      loadObjectives(formData.agenceId, new Date(formData.dateKey));
+      loadSummary(formData.agenceId, formData.dateKey);
     }
   }, [formData.dateKey, formData.agenceId, categories]);
 
@@ -283,6 +322,22 @@ function KPI() {
     return `${day}/${month}/${year}`;
   };
 
+  // Fonction pour calculer le taux de réalisation
+  const calculateCompletionRate = (actual, objective) => {
+    if (!objective || objective === 0) return null;
+    const rate = (actual / objective) * 100;
+    return Math.round(rate * 100) / 100; // Arrondir à 2 décimales
+  };
+
+  // Fonction pour obtenir la couleur du taux de réalisation
+  const getCompletionRateColor = (rate) => {
+    if (rate === null) return 'text-gray-500';
+    if (rate >= 100) return 'text-green-600';
+    if (rate >= 80) return 'text-yellow-600';
+    if (rate >= 60) return 'text-orange-600';
+    return 'text-red-600';
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -290,10 +345,46 @@ function KPI() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {/* Bandeau (placeholder objectifs - à alimenter avec la BDD si dispo) */}
-        <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-4 shadow-sm">
-          <div className="text-sm text-sky-700">Objectifs mensuels</div>
-          <div className="text-xs text-sky-600">Affichage des objectifs et progression (à connecter aux données)</div>
+        {/* Objectifs mensuels */}
+        <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-sky-800">Objectifs mensuels</h3>
+            {objectives && (
+              <span className="text-sm text-sky-600 bg-sky-100 px-3 py-1 rounded-full">
+                {new Date(formData.dateKey).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+              </span>
+            )}
+          </div>
+          
+          {objectives ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg p-4 border border-blue-200">
+                <div className="text-sm text-blue-600 font-medium mb-1">Relances</div>
+                <div className="text-2xl font-bold text-blue-800">{objectives.Obj_Relances_Envoyees || 0}</div>
+                <div className="text-xs text-gray-500">Objectif mensuel</div>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-green-200">
+                <div className="text-sm text-green-600 font-medium mb-1">Mises en demeure</div>
+                <div className="text-2xl font-bold text-green-800">{objectives.Obj_MisesEnDemeure_Envoyees || 0}</div>
+                <div className="text-xs text-gray-500">Objectif mensuel</div>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-purple-200">
+                <div className="text-sm text-purple-600 font-medium mb-1">Dossiers juridiques</div>
+                <div className="text-2xl font-bold text-purple-800">{objectives.Obj_Dossiers_Juridiques || 0}</div>
+                <div className="text-xs text-gray-500">Objectif mensuel</div>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-orange-200">
+                <div className="text-sm text-orange-600 font-medium mb-1">Coupures</div>
+                <div className="text-2xl font-bold text-orange-800">{objectives.Obj_Coupures || 0}</div>
+                <div className="text-xs text-gray-500">Objectif mensuel</div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-sky-600">
+              <div className="text-sm">Aucun objectif défini pour cette période</div>
+              <div className="text-xs text-gray-500 mt-1">Les objectifs sont définis dans la section Objectifs</div>
+            </div>
+          )}
         </div>
 
         {/* Formulaire élargi avec style élégant */}
@@ -540,15 +631,13 @@ function KPI() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-8">
+            <div className="flex justify-end pt-6">
               <button
                 type="submit"
-                className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-8 py-3 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 inline-flex items-center gap-3 font-semibold text-lg transform hover:scale-105"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm transform hover:scale-105"
               >
-                <div className="p-1 bg-white/20 rounded-lg">
-                  <Save className="h-5 w-5" />
-                </div>
-                Sauvegarder les données
+                <Save className="h-4 w-4" />
+                Sauvegarder
               </button>
             </div>
           </form>
@@ -556,27 +645,290 @@ function KPI() {
 
         {/* Données du jour */}
         <div className="bg-white rounded-2xl shadow p-6 border border-blue-50">
-          <h2 className="text-lg font-semibold mb-4">Données du jour</h2>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-blue-600" />
+            Données du {formData.dateKey ? new Date(formData.dateKey).toLocaleDateString('fr-FR') : 'jour'}
+          </h2>
           {loading ? (
             <div className="text-center py-6">Chargement...</div>
           ) : (
-            <div className="grid gap-3">
-              {kpis.filter(k => String(k.DateKey || '').slice(0,8) === (
-                String(new Date().getFullYear()) + String(new Date().getMonth()+1).padStart(2,'0') + String(new Date().getDate()).padStart(2,'0')
-              )).map((kpi, index) => (
-                <div key={index} className="rounded-xl border border-gray-100 p-4 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium text-gray-800">{kpi.Nom_Agence} · {kpi.CategorieLibelle || 'KPI'}</div>
-                    <div className="text-sm text-gray-500">{formatDate(kpi.DateKey)}</div>
+            <div className="space-y-3">
+              {(() => {
+                // Filtrer les KPIs selon la date sélectionnée
+                const selectedDate = formData.dateKey ? new Date(formData.dateKey) : new Date();
+                const dateKeyFilter = parseInt(
+                  selectedDate.getFullYear().toString() + 
+                  (selectedDate.getMonth() + 1).toString().padStart(2, '0') + 
+                  selectedDate.getDate().toString().padStart(2, '0')
+                );
+                
+                const filteredKpis = kpis.filter(k => k.DateKey === dateKeyFilter);
+                
+                if (filteredKpis.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                      <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p>Aucune donnée saisie pour cette date.</p>
+                    </div>
+                  );
+                }
+                
+                return filteredKpis.map((kpi, index) => (
+                  <div key={index} className="rounded-xl border border-gray-200 p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-semibold text-gray-800">{kpi.Nom_Agence}</div>
+                      <div className="text-sm text-gray-500 bg-blue-100 px-2 py-1 rounded-full">
+                        {kpi.CategorieLibelle || 'KPI'}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                      <div className="bg-blue-50 p-2 rounded">
+                        <span className="text-blue-600 font-medium">Relances:</span>
+                        <span className="ml-1">{kpi.Nb_RelancesEnvoyees || 0}</span>
+                      </div>
+                      <div className="bg-green-50 p-2 rounded">
+                        <span className="text-green-600 font-medium">Mises en demeure:</span>
+                        <span className="ml-1">{kpi.Nb_MisesEnDemeure_Envoyees || 0}</span>
+                      </div>
+                      <div className="bg-purple-50 p-2 rounded">
+                        <span className="text-purple-600 font-medium">Dossiers juridiques:</span>
+                        <span className="ml-1">{kpi.Nb_Dossiers_Juridiques || 0}</span>
+                      </div>
+                      <div className="bg-orange-50 p-2 rounded">
+                        <span className="text-orange-600 font-medium">Coupures:</span>
+                        <span className="ml-1">{kpi.Nb_Coupures || 0}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-              {kpis.length === 0 && (
-                <div className="text-center py-6 text-gray-500">Aucune donnée saisie aujourd'hui.</div>
-              )}
+                ));
+              })()}
             </div>
           )}
         </div>
+
+        {/* Résumé des données de l'agence */}
+        {formData.agenceId && formData.dateKey && (
+          <div className="bg-white rounded-2xl shadow p-6 border border-blue-50">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-blue-600" />
+              Résumé des données - {agences.find(a => Number(a.AgenceId) === Number(formData.agenceId))?.Nom_Agence || 'Agence'}
+            </h2>
+            
+            {summary && summary.daily ? (
+              <div className="space-y-6">
+                {/* Données du jour */}
+                <div>
+                  <h3 className="text-md font-medium text-gray-700 mb-3 flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Données du {new Date(formData.dateKey).toLocaleDateString('fr-FR')}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Relances */}
+                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                      <div className="text-sm text-blue-600 font-medium mb-2 flex items-center justify-between">
+                        <span>Relances</span>
+                        {summary.objectives && (
+                          <span className={`text-xs font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_RelancesEnvoyees, summary.objectives.Obj_Relances_Envoyees))}`}>
+                            {calculateCompletionRate(summary.daily.Total_RelancesEnvoyees, summary.objectives.Obj_Relances_Envoyees) !== null 
+                              ? `${calculateCompletionRate(summary.daily.Total_RelancesEnvoyees, summary.objectives.Obj_Relances_Envoyees)}%`
+                              : 'N/A'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Envoyées:</span>
+                          <span className="font-semibold">{summary.daily.Total_RelancesEnvoyees || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Réglées:</span>
+                          <span className="font-semibold">{summary.daily.Total_RelancesReglees || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Montant envoyé:</span>
+                          <span>{formatCurrency(summary.daily.Total_Mt_RelancesEnvoyees || 0)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Montant réglé:</span>
+                          <span>{formatCurrency(summary.daily.Total_Mt_RelancesReglees || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mises en demeure */}
+                    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                      <div className="text-sm text-green-600 font-medium mb-2 flex items-center justify-between">
+                        <span>Mises en demeure</span>
+                        {summary.objectives && (
+                          <span className={`text-xs font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_MisesEnDemeureEnvoyees, summary.objectives.Obj_MisesEnDemeure_Envoyees))}`}>
+                            {calculateCompletionRate(summary.daily.Total_MisesEnDemeureEnvoyees, summary.objectives.Obj_MisesEnDemeure_Envoyees) !== null 
+                              ? `${calculateCompletionRate(summary.daily.Total_MisesEnDemeureEnvoyees, summary.objectives.Obj_MisesEnDemeure_Envoyees)}%`
+                              : 'N/A'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Envoyées:</span>
+                          <span className="font-semibold">{summary.daily.Total_MisesEnDemeureEnvoyees || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Réglées:</span>
+                          <span className="font-semibold">{summary.daily.Total_MisesEnDemeureReglees || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Montant envoyé:</span>
+                          <span>{formatCurrency(summary.daily.Total_Mt_MisesEnDemeureEnvoyees || 0)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Montant réglé:</span>
+                          <span>{formatCurrency(summary.daily.Total_Mt_MisesEnDemeureReglees || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dossiers juridiques */}
+                    <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                      <div className="text-sm text-purple-600 font-medium mb-2 flex items-center justify-between">
+                        <span>Dossiers juridiques</span>
+                        {summary.objectives && (
+                          <span className={`text-xs font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_DossiersJuridiques, summary.objectives.Obj_Dossiers_Juridiques))}`}>
+                            {calculateCompletionRate(summary.daily.Total_DossiersJuridiques, summary.objectives.Obj_Dossiers_Juridiques) !== null 
+                              ? `${calculateCompletionRate(summary.daily.Total_DossiersJuridiques, summary.objectives.Obj_Dossiers_Juridiques)}%`
+                              : 'N/A'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Nombre:</span>
+                          <span className="font-semibold">{summary.daily.Total_DossiersJuridiques || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Montant:</span>
+                          <span>{formatCurrency(summary.daily.Total_Mt_DossiersJuridiques || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Coupures */}
+                    <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                      <div className="text-sm text-orange-600 font-medium mb-2 flex items-center justify-between">
+                        <span>Coupures</span>
+                        {summary.objectives && (
+                          <span className={`text-xs font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_Coupures, summary.objectives.Obj_Coupures))}`}>
+                            {calculateCompletionRate(summary.daily.Total_Coupures, summary.objectives.Obj_Coupures) !== null 
+                              ? `${calculateCompletionRate(summary.daily.Total_Coupures, summary.objectives.Obj_Coupures)}%`
+                              : 'N/A'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Nombre:</span>
+                          <span className="font-semibold">{summary.daily.Total_Coupures || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Montant:</span>
+                          <span>{formatCurrency(summary.daily.Total_Mt_Coupures || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Rétablissements */}
+                    <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
+                      <div className="text-sm text-teal-600 font-medium mb-2">Rétablissements</div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Nombre:</span>
+                          <span className="font-semibold">{summary.daily.Total_Retablissements || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Montant:</span>
+                          <span>{formatCurrency(summary.daily.Total_Mt_Retablissements || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Branchements */}
+                    <div className="bg-cyan-50 rounded-lg p-4 border border-cyan-200">
+                      <div className="text-sm text-cyan-600 font-medium mb-2">Branchements</div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Nombre:</span>
+                          <span className="font-semibold">{summary.daily.Total_Branchements || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Montant:</span>
+                          <span>{formatCurrency(summary.daily.Total_Mt_Branchements || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Compteurs remplacés */}
+                    <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+                      <div className="text-sm text-indigo-600 font-medium mb-2">Compteurs remplacés</div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Nombre:</span>
+                          <span className="font-semibold">{summary.daily.Total_CompteursRemplaces || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Montant:</span>
+                          <span>{formatCurrency(summary.daily.Total_Mt_CompteursRemplaces || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Encaissement global */}
+                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                      <div className="text-sm text-emerald-600 font-medium mb-2">Encaissement</div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Journalier global:</span>
+                          <span className="font-semibold text-emerald-700">{formatCurrency(summary.daily.Total_EncaissementGlobal || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Objectifs mensuels */}
+                {summary.objectives && (
+                  <div>
+                    <h3 className="text-md font-medium text-gray-700 mb-3 flex items-center gap-2">
+                      <span className="text-lg">🎯</span>
+                      Objectifs mensuels ({new Date(formData.dateKey).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })})
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-blue-100 rounded-lg p-3 border border-blue-300">
+                        <div className="text-sm text-blue-700 font-medium">Relances</div>
+                        <div className="text-lg font-bold text-blue-800">{summary.objectives.Obj_Relances_Envoyees || 0}</div>
+                      </div>
+                      <div className="bg-green-100 rounded-lg p-3 border border-green-300">
+                        <div className="text-sm text-green-700 font-medium">Mises en demeure</div>
+                        <div className="text-lg font-bold text-green-800">{summary.objectives.Obj_MisesEnDemeure_Envoyees || 0}</div>
+                      </div>
+                      <div className="bg-purple-100 rounded-lg p-3 border border-purple-300">
+                        <div className="text-sm text-purple-700 font-medium">Dossiers juridiques</div>
+                        <div className="text-lg font-bold text-purple-800">{summary.objectives.Obj_Dossiers_Juridiques || 0}</div>
+                      </div>
+                      <div className="bg-orange-100 rounded-lg p-3 border border-orange-300">
+                        <div className="text-sm text-orange-700 font-medium">Coupures</div>
+                        <div className="text-lg font-bold text-orange-800">{summary.objectives.Obj_Coupures || 0}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                <Building2 className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                <p>Aucune donnée enregistrée pour cette agence à cette date.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Notifications gérées via SweetAlert2 */}
