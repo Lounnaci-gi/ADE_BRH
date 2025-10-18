@@ -5,11 +5,12 @@ import authService from '../services/authService';
 import { swalSuccess, swalError } from '../utils/swal';
 
 function KPI() {
-  const [kpis, setKpis] = useState([]);
-  const [agences, setAgences] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [entriesByCategory, setEntriesByCategory] = useState({});
-  const [loading, setLoading] = useState(false);
+      const [kpis, setKpis] = useState([]);
+      const [agences, setAgences] = useState([]);
+      const [categories, setCategories] = useState([]);
+      const [sortedCategories, setSortedCategories] = useState([]);
+      const [entriesByCategory, setEntriesByCategory] = useState({});
+      const [loading, setLoading] = useState(false);
   // Toast remplacé par SweetAlert2
   const [formData, setFormData] = useState({
     dateKey: '',
@@ -35,6 +36,16 @@ function KPI() {
     nbRemplacementCompteurs: ''
   });
 
+  // Fonction pour trier les catégories dans l'ordre souhaité
+  const sortCategories = (categories) => {
+    const order = ['MENAGE', 'ADMIN', 'ARTCOM', 'IND'];
+    return categories.sort((a, b) => {
+      const indexA = order.indexOf(a.CodeCategorie);
+      const indexB = order.indexOf(b.CodeCategorie);
+      return indexA - indexB;
+    });
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -56,6 +67,10 @@ function KPI() {
       setKpis(kpisData);
       setAgences(agencesData);
       setCategories(categoriesData);
+      
+      // Trier les catégories dans l'ordre souhaité
+      const sortedCats = sortCategories(categoriesData || []);
+      setSortedCategories(sortedCats);
       // Initialiser les valeurs par catégorie
       const init = (categoriesData || []).reduce((acc, cat) => {
         acc[cat.CategorieId] = {
@@ -92,7 +107,7 @@ function KPI() {
       const existingData = await kpiService.getExistingData(dateKeyInt, parseInt(agenceId, 10));
       
       // Réinitialiser les entrées par catégorie
-      const init = (categories || []).reduce((acc, cat) => {
+      const init = (sortedCategories || []).reduce((acc, cat) => {
         acc[cat.CategorieId] = {
           nbRelancesEnvoyees: '', mtRelancesEnvoyees: '',
           nbRelancesReglees: '', mtRelancesReglees: '',
@@ -114,8 +129,8 @@ function KPI() {
             mtRelancesReglees: item.Mt_RelancesReglees || '',
             nbMisesEnDemeureEnvoyees: item.Nb_MisesEnDemeure_Envoyees || '',
             mtMisesEnDemeureEnvoyees: item.Mt_MisesEnDemeure_Envoyees || '',
-            nbMisesEnDemeureReglees: '', // Pas encore dans la DB
-            mtMisesEnDemeureReglees: '', // Pas encore dans la DB
+            nbMisesEnDemeureReglees: item.Nb_MisesEnDemeure_Reglees || '',
+            mtMisesEnDemeureReglees: item.Mt_MisesEnDemeure_Reglees || '',
             nbDossiersJuridiques: item.Nb_Dossiers_Juridiques || '',
             mtDossiersJuridiques: item.Mt_Dossiers_Juridiques || '',
             nbPoseCompteurs: '', // Pas encore dans la DB
@@ -166,7 +181,7 @@ function KPI() {
 
       // Pour chaque catégorie, envoyer une entrée si au moins un champ pertinent est renseigné
       const agenceIdNum = parseInt(formData.agenceId);
-      const creates = (categories || []).map(async (cat) => {
+      const creates = (sortedCategories || []).map(async (cat) => {
         const catId = parseInt(cat.CategorieId);
         const e = entriesByCategory[cat.CategorieId] || {};
         const hasData = [
@@ -188,7 +203,8 @@ function KPI() {
           mtRelancesReglees: parseFloat(e.mtRelancesReglees || 0),
           nbMisesEnDemeureEnvoyees: parseInt(e.nbMisesEnDemeureEnvoyees || 0, 10),
           mtMisesEnDemeureEnvoyees: parseFloat(e.mtMisesEnDemeureEnvoyees || 0),
-          // Le backend ne gère pas explicitement "reglées" pour MED: on n'envoie pas si non supporté
+          nbMisesEnDemeureReglees: parseInt(e.nbMisesEnDemeureReglees || 0, 10),
+          mtMisesEnDemeureReglees: parseFloat(e.mtMisesEnDemeureReglees || 0),
           nbDossiersJuridiques: parseInt(e.nbDossiersJuridiques || 0, 10),
           mtDossiersJuridiques: parseFloat(e.mtDossiersJuridiques || 0)
         };
@@ -280,26 +296,33 @@ function KPI() {
           <div className="text-xs text-sky-600">Affichage des objectifs et progression (à connecter aux données)</div>
         </div>
 
-        {/* Formulaire élargi */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-blue-50">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-sky-800">
-            <Plus className="h-5 w-5" />
-            Saisie des données
-          </h2>
+        {/* Formulaire élargi avec style élégant */}
+        <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-3xl shadow-xl p-8 border border-blue-100/50 backdrop-blur-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
+              <Plus className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">Saisie des données</h2>
+              <p className="text-sm text-gray-600">Enregistrez les indicateurs quotidiens par catégorie</p>
+            </div>
+          </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Informations de base */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Calendar className="inline h-4 w-4 mr-1" />
+            {/* Informations de base avec style amélioré */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                  </div>
                   Date *
                 </label>
                 <input
                   type="date"
                   value={formData.dateKey}
                   onChange={(e) => setFormData({ ...formData, dateKey: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
                   required
                 />
               </div>
@@ -311,15 +334,17 @@ function KPI() {
                 
                 if (isAdmin) {
                   return (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <Building2 className="inline h-4 w-4 mr-1" />
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                        <div className="p-2 bg-green-100 rounded-lg mr-3">
+                          <Building2 className="h-4 w-4 text-green-600" />
+                        </div>
                         Agence *
                       </label>
                       <select
                         value={formData.agenceId}
                         onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
                         required
                       >
                         <option value="">Sélectionner une agence</option>
@@ -335,12 +360,14 @@ function KPI() {
                   // Pour les utilisateurs Standard, afficher l'agence en lecture seule
                   const userAgence = agences.find(a => Number(a.AgenceId) === Number(formData.agenceId));
                   return (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <Building2 className="inline h-4 w-4 mr-1" />
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                        <div className="p-2 bg-green-100 rounded-lg mr-3">
+                          <Building2 className="h-4 w-4 text-green-600" />
+                        </div>
                         Agence assignée
                       </label>
-                      <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-700">
+                      <div className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 shadow-sm">
                         {userAgence ? userAgence.Nom_Agence : 'Chargement...'}
                       </div>
                     </div>
@@ -350,42 +377,161 @@ function KPI() {
 
             </div>
 
-            {/* Saisie par catégorie */}
-            <div className="border-t pt-4">
-              <h3 className="text-md font-medium text-gray-800 mb-3">Saisie par catégorie</h3>
-              <div className="overflow-auto rounded-xl border border-gray-200">
+            {/* Saisie par catégorie avec style élégant */}
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Building2 className="h-5 w-5 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800">Saisie par catégorie</h3>
+              </div>
+              <div className="overflow-auto rounded-2xl border-2 border-gray-200 shadow-lg bg-white">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                     <tr>
-                      <th className="px-3 py-3 text-left font-semibold">Catégorie</th>
-                      <th className="px-3 py-3 text-left">Relances (Nb)</th>
-                      <th className="px-3 py-3 text-left">Relances (Mt)</th>
-                      <th className="px-3 py-3 text-left">Relances réglées (Nb)</th>
-                      <th className="px-3 py-3 text-left">Relances réglées (Mt)</th>
-                      <th className="px-3 py-3 text-left">Mises en demeure (Nb)</th>
-                      <th className="px-3 py-3 text-left">Mises en demeure (Mt)</th>
-                      <th className="px-3 py-3 text-left">Dossiers juridiques (Nb)</th>
-                      <th className="px-3 py-3 text-left">Dossiers juridiques (Mt)</th>
-                      <th className="px-3 py-3 text-left">Branchement (Nb)</th>
-                      <th className="px-3 py-3 text-left">Rempl. compteurs (Nb)</th>
+                      <th className="px-4 py-4 text-left font-bold text-gray-800 border-r border-gray-200">Catégorie</th>
+                      <th className="px-3 py-4 text-center font-semibold text-blue-700">Nbr Relances Envoyées</th>
+                      <th className="px-3 py-4 text-center font-semibold text-blue-700">Mt Relances Envoyées</th>
+                      <th className="px-3 py-4 text-center font-semibold text-green-700">Relances réglées (Nb)</th>
+                      <th className="px-3 py-4 text-center font-semibold text-green-700">Relances réglées (Mt)</th>
+                      <th className="px-3 py-4 text-center font-semibold text-orange-700">Mises en demeure (Nb)</th>
+                      <th className="px-3 py-4 text-center font-semibold text-orange-700">Mises en demeure (Mt)</th>
+                      <th className="px-3 py-4 text-center font-semibold text-red-700">Mises en demeure réglées (Nb)</th>
+                      <th className="px-3 py-4 text-center font-semibold text-red-700">Mises en demeure réglées (Mt)</th>
+                      <th className="px-3 py-4 text-center font-semibold text-purple-700">Dossiers juridiques (Nb)</th>
+                      <th className="px-3 py-4 text-center font-semibold text-purple-700">Dossiers juridiques (Mt)</th>
+                      <th className="px-3 py-4 text-center font-semibold text-indigo-700">Branchement (Nb)</th>
+                      <th className="px-3 py-4 text-center font-semibold text-indigo-700">Rempl. compteurs (Nb)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(categories || []).map((cat) => {
+                    {(sortedCategories || []).map((cat, index) => {
                       const e = entriesByCategory[cat.CategorieId] || {};
                       return (
-                        <tr key={cat.CategorieId} className="border-t">
-                          <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-900">{cat.Libelle}</td>
-                          <td className="px-3 py-2"><input type="number" value={e.nbRelancesEnvoyees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesEnvoyees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
-                          <td className="px-3 py-2"><input type="number" step="0.01" value={e.mtRelancesEnvoyees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesEnvoyees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
-                          <td className="px-3 py-2"><input type="number" value={e.nbRelancesReglees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesReglees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
-                          <td className="px-3 py-2"><input type="number" step="0.01" value={e.mtRelancesReglees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesReglees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
-                          <td className="px-3 py-2"><input type="number" value={e.nbMisesEnDemeureEnvoyees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureEnvoyees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
-                          <td className="px-3 py-2"><input type="number" step="0.01" value={e.mtMisesEnDemeureEnvoyees || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureEnvoyees: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
-                          <td className="px-3 py-2"><input type="number" value={e.nbDossiersJuridiques || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbDossiersJuridiques: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
-                          <td className="px-3 py-2"><input type="number" step="0.01" value={e.mtDossiersJuridiques || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtDossiersJuridiques: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
-                          <td className="px-3 py-2"><input type="number" value={e.nbPoseCompteurs || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbPoseCompteurs: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
-                          <td className="px-3 py-2"><input type="number" value={e.nbRemplacementCompteurs || ''} onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRemplacementCompteurs: ev.target.value } }))} className="w-28 border border-gray-300 rounded px-2 py-1" /></td>
+                        <tr key={cat.CategorieId} className={`border-t border-gray-100 hover:bg-gray-50/50 transition-colors duration-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
+                          <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-800 border-r border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                            {cat.Libelle}
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="1"
+                              value={e.nbRelancesEnvoyees || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesEnvoyees: ev.target.value } }))} 
+                              className="w-24 border-2 border-blue-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="0.01" 
+                              value={e.mtRelancesEnvoyees || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesEnvoyees: ev.target.value } }))} 
+                              className="w-24 border-2 border-blue-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="1"
+                              value={e.nbRelancesReglees || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesReglees: ev.target.value } }))} 
+                              className="w-24 border-2 border-green-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="0.01" 
+                              value={e.mtRelancesReglees || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesReglees: ev.target.value } }))} 
+                              className="w-24 border-2 border-green-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="1"
+                              value={e.nbMisesEnDemeureEnvoyees || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureEnvoyees: ev.target.value } }))} 
+                              className="w-24 border-2 border-orange-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="0.01" 
+                              value={e.mtMisesEnDemeureEnvoyees || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureEnvoyees: ev.target.value } }))} 
+                              className="w-24 border-2 border-orange-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="1"
+                              value={e.nbMisesEnDemeureReglees || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureReglees: ev.target.value } }))} 
+                              className="w-24 border-2 border-red-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="0.01" 
+                              value={e.mtMisesEnDemeureReglees || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureReglees: ev.target.value } }))} 
+                              className="w-24 border-2 border-red-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="1"
+                              value={e.nbDossiersJuridiques || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbDossiersJuridiques: ev.target.value } }))} 
+                              className="w-24 border-2 border-purple-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="0.01" 
+                              value={e.mtDossiersJuridiques || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtDossiersJuridiques: ev.target.value } }))} 
+                              className="w-24 border-2 border-purple-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="1"
+                              value={e.nbPoseCompteurs || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbPoseCompteurs: ev.target.value } }))} 
+                              className="w-24 border-2 border-indigo-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="1"
+                              value={e.nbRemplacementCompteurs || ''} 
+                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRemplacementCompteurs: ev.target.value } }))} 
+                              className="w-24 border-2 border-indigo-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
+                            />
+                          </td>
                         </tr>
                       );
                     })}
@@ -394,13 +540,15 @@ function KPI() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-6">
+            <div className="flex justify-end pt-8">
               <button
                 type="submit"
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg shadow transition inline-flex items-center gap-2"
+                className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-8 py-3 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 inline-flex items-center gap-3 font-semibold text-lg transform hover:scale-105"
               >
-                <Save className="h-4 w-4" />
-                Sauvegarder
+                <div className="p-1 bg-white/20 rounded-lg">
+                  <Save className="h-5 w-5" />
+                </div>
+                Sauvegarder les données
               </button>
             </div>
           </form>

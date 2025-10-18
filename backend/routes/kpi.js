@@ -53,6 +53,7 @@ router.post('/', async (req, res) => {
       encaissementJournalierGlobal, nbCoupures, mtCoupures,
       nbDossiersJuridiques, mtDossiersJuridiques,
       nbMisesEnDemeureEnvoyees, mtMisesEnDemeureEnvoyees,
+      nbMisesEnDemeureReglees, mtMisesEnDemeureReglees,
       nbRelancesEnvoyees, mtRelancesEnvoyees,
       nbRelancesReglees, mtRelancesReglees,
       objCoupures, objDossiersJuridiques, objMisesEnDemeureEnvoyees, objRelancesEnvoyees
@@ -62,25 +63,47 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'DateKey, AgenceId et CategorieId sont requis' });
     }
 
-    // INSERT avec tous les champs
+    // UPSERT (MERGE) avec tous les champs - INSERT si n'existe pas, UPDATE si existe
     const query = `
-      INSERT INTO dbo.FAIT_KPI_ADE (
-        DateKey, AgenceId, CategorieId,
-        Nb_RelancesEnvoyees, Mt_RelancesEnvoyees,
-        Nb_RelancesReglees, Mt_RelancesReglees,
-        Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
-        Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques,
-        Nb_Coupures, Mt_Coupures,
-        Encaissement_Journalier_Global
-      ) VALUES (
-        @dateKey, @agenceId, @categorieId,
-        @nbRelancesEnvoyees, @mtRelancesEnvoyees,
-        @nbRelancesReglees, @mtRelancesReglees,
-        @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
-        @nbDossiersJuridiques, @mtDossiersJuridiques,
-        @nbCoupures, @mtCoupures,
-        @encaissementJournalierGlobal
-      )
+      MERGE dbo.FAIT_KPI_ADE AS target
+      USING (SELECT @dateKey AS DateKey, @agenceId AS AgenceId, @categorieId AS CategorieId) AS source
+      ON (target.DateKey = source.DateKey AND target.AgenceId = source.AgenceId AND target.CategorieId = source.CategorieId)
+      WHEN MATCHED THEN
+        UPDATE SET
+          Nb_RelancesEnvoyees = @nbRelancesEnvoyees,
+          Mt_RelancesEnvoyees = @mtRelancesEnvoyees,
+          Nb_RelancesReglees = @nbRelancesReglees,
+          Mt_RelancesReglees = @mtRelancesReglees,
+          Nb_MisesEnDemeure_Envoyees = @nbMisesEnDemeureEnvoyees,
+          Mt_MisesEnDemeure_Envoyees = @mtMisesEnDemeureEnvoyees,
+          Nb_MisesEnDemeure_Reglees = @nbMisesEnDemeureReglees,
+          Mt_MisesEnDemeure_Reglees = @mtMisesEnDemeureReglees,
+          Nb_Dossiers_Juridiques = @nbDossiersJuridiques,
+          Mt_Dossiers_Juridiques = @mtDossiersJuridiques,
+          Nb_Coupures = @nbCoupures,
+          Mt_Coupures = @mtCoupures,
+          Encaissement_Journalier_Global = @encaissementJournalierGlobal,
+          ModifiedAt = SYSUTCDATETIME()
+      WHEN NOT MATCHED THEN
+        INSERT (
+          DateKey, AgenceId, CategorieId,
+          Nb_RelancesEnvoyees, Mt_RelancesEnvoyees,
+          Nb_RelancesReglees, Mt_RelancesReglees,
+          Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
+          Nb_MisesEnDemeure_Reglees, Mt_MisesEnDemeure_Reglees,
+          Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques,
+          Nb_Coupures, Mt_Coupures,
+          Encaissement_Journalier_Global
+        ) VALUES (
+          @dateKey, @agenceId, @categorieId,
+          @nbRelancesEnvoyees, @mtRelancesEnvoyees,
+          @nbRelancesReglees, @mtRelancesReglees,
+          @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
+          @nbMisesEnDemeureReglees, @mtMisesEnDemeureReglees,
+          @nbDossiersJuridiques, @mtDossiersJuridiques,
+          @nbCoupures, @mtCoupures,
+          @encaissementJournalierGlobal
+        );
     `;
 
     const params = [
@@ -93,6 +116,8 @@ router.post('/', async (req, res) => {
       { name: 'mtRelancesReglees', type: TYPES.Money, value: parseFloat(mtRelancesReglees || 0) },
       { name: 'nbMisesEnDemeureEnvoyees', type: TYPES.Int, value: parseInt(nbMisesEnDemeureEnvoyees || 0, 10) },
       { name: 'mtMisesEnDemeureEnvoyees', type: TYPES.Money, value: parseFloat(mtMisesEnDemeureEnvoyees || 0) },
+      { name: 'nbMisesEnDemeureReglees', type: TYPES.Int, value: parseInt(nbMisesEnDemeureReglees || 0, 10) },
+      { name: 'mtMisesEnDemeureReglees', type: TYPES.Money, value: parseFloat(mtMisesEnDemeureReglees || 0) },
       { name: 'nbDossiersJuridiques', type: TYPES.Int, value: parseInt(nbDossiersJuridiques || 0, 10) },
       { name: 'mtDossiersJuridiques', type: TYPES.Money, value: parseFloat(mtDossiersJuridiques || 0) },
       { name: 'nbCoupures', type: TYPES.Int, value: parseInt(nbCoupures || 0, 10) },
@@ -100,17 +125,18 @@ router.post('/', async (req, res) => {
       { name: 'encaissementJournalierGlobal', type: TYPES.Money, value: parseFloat(encaissementJournalierGlobal || 0) }
     ];
 
-    console.log('Attempting to insert KPI with all fields:', { 
+    console.log('Attempting to upsert KPI with all fields:', { 
       dateKey, agenceId, categorieId,
       nbRelancesEnvoyees, mtRelancesEnvoyees,
       nbRelancesReglees, mtRelancesReglees,
       nbMisesEnDemeureEnvoyees, mtMisesEnDemeureEnvoyees,
+      nbMisesEnDemeureReglees, mtMisesEnDemeureReglees,
       nbDossiersJuridiques, mtDossiersJuridiques,
       nbCoupures, mtCoupures,
       encaissementJournalierGlobal
     });
     await db.query(query, params);
-    res.status(201).json({ message: 'KPI sauvegardé avec succès' });
+    res.status(200).json({ message: 'KPI sauvegardé avec succès' });
   } catch (err) {
     console.error('Erreur POST /kpi:', err);
     console.error('Query:', query);
@@ -134,6 +160,7 @@ router.get('/existing', async (req, res) => {
         k.Nb_RelancesEnvoyees, k.Mt_RelancesEnvoyees,
         k.Nb_RelancesReglees, k.Mt_RelancesReglees,
         k.Nb_MisesEnDemeure_Envoyees, k.Mt_MisesEnDemeure_Envoyees,
+        k.Nb_MisesEnDemeure_Reglees, k.Mt_MisesEnDemeure_Reglees,
         k.Nb_Dossiers_Juridiques, k.Mt_Dossiers_Juridiques,
         k.Nb_Coupures, k.Mt_Coupures,
         k.Encaissement_Journalier_Global,
