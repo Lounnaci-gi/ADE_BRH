@@ -50,6 +50,8 @@ function KPI() {
       let agencesData = await kpiService.getAgences();
       if (!isAdmin && userAgenceId) {
         agencesData = agencesData.filter(a => Number(a.AgenceId) === userAgenceId);
+        // Pour les utilisateurs Standard, pré-sélectionner leur agence
+        setFormData(prev => ({ ...prev, agenceId: userAgenceId.toString() }));
       }
       setKpis(kpisData);
       setAgences(agencesData);
@@ -75,6 +77,59 @@ function KPI() {
     }
   };
 
+  // Fonction pour charger les données existantes
+  const loadExistingData = async (dateKey, agenceId) => {
+    if (!dateKey || !agenceId) return;
+    
+    try {
+      const date = new Date(dateKey);
+      const dateKeyInt = parseInt(
+        date.getFullYear().toString() + 
+        (date.getMonth() + 1).toString().padStart(2, '0') + 
+        date.getDate().toString().padStart(2, '0')
+      );
+      
+      const existingData = await kpiService.getExistingData(dateKeyInt, parseInt(agenceId, 10));
+      
+      // Réinitialiser les entrées par catégorie
+      const init = (categories || []).reduce((acc, cat) => {
+        acc[cat.CategorieId] = {
+          nbRelancesEnvoyees: '', mtRelancesEnvoyees: '',
+          nbRelancesReglees: '', mtRelancesReglees: '',
+          nbMisesEnDemeureEnvoyees: '', mtMisesEnDemeureEnvoyees: '',
+          nbMisesEnDemeureReglees: '', mtMisesEnDemeureReglees: '',
+          nbDossiersJuridiques: '', mtDossiersJuridiques: '',
+          nbPoseCompteurs: '', nbRemplacementCompteurs: ''
+        };
+        return acc;
+      }, {});
+      
+      // Pré-remplir avec les données existantes
+      existingData.forEach(item => {
+        if (init[item.CategorieId]) {
+          init[item.CategorieId] = {
+            nbRelancesEnvoyees: item.Nb_RelancesEnvoyees || '',
+            mtRelancesEnvoyees: item.Mt_RelancesEnvoyees || '',
+            nbRelancesReglees: item.Nb_RelancesReglees || '',
+            mtRelancesReglees: item.Mt_RelancesReglees || '',
+            nbMisesEnDemeureEnvoyees: item.Nb_MisesEnDemeure_Envoyees || '',
+            mtMisesEnDemeureEnvoyees: item.Mt_MisesEnDemeure_Envoyees || '',
+            nbMisesEnDemeureReglees: '', // Pas encore dans la DB
+            mtMisesEnDemeureReglees: '', // Pas encore dans la DB
+            nbDossiersJuridiques: item.Nb_Dossiers_Juridiques || '',
+            mtDossiersJuridiques: item.Mt_Dossiers_Juridiques || '',
+            nbPoseCompteurs: '', // Pas encore dans la DB
+            nbRemplacementCompteurs: '' // Pas encore dans la DB
+          };
+        }
+      });
+      
+      setEntriesByCategory(init);
+    } catch (error) {
+      console.error('Erreur lors du chargement des données existantes:', error);
+    }
+  };
+
   useEffect(() => {
     // Pré-remplir la date du jour au chargement
     const today = new Date();
@@ -84,6 +139,13 @@ function KPI() {
     setFormData(prev => ({ ...prev, dateKey: `${yyyy}-${mm}-${dd}` }));
     loadData();
   }, []);
+
+  // Charger les données existantes quand la date ou l'agence change
+  useEffect(() => {
+    if (formData.dateKey && formData.agenceId && categories.length > 0) {
+      loadExistingData(formData.dateKey, formData.agenceId);
+    }
+  }, [formData.dateKey, formData.agenceId, categories]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -136,14 +198,19 @@ function KPI() {
       await Promise.all(creates);
       await swalSuccess('Données sauvegardées avec succès');
       
-      // Réinitialiser le formulaire (date du jour conservée)
+      // Réinitialiser le formulaire (date du jour conservée, agence préservée pour Standard)
       const now = new Date();
       const y = now.getFullYear();
       const m = String(now.getMonth() + 1).padStart(2, '0');
       const d = String(now.getDate()).padStart(2, '0');
+      
+      const user = authService.getCurrentUser();
+      const isAdmin = (user?.role || '').toString() === 'Administrateur';
+      const userAgenceId = user?.agenceId ? Number(user.agenceId) : null;
+      
       setFormData({
         dateKey: `${y}-${m}-${d}`,
-        agenceId: '',
+        agenceId: isAdmin ? '' : (userAgenceId ? userAgenceId.toString() : ''),
         encaissementJournalierGlobal: '',
         nbCoupures: '',
         mtCoupures: '',
@@ -237,25 +304,49 @@ function KPI() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Building2 className="inline h-4 w-4 mr-1" />
-                  Agence *
-                </label>
-                <select
-                  value={formData.agenceId}
-                  onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Sélectionner une agence</option>
-                  {agences.map(agence => (
-                    <option key={agence.AgenceId} value={agence.AgenceId}>
-                      {agence.Nom_Agence}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Sélecteur d'agence - visible seulement pour les Administrateurs */}
+              {(() => {
+                const user = authService.getCurrentUser();
+                const isAdmin = (user?.role || '').toString() === 'Administrateur';
+                
+                if (isAdmin) {
+                  return (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <Building2 className="inline h-4 w-4 mr-1" />
+                        Agence *
+                      </label>
+                      <select
+                        value={formData.agenceId}
+                        onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Sélectionner une agence</option>
+                        {agences.map(agence => (
+                          <option key={agence.AgenceId} value={agence.AgenceId}>
+                            {agence.Nom_Agence}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                } else {
+                  // Pour les utilisateurs Standard, afficher l'agence en lecture seule
+                  const userAgence = agences.find(a => Number(a.AgenceId) === Number(formData.agenceId));
+                  return (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <Building2 className="inline h-4 w-4 mr-1" />
+                        Agence assignée
+                      </label>
+                      <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-700">
+                        {userAgence ? userAgence.Nom_Agence : 'Chargement...'}
+                      </div>
+                    </div>
+                  );
+                }
+              })()}
 
             </div>
 

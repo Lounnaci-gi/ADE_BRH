@@ -119,6 +119,44 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET /api/kpi/existing - récupérer les données KPI existantes pour une date/agence
+router.get('/existing', async (req, res) => {
+  try {
+    const { dateKey, agenceId } = req.query;
+    
+    if (!dateKey || !agenceId) {
+      return res.status(400).json({ message: 'DateKey et AgenceId sont requis' });
+    }
+
+    const query = `
+      SELECT 
+        k.DateKey, k.AgenceId, k.CategorieId,
+        k.Nb_RelancesEnvoyees, k.Mt_RelancesEnvoyees,
+        k.Nb_RelancesReglees, k.Mt_RelancesReglees,
+        k.Nb_MisesEnDemeure_Envoyees, k.Mt_MisesEnDemeure_Envoyees,
+        k.Nb_Dossiers_Juridiques, k.Mt_Dossiers_Juridiques,
+        k.Nb_Coupures, k.Mt_Coupures,
+        k.Encaissement_Journalier_Global,
+        c.Libelle AS CategorieLibelle
+      FROM dbo.FAIT_KPI_ADE k
+      LEFT JOIN dbo.DIM_CATEGORIE c ON k.CategorieId = c.CategorieId
+      WHERE k.DateKey = @dateKey AND k.AgenceId = @agenceId
+      ORDER BY k.CategorieId
+    `;
+
+    const params = [
+      { name: 'dateKey', type: TYPES.Int, value: parseInt(dateKey, 10) },
+      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) }
+    ];
+
+    const results = await db.query(query, params);
+    res.json(results);
+  } catch (err) {
+    console.error('Erreur GET /kpi/existing:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération des données existantes' });
+  }
+});
+
 // GET /api/kpi/agences - liste des agences pour le formulaire (avec restriction par rôle)
 router.get('/agences', (req, res) => {
   const role = (req.headers['x-role'] || '').toString();

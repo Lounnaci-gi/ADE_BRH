@@ -19,6 +19,11 @@ const kpiService = {
   async getCategories() {
     const res = await api.get('/kpi/categories');
     return res.data || [];
+  },
+
+  async getExistingData(dateKey, agenceId) {
+    const res = await api.get(`/kpi/existing?dateKey=${dateKey}&agenceId=${agenceId}`);
+    return res.data || [];
   }
 };
 
