@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { X, Building2, Target, Calendar, DollarSign, Zap, Wrench, FileText, AlertTriangle, RotateCcw, CheckCircle, Hash } from 'lucide-react';
-import objectivesService from '../services/objectivesService';
 
-export default function ObjectivesModal({ open, onClose, onSubmit, initialValues, agences = [], categories = [] }) {
+export default function ObjectivesModal({ open, onClose, onSubmit, initialValues, agences = [] }) {
   const [formData, setFormData] = useState({
     agenceId: '',
-    categorieId: '',
     dateDebut: '',
     dateFin: '',
-    typePeriode: 'Mensuel',
+    titre: '',
+    description: '',
     obj_Encaissement: '',
     obj_Coupures: '',
     obj_Retablissements: '',
@@ -17,8 +16,7 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
     obj_MisesEnDemeure: '',
     obj_Relances: '',
     obj_Controles: '',
-    obj_Compteurs_Remplaces: '',
-    commentaire: ''
+    obj_Compteurs_Remplaces: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,10 +29,10 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
       if (initialValues) {
         setFormData({
           agenceId: initialValues.AgenceId || '',
-          categorieId: initialValues.CategorieId || '',
           dateDebut: initialValues.DateDebut ? new Date(initialValues.DateDebut).toISOString().split('T')[0] : '',
           dateFin: initialValues.DateFin ? new Date(initialValues.DateFin).toISOString().split('T')[0] : '',
-          typePeriode: initialValues.TypePeriode || 'Mensuel',
+          titre: initialValues.Titre || '',
+          description: initialValues.Description || '',
           obj_Encaissement: initialValues.Obj_Encaissement ?? '',
           obj_Coupures: initialValues.Obj_Coupures ?? '',
           obj_Retablissements: initialValues.Obj_Retablissements ?? '',
@@ -43,8 +41,7 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
           obj_MisesEnDemeure: initialValues.Obj_MisesEnDemeure ?? '',
           obj_Relances: initialValues.Obj_Relances ?? '',
           obj_Controles: initialValues.Obj_Controles ?? '',
-          obj_Compteurs_Remplaces: initialValues.Obj_Compteurs_Remplaces ?? '',
-          commentaire: initialValues.Commentaire ?? ''
+          obj_Compteurs_Remplaces: initialValues.Obj_Compteurs_Remplaces ?? ''
         });
       } else {
         const today = new Date();
@@ -53,10 +50,10 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
         
         setFormData({
           agenceId: '',
-          categorieId: '',
           dateDebut: firstDay.toISOString().split('T')[0],
           dateFin: lastDay.toISOString().split('T')[0],
-          typePeriode: 'Mensuel',
+          titre: '',
+          description: '',
           obj_Encaissement: '',
           obj_Coupures: '',
           obj_Retablissements: '',
@@ -65,8 +62,7 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
           obj_MisesEnDemeure: '',
           obj_Relances: '',
           obj_Controles: '',
-          obj_Compteurs_Remplaces: '',
-          commentaire: ''
+          obj_Compteurs_Remplaces: ''
         });
       }
     }
@@ -95,6 +91,10 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
       newErrors.agenceId = 'L\'agence est obligatoire';
     }
 
+    if (!formData.titre) {
+      newErrors.titre = 'Le titre est obligatoire';
+    }
+
     if (!formData.dateDebut) {
       newErrors.dateDebut = 'La date de début est obligatoire';
     }
@@ -105,10 +105,6 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
 
     if (formData.dateDebut && formData.dateFin && new Date(formData.dateFin) < new Date(formData.dateDebut)) {
       newErrors.dateFin = 'La date de fin doit être postérieure à la date de début';
-    }
-
-    if (!formData.typePeriode) {
-      newErrors.typePeriode = 'Le type de période est obligatoire';
     }
 
     setErrors(newErrors);
@@ -124,10 +120,10 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
         setLoading(true);
         const payload = {
           agenceId: parseInt(formData.agenceId, 10),
-          categorieId: formData.categorieId ? parseInt(formData.categorieId, 10) : null,
           dateDebut: formData.dateDebut,
           dateFin: formData.dateFin,
-          typePeriode: formData.typePeriode,
+          titre: formData.titre,
+          description: formData.description || null,
           obj_Encaissement: formData.obj_Encaissement ? parseFloat(formData.obj_Encaissement) : null,
           obj_Coupures: formData.obj_Coupures ? parseInt(formData.obj_Coupures, 10) : null,
           obj_Retablissements: formData.obj_Retablissements ? parseInt(formData.obj_Retablissements, 10) : null,
@@ -136,8 +132,7 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
           obj_MisesEnDemeure: formData.obj_MisesEnDemeure ? parseInt(formData.obj_MisesEnDemeure, 10) : null,
           obj_Relances: formData.obj_Relances ? parseInt(formData.obj_Relances, 10) : null,
           obj_Controles: formData.obj_Controles ? parseInt(formData.obj_Controles, 10) : null,
-          obj_Compteurs_Remplaces: formData.obj_Compteurs_Remplaces ? parseInt(formData.obj_Compteurs_Remplaces, 10) : null,
-          commentaire: formData.commentaire || null
+          obj_Compteurs_Remplaces: formData.obj_Compteurs_Remplaces ? parseInt(formData.obj_Compteurs_Remplaces, 10) : null
         };
 
         if (initialValues) {
@@ -193,54 +188,79 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-3 space-y-3">
-          {/* Agence et Catégorie */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Agence */}
+          <div>
+            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
+              <Building2 className="inline h-4 w-4 mr-2" />
+              Agence *
+            </label>
+            <select
+              name="agenceId"
+              value={formData.agenceId}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+                errors.agenceId
+                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
+              }`}
+              required
+            >
+              <option value="">Sélectionnez une agence</option>
+              {agences.map((a) => (
+                <option key={a.AgenceId} value={a.AgenceId}>{a.Nom_Agence}</option>
+              ))}
+            </select>
+            {errors.agenceId && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.agenceId}</p>
+            )}
+          </div>
+
+          {/* Titre et Description */}
+          <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <Building2 className="inline h-4 w-4 mr-2" />
-                Agence *
+                <Target className="inline h-4 w-4 mr-2" />
+                Titre de l'objectif *
               </label>
-              <select
-                name="agenceId"
-                value={formData.agenceId}
+              <input
+                type="text"
+                name="titre"
+                value={formData.titre}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                  errors.agenceId
+                  errors.titre
                     ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                     : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
                 }`}
+                placeholder="Ex: Objectifs mensuels - Janvier 2025"
                 required
-              >
-                <option value="">Sélectionnez une agence</option>
-                {agences.map((a) => (
-                  <option key={a.AgenceId} value={a.AgenceId}>{a.Nom_Agence}</option>
-                ))}
-              </select>
-              {errors.agenceId && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.agenceId}</p>
+              />
+              {errors.titre && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.titre}</p>
               )}
             </div>
             <div>
               <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
                 <FileText className="inline h-4 w-4 mr-2" />
-                Catégorie
+                Description
               </label>
-              <select
-                name="categorieId"
-                value={formData.categorieId}
+              <textarea
+                name="description"
+                value={formData.description}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-              >
-                <option value="">Toutes catégories</option>
-                {categories.map((c) => (
-                  <option key={c.CategorieId} value={c.CategorieId}>{c.Libelle}</option>
-                ))}
-              </select>
+                rows={2}
+                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 resize-none border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
+                placeholder="Description détaillée de l'objectif..."
+                maxLength={500}
+              />
+              <p className="mt-1 text-xs text-water-500 dark:text-water-400">
+                {formData.description.length}/500 caractères
+              </p>
             </div>
           </div>
 
           {/* Période */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
                 <Calendar className="inline h-4 w-4 mr-2" />
@@ -281,31 +301,6 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
               />
               {errors.dateFin && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dateFin}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <Hash className="inline h-4 w-4 mr-2" />
-                Type de période *
-              </label>
-              <select
-                name="typePeriode"
-                value={formData.typePeriode}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                  errors.typePeriode
-                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                    : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-                }`}
-                required
-              >
-                <option value="Mensuel">Mensuel</option>
-                <option value="Trimestriel">Trimestriel</option>
-                <option value="Annuel">Annuel</option>
-                <option value="Personnalise">Personnalisé</option>
-              </select>
-              {errors.typePeriode && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.typePeriode}</p>
               )}
             </div>
           </div>
@@ -455,25 +450,6 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
             />
           </div>
 
-          {/* Commentaire */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <FileText className="inline h-4 w-4 mr-2" />
-              Commentaire
-            </label>
-            <textarea
-              name="commentaire"
-              value={formData.commentaire}
-              onChange={handleChange}
-              rows={2}
-              className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 resize-none border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-              placeholder="Commentaires sur cet objectif..."
-              maxLength={500}
-            />
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.commentaire.length}/500 caractères
-            </p>
-          </div>
 
           {/* Actions */}
           <div className="flex items-center justify-end space-x-3 pt-4 border-t border-water-200 dark:border-water-700">

@@ -3,6 +3,7 @@ import authService from './authService';
 
 const objectivesService = {
   async list(filters = {}) {
+    const user = authService.getCurrentUser();
     const params = new URLSearchParams();
     if (filters.annee) params.append('annee', filters.annee);
     if (filters.mois) params.append('mois', filters.mois);
@@ -10,19 +11,26 @@ const objectivesService = {
     const queryString = params.toString();
     const url = queryString ? `/objectives?${queryString}` : '/objectives';
     
-    const res = await api.get(url);
+    const res = await api.get(url, {
+      headers: {
+        'X-Role': user?.role || 'Administrateur',
+        'X-User-Id': user?.id || ''
+      }
+    });
     return res.data || [];
   },
 
   async getAgences() {
-    const res = await api.get('/objectives/agences');
+    const user = authService.getCurrentUser();
+    const res = await api.get('/objectives/agences', {
+      headers: {
+        'X-Role': user?.role || 'Administrateur',
+        'X-User-Id': user?.id || ''
+      }
+    });
     return res.data || [];
   },
 
-  async getCategories() {
-    const res = await api.get('/objectives/categories');
-    return res.data || [];
-  },
 
   async save(payload) {
     const user = authService.getCurrentUser();

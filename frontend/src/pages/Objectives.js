@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Building2, Calendar, Pencil, Trash2, Plus } from 'lucide-react';
 import objectivesService from '../services/objectivesService';
 import authService from '../services/authService';
@@ -7,7 +7,6 @@ import ObjectivesModal from '../components/ObjectivesModal';
 function Objectives() {
   const [objectives, setObjectives] = useState([]);
   const [agences, setAgences] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -30,20 +29,56 @@ function Objectives() {
   };
 
   // Fonction pour vérifier si un objectif est trop ancien pour être modifié (> 3 mois)
-  const isObjectiveTooOld = (annee, mois) => {
+  const isObjectiveTooOld = (dateDebut) => {
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    
-    const objectiveDate = new Date(annee, mois - 1, 1);
-    const threeMonthsAgo = new Date(currentYear, currentMonth - 4, 1);
+    const objectiveDate = new Date(dateDebut);
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
     
     return objectiveDate < threeMonthsAgo;
   };
 
+  // Vérifier si une agence a des objectifs pour la période sélectionnée
+  const hasObjectivesForPeriod = (agenceId) => {
+    return objectives.some(obj => obj.AgenceId === agenceId && isDateInObjectiveRange(obj));
+  };
+
+  // Obtenir les objectifs d'une agence pour la période
+  const getObjectivesForAgency = (agenceId) => {
+    return objectives.filter(obj => obj.AgenceId === agenceId && isDateInObjectiveRange(obj));
+  };
+
+  // Vérifier si la période sélectionnée se trouve dans l'intervalle de l'objectif
+  const isDateInObjectiveRange = (objective) => {
+    if (!filters.annee || !filters.mois) return true; // Si pas de filtre, afficher tout
+    
+    // Créer la date de début et fin du mois sélectionné
+    const selectedMonthStart = new Date(filters.annee, filters.mois - 1, 1); // 1er jour du mois
+    const selectedMonthEnd = new Date(filters.annee, filters.mois, 0); // Dernier jour du mois
+    
+    const objectiveStart = new Date(objective.DateDebut);
+    const objectiveEnd = new Date(objective.DateFin);
+    
+    // Vérifier si le mois sélectionné se chevauche avec l'intervalle de l'objectif
+    // Le mois est dans l'intervalle si :
+    // - Le début du mois est avant la fin de l'objectif ET
+    // - La fin du mois est après le début de l'objectif
+    const isInRange = selectedMonthStart <= objectiveEnd && selectedMonthEnd >= objectiveStart;
+    
+    
+    return isInRange;
+  };
+
   // Charger les données
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+
+    // Vérifier que l'utilisateur est connecté
+    const user = authService.getCurrentUser();
+    if (!user) {
+      setError('Utilisateur non connecté');
       setLoading(false);
       return;
     }
@@ -52,23 +87,22 @@ function Objectives() {
       setLoading(true);
       setError(null);
       
-      // Charger les agences, catégories et les objectifs en parallèle
-      const [objectivesData, agencesData, categoriesData] = await Promise.all([
-        objectivesService.list(filters),
-        objectivesService.getAgences(),
-        objectivesService.getCategories()
+      // Charger TOUS les objectifs (sans filtre de date) et les agences
+      const [objectivesData, agencesData] = await Promise.all([
+        objectivesService.list({}), // Pas de filtre pour charger tous les objectifs
+        objectivesService.getAgences()
       ]);
+      
       
       setObjectives(objectivesData);
       setAgences(agencesData);
-      setCategories(categoriesData);
     } catch (e) {
       console.error('Erreur:', e);
       setError('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin]); // Retirer 'filters' des dépendances
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (row) => { setEditing(row); setModalOpen(true); };
@@ -100,20 +134,22 @@ function Objectives() {
 
   // Chargement initial
   useEffect(() => {
-    loadData();
-  }, [isAdmin]);
-
-  // Recharger quand les filtres changent
-  useEffect(() => {
     if (isAdmin) {
       loadData();
     }
-  }, [filters.annee, filters.mois]);
+  }, [isAdmin, loadData]);
+
+  // Recharger les agences quand les filtres changent (pour mettre à jour l'affichage)
+  useEffect(() => {
+    if (isAdmin && agences.length > 0) {
+      // Forcer le re-render des cartes d'agences avec les nouveaux filtres
+    }
+  }, [filters, isAdmin, agences.length]);
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({
       ...prev,
-      [field]: parseInt(value)
+      [field]: value === null || value === '' ? null : parseInt(value)
     }));
   };
 
@@ -123,6 +159,7 @@ function Objectives() {
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Accès Refusé</h1>
           <p className="text-gray-600">Vous n'avez pas les permissions nécessaires.</p>
+          <p className="text-sm text-gray-500 mt-2">Veuillez vous connecter avec un compte administrateur.</p>
         </div>
       </div>
     );
@@ -160,50 +197,70 @@ function Objectives() {
         Objectifs des Agences
       </h1>
 
-      {/* Filtres */}
-      <div className="bg-white border rounded-lg p-4 mb-6 shadow-sm">
-        <div className="flex items-center gap-4 mb-4">
-          <Calendar className="h-5 w-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-800">Filtres</h3>
-        </div>
-        
-        <div className="flex gap-4 items-end">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Année</label>
-            <select
-              value={filters.annee}
-              onChange={(e) => handleFilterChange('annee', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {Array.from({ length: 11 }, (_, i) => 2020 + i).map((year) => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mois</label>
-            <select
-              value={filters.mois}
-              onChange={(e) => handleFilterChange('mois', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                <option key={month} value={month}>{getMonthName(month)}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        <div className="mt-3 text-sm text-gray-600">
-          Affichage des objectifs pour <strong>{getMonthName(filters.mois)} {filters.annee}</strong>
-        </div>
-      </div>
 
-      <div className="mb-4 flex justify-end">
-        <button onClick={openCreate} className="inline-flex items-center gap-2 px-4 py-2 rounded bg-blue-600 text-white">
-          <Plus className="h-4 w-4" /> Ajouter
-        </button>
+      {/* Filtre compact */}
+      <div className="mb-4 bg-white border rounded-lg p-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-gray-700">Filtre par période:</span>
+            </div>
+            <select 
+              value={filters.annee || ''} 
+              onChange={(e) => handleFilterChange('annee', e.target.value || null)}
+              className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Toutes les années</option>
+              <option value={2024}>2024</option>
+              <option value={2025}>2025</option>
+              <option value={2026}>2026</option>
+            </select>
+            <select 
+              value={filters.mois || ''} 
+              onChange={(e) => handleFilterChange('mois', e.target.value || null)}
+              className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Tous les mois</option>
+              <option value={1}>Janvier</option>
+              <option value={2}>Février</option>
+              <option value={3}>Mars</option>
+              <option value={4}>Avril</option>
+              <option value={5}>Mai</option>
+              <option value={6}>Juin</option>
+              <option value={7}>Juillet</option>
+              <option value={8}>Août</option>
+              <option value={9}>Septembre</option>
+              <option value={10}>Octobre</option>
+              <option value={11}>Novembre</option>
+              <option value={12}>Décembre</option>
+            </select>
+            <div className="flex gap-1">
+              <button 
+                onClick={() => setFilters({ annee: new Date().getFullYear(), mois: new Date().getMonth() + 1 })}
+                className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Actuel
+              </button>
+              <button 
+                onClick={() => setFilters({ annee: null, mois: null })}
+                className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Tous
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {filters.annee && filters.mois && (
+              <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                {objectives.filter(obj => isDateInObjectiveRange(obj)).length} actif(s)
+              </span>
+            )}
+            <button onClick={openCreate} className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
+              <Plus className="h-3 w-3" /> Ajouter
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Affichage des agences et objectifs */}
@@ -222,9 +279,8 @@ function Objectives() {
               <thead className="bg-gray-50 text-gray-700">
                 <tr>
                   <th className="px-4 py-2 text-left">Agence</th>
-                  <th className="px-4 py-2 text-left">Catégorie</th>
+                  <th className="px-4 py-2 text-left">Titre</th>
                   <th className="px-4 py-2 text-left">Période</th>
-                  <th className="px-4 py-2 text-left">Type</th>
                   <th className="px-4 py-2 text-left">Encaissement</th>
                   <th className="px-4 py-2 text-left">Coupures</th>
                   <th className="px-4 py-2 text-left">Rétablissements</th>
@@ -239,15 +295,19 @@ function Objectives() {
               </thead>
               <tbody>
                 {objectives.map((o) => {
-                  const isTooOld = isObjectiveTooOld(o.Annee, o.Mois);
+                  const isTooOld = isObjectiveTooOld(o.DateDebut);
                   return (
                     <tr key={`${o.ObjectifId}`} className="border-t">
                       <td className="px-4 py-2">{o.Nom_Agence}</td>
-                      <td className="px-4 py-2">{o.CategorieLibelle || 'Toutes catégories'}</td>
+                      <td className="px-4 py-2">
+                        <div className="font-medium">{o.Titre}</div>
+                        {o.Description && (
+                          <div className="text-xs text-gray-500 mt-1">{o.Description}</div>
+                        )}
+                      </td>
                       <td className="px-4 py-2">
                         {new Date(o.DateDebut).toLocaleDateString('fr-FR')} - {new Date(o.DateFin).toLocaleDateString('fr-FR')}
                       </td>
-                      <td className="px-4 py-2">{o.TypePeriode}</td>
                       <td className="px-4 py-2">{o.Obj_Encaissement ? new Intl.NumberFormat('fr-DZ', { style: 'currency', currency: 'DZD' }).format(o.Obj_Encaissement) : '-'}</td>
                       <td className="px-4 py-2">{o.Obj_Coupures ?? '-'}</td>
                       <td className="px-4 py-2">{o.Obj_Retablissements ?? '-'}</td>
@@ -280,7 +340,7 @@ function Objectives() {
         </div>
       )}
 
-      {/* Affichage des agences sans objectifs */}
+      {/* Affichage des agences avec statut des objectifs */}
       {agences.length > 0 && (
         <div className="mt-8">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -288,29 +348,83 @@ function Objectives() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {agences.map((agence) => {
-              const hasObjective = objectives.some(obj => obj.AgenceId === agence.AgenceId);
+              const hasObjectives = hasObjectivesForPeriod(agence.AgenceId);
+              const agencyObjectives = getObjectivesForAgency(agence.AgenceId);
+              
               return (
                 <div 
                   key={agence.AgenceId} 
-                  className={`p-3 rounded-lg border ${
-                    hasObjective 
+                  className={`p-4 rounded-lg border shadow-sm hover:shadow-md transition-shadow ${
+                    hasObjectives 
                       ? 'bg-green-50 border-green-200' 
                       : 'bg-gray-50 border-gray-200'
                   }`}
                 >
-                  <div className="flex items-center">
-                    <Building2 className={`h-4 w-4 mr-2 ${
-                      hasObjective ? 'text-green-600' : 'text-gray-400'
-                    }`} />
-                    <span className={`font-medium ${
-                      hasObjective ? 'text-green-800' : 'text-gray-600'
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-blue-600" />
+                      <span className="font-medium text-gray-900">{agence.Nom_Agence}</span>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      hasObjectives 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-600'
                     }`}>
-                      {agence.Nom_Agence}
+                      {hasObjectives ? '✓ Objectifs définis' : '⚠ Aucun objectif'}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {hasObjective ? 'Objectifs définis' : 'Aucun objectif'}
-                  </div>
+                  
+                  {hasObjectives && (
+                    <div className="mb-3">
+                      <p className="text-sm text-gray-600 mb-2">
+                        {agencyObjectives.length} objectif{agencyObjectives.length > 1 ? 's' : ''} défini{agencyObjectives.length > 1 ? 's' : ''} :
+                      </p>
+                      <div className="space-y-1">
+                        {agencyObjectives.map((obj) => {
+                          const isInRange = isDateInObjectiveRange(obj);
+                          return (
+                            <div key={obj.ObjectifId} className={`text-sm bg-white p-3 rounded-lg border-2 transition-all ${
+                              isInRange 
+                                ? 'border-green-200 bg-green-50' 
+                                : 'border-gray-200'
+                            }`}>
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-800">{obj.Titre}</div>
+                                  <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                                    <Calendar className="h-3 w-3" />
+                                    {new Date(obj.DateDebut).toLocaleDateString('fr-FR')} - {new Date(obj.DateFin).toLocaleDateString('fr-FR')}
+                                  </div>
+                                  {isInRange && (
+                                    <div className="mt-2 inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                      ✓ Période active
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1 ml-2">
+                                  <button
+                                    onClick={() => openEdit(obj)}
+                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                    title="Modifier"
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(obj.ObjectifId)}
+                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                    title="Supprimer"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
                 </div>
               );
             })}
@@ -324,7 +438,6 @@ function Objectives() {
       onSubmit={handleSubmitModal}
       initialValues={editing}
       agences={agences}
-      categories={categories}
     />
     </>
   );

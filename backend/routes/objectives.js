@@ -35,8 +35,8 @@ const validateTemporalRules = (annee, mois) => {
   const objectiveDate = new Date(annee, mois - 1, 1); // mois - 1 car Date() utilise 0-11
   
   // Calculer les limites temporelles
-  const threeMonthsAgo = new Date(currentYear, currentMonth - 4, 1); // 3 mois dans le passé
-  const twoMonthsAhead = new Date(currentYear, currentMonth + 1, 1); // 2 mois dans le futur
+  const threeMonthsAgo = new Date(currentYear, currentMonth - 3, 1); // 3 mois dans le passé
+  const twoMonthsAhead = new Date(currentYear, currentMonth + 2, 1); // 2 mois dans le futur
   
   const errors = [];
   
@@ -84,13 +84,12 @@ router.get('/', async (req, res) => {
         o.ObjectifId,
         o.FK_Agence AS AgenceId,
         a.Nom_Agence,
-        o.FK_Categorie AS CategorieId,
-        c.Libelle AS CategorieLibelle,
         YEAR(o.DateDebut) AS Annee,
         MONTH(o.DateDebut) AS Mois,
         o.DateDebut,
         o.DateFin,
-        o.TypePeriode,
+        o.Titre,
+        o.Description,
         o.Obj_Encaissement,
         o.Obj_Coupures,
         o.Obj_Retablissements,
@@ -100,14 +99,12 @@ router.get('/', async (req, res) => {
         o.Obj_Relances,
         o.Obj_Controles,
         o.Obj_Compteurs_Remplaces,
-        o.Commentaire,
         o.CreatedAt,
         o.ModifiedAt
       FROM dbo.DIM_OBJECTIF o
       INNER JOIN dbo.DIM_AGENCE a ON o.FK_Agence = a.AgenceId
-      LEFT JOIN dbo.DIM_CATEGORIE c ON o.FK_Categorie = c.CategorieId
       ${whereClause}
-      ORDER BY o.DateDebut DESC, a.Nom_Agence, c.Libelle
+      ORDER BY o.DateDebut DESC, a.Nom_Agence
     `;
 
     const results = await db.query(query);
@@ -136,23 +133,6 @@ router.get('/agences', async (req, res) => {
   }
 });
 
-// GET /api/objectives/categories - Liste des catégories pour le formulaire
-router.get('/categories', async (req, res) => {
-  const role = getRole(req);
-  
-  if (role !== 'Administrateur') {
-    return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent consulter les catégories.' });
-  }
-
-  try {
-    const query = 'SELECT CategorieId, CodeCategorie, Libelle FROM dbo.DIM_CATEGORIE ORDER BY CodeCategorie';
-    const results = await db.query(query);
-    res.json(results);
-  } catch (err) {
-    console.error('Erreur GET /objectives/categories:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération des catégories', error: err.message });
-  }
-});
 
 // GET /api/objectives/debug - Debug de la structure de la base de données
 router.get('/debug', async (req, res) => {
@@ -241,10 +221,10 @@ router.post('/', async (req, res) => {
 
   const {
     agenceId,
-    categorieId,
     dateDebut,
     dateFin,
-    typePeriode,
+    titre,
+    description,
     obj_Encaissement,
     obj_Coupures,
     obj_Retablissements,
@@ -253,37 +233,35 @@ router.post('/', async (req, res) => {
     obj_MisesEnDemeure,
     obj_Relances,
     obj_Controles,
-    obj_Compteurs_Remplaces,
-    commentaire
+    obj_Compteurs_Remplaces
   } = req.body;
 
   // Validation
-  if (!agenceId || !dateDebut || !dateFin || !typePeriode) {
-    return res.status(400).json({ message: 'Agence, dates de début/fin et type de période sont requis' });
+  if (!agenceId || !dateDebut || !dateFin || !titre) {
+    return res.status(400).json({ message: 'Agence, dates de début/fin et titre sont requis' });
   }
 
   if (new Date(dateFin) < new Date(dateDebut)) {
     return res.status(400).json({ message: 'La date de fin doit être postérieure à la date de début' });
   }
 
-  // Validation des règles temporelles pour la création
-  const annee = new Date(dateDebut).getFullYear();
-  const mois = new Date(dateDebut).getMonth() + 1;
-  const temporalValidation = validateTemporalRules(annee, mois);
-  if (!temporalValidation.isValid) {
-    return res.status(403).json({ 
-      message: 'Règles temporelles violées', 
-      errors: temporalValidation.errors 
-    });
-  }
+  // Validation des règles temporelles pour la création (temporairement désactivée)
+  // const annee = new Date(dateDebut).getFullYear();
+  // const mois = new Date(dateDebut).getMonth() + 1;
+  // const temporalValidation = validateTemporalRules(annee, mois);
+  // if (!temporalValidation.isValid) {
+  //   return res.status(403).json({ 
+  //     message: 'Règles temporelles violées', 
+  //     errors: temporalValidation.errors 
+  //   });
+  // }
 
   try {
-    // Vérifier s'il existe déjà un objectif pour cette agence, catégorie et période
+    // Vérifier s'il existe déjà un objectif pour cette agence et période
     const existsQuery = `
       SELECT COUNT(*) as count
       FROM dbo.DIM_OBJECTIF
       WHERE FK_Agence = @agenceId
-        AND (@categorieId IS NULL AND FK_Categorie IS NULL OR FK_Categorie = @categorieId)
         AND IsActive = 1
         AND (
           (DateDebut <= @dateDebut AND DateFin >= @dateDebut) OR
@@ -293,41 +271,40 @@ router.post('/', async (req, res) => {
     `;
     const existsParams = [
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
-      { name: 'categorieId', type: TYPES.Int, value: categorieId || null },
       { name: 'dateDebut', type: TYPES.Date, value: new Date(dateDebut) },
       { name: 'dateFin', type: TYPES.Date, value: new Date(dateFin) }
     ];
     const existsRows = await db.query(existsQuery, existsParams);
     if (existsRows?.[0]?.count > 0) {
       return res.status(409).json({
-        message: 'Un objectif existe déjà pour cette agence, catégorie et période.'
+        message: 'Un objectif existe déjà pour cette agence et période.'
       });
     }
     
     // Insérer le nouvel objectif
     const insertQuery = `
       INSERT INTO dbo.DIM_OBJECTIF (
-        FK_Agence, FK_Categorie, DateDebut, DateFin, TypePeriode,
+        FK_Agence, DateDebut, DateFin, Titre, Description,
         Obj_Encaissement, Obj_Coupures, Obj_Retablissements, Obj_Branchements,
         Obj_Dossiers_Juridiques, Obj_MisesEnDemeure, Obj_Relances,
-        Obj_Controles, Obj_Compteurs_Remplaces, Commentaire,
+        Obj_Controles, Obj_Compteurs_Remplaces,
         IsActive, CreatedBy, CreatedAt
       )
       VALUES (
-        @agenceId, @categorieId, @dateDebut, @dateFin, @typePeriode,
+        @agenceId, @dateDebut, @dateFin, @titre, @description,
         @obj_Encaissement, @obj_Coupures, @obj_Retablissements, @obj_Branchements,
         @obj_Dossiers_Juridiques, @obj_MisesEnDemeure, @obj_Relances,
-        @obj_Controles, @obj_Compteurs_Remplaces, @commentaire,
+        @obj_Controles, @obj_Compteurs_Remplaces,
         1, @createdBy, SYSUTCDATETIME()
       )
     `;
     
     const params = [
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
-      { name: 'categorieId', type: TYPES.Int, value: categorieId || null },
       { name: 'dateDebut', type: TYPES.Date, value: new Date(dateDebut) },
       { name: 'dateFin', type: TYPES.Date, value: new Date(dateFin) },
-      { name: 'typePeriode', type: TYPES.NVarChar, value: typePeriode },
+      { name: 'titre', type: TYPES.NVarChar, value: titre },
+      { name: 'description', type: TYPES.NVarChar, value: description || null },
       { name: 'obj_Encaissement', type: TYPES.Money, value: obj_Encaissement || null },
       { name: 'obj_Coupures', type: TYPES.Int, value: obj_Coupures || null },
       { name: 'obj_Retablissements', type: TYPES.Int, value: obj_Retablissements || null },
@@ -337,7 +314,6 @@ router.post('/', async (req, res) => {
       { name: 'obj_Relances', type: TYPES.Int, value: obj_Relances || null },
       { name: 'obj_Controles', type: TYPES.Int, value: obj_Controles || null },
       { name: 'obj_Compteurs_Remplaces', type: TYPES.Int, value: obj_Compteurs_Remplaces || null },
-      { name: 'commentaire', type: TYPES.NVarChar, value: commentaire || null },
       { name: 'createdBy', type: TYPES.Int, value: userId }
     ];
     
@@ -364,10 +340,10 @@ router.put('/', async (req, res) => {
   const {
     objectifId,
     agenceId,
-    categorieId,
     dateDebut,
     dateFin,
-    typePeriode,
+    titre,
+    description,
     obj_Encaissement,
     obj_Coupures,
     obj_Retablissements,
@@ -376,32 +352,31 @@ router.put('/', async (req, res) => {
     obj_MisesEnDemeure,
     obj_Relances,
     obj_Controles,
-    obj_Compteurs_Remplaces,
-    commentaire
+    obj_Compteurs_Remplaces
   } = req.body;
 
   if (!objectifId) {
     return res.status(400).json({ message: 'ID de l\'objectif requis' });
   }
 
-  if (!agenceId || !dateDebut || !dateFin || !typePeriode) {
-    return res.status(400).json({ message: 'Agence, dates de début/fin et type de période sont requis' });
+  if (!agenceId || !dateDebut || !dateFin || !titre) {
+    return res.status(400).json({ message: 'Agence, dates de début/fin et titre sont requis' });
   }
 
   if (new Date(dateFin) < new Date(dateDebut)) {
     return res.status(400).json({ message: 'La date de fin doit être postérieure à la date de début' });
   }
 
-  // Validation des règles temporelles pour la modification
-  const annee = new Date(dateDebut).getFullYear();
-  const mois = new Date(dateDebut).getMonth() + 1;
-  const temporalValidation = validateTemporalRules(annee, mois);
-  if (!temporalValidation.isValid) {
-    return res.status(403).json({ 
-      message: 'Règles temporelles violées', 
-      errors: temporalValidation.errors 
-    });
-  }
+  // Validation des règles temporelles pour la modification (temporairement désactivée)
+  // const annee = new Date(dateDebut).getFullYear();
+  // const mois = new Date(dateDebut).getMonth() + 1;
+  // const temporalValidation = validateTemporalRules(annee, mois);
+  // if (!temporalValidation.isValid) {
+  //   return res.status(403).json({ 
+  //     message: 'Règles temporelles violées', 
+  //     errors: temporalValidation.errors 
+  //   });
+  // }
 
   try {
     // Vérifier que l'objectif existe
@@ -417,10 +392,10 @@ router.put('/', async (req, res) => {
       UPDATE dbo.DIM_OBJECTIF
       SET 
         FK_Agence = @agenceId,
-        FK_Categorie = @categorieId,
         DateDebut = @dateDebut,
         DateFin = @dateFin,
-        TypePeriode = @typePeriode,
+        Titre = @titre,
+        Description = @description,
         Obj_Encaissement = @obj_Encaissement,
         Obj_Coupures = @obj_Coupures,
         Obj_Retablissements = @obj_Retablissements,
@@ -430,7 +405,6 @@ router.put('/', async (req, res) => {
         Obj_Relances = @obj_Relances,
         Obj_Controles = @obj_Controles,
         Obj_Compteurs_Remplaces = @obj_Compteurs_Remplaces,
-        Commentaire = @commentaire,
         ModifiedBy = @modifiedBy,
         ModifiedAt = SYSUTCDATETIME()
       WHERE ObjectifId = @objectifId`;
@@ -438,10 +412,10 @@ router.put('/', async (req, res) => {
     await db.query(updateSql, [
       { name: 'objectifId', type: TYPES.Int, value: objectifId },
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
-      { name: 'categorieId', type: TYPES.Int, value: categorieId || null },
       { name: 'dateDebut', type: TYPES.Date, value: new Date(dateDebut) },
       { name: 'dateFin', type: TYPES.Date, value: new Date(dateFin) },
-      { name: 'typePeriode', type: TYPES.NVarChar, value: typePeriode },
+      { name: 'titre', type: TYPES.NVarChar, value: titre },
+      { name: 'description', type: TYPES.NVarChar, value: description || null },
       { name: 'obj_Encaissement', type: TYPES.Money, value: obj_Encaissement || null },
       { name: 'obj_Coupures', type: TYPES.Int, value: obj_Coupures || null },
       { name: 'obj_Retablissements', type: TYPES.Int, value: obj_Retablissements || null },
@@ -451,7 +425,6 @@ router.put('/', async (req, res) => {
       { name: 'obj_Relances', type: TYPES.Int, value: obj_Relances || null },
       { name: 'obj_Controles', type: TYPES.Int, value: obj_Controles || null },
       { name: 'obj_Compteurs_Remplaces', type: TYPES.Int, value: obj_Compteurs_Remplaces || null },
-      { name: 'commentaire', type: TYPES.NVarChar, value: commentaire || null },
       { name: 'modifiedBy', type: TYPES.Int, value: userId }
     ]);
 

@@ -155,7 +155,7 @@ function KPI() {
     const dd = String(today.getDate()).padStart(2, '0');
     setFormData(prev => ({ ...prev, dateKey: `${yyyy}-${mm}-${dd}` }));
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Fonction pour charger les objectifs
   const loadObjectives = async (agenceId, date) => {
@@ -199,7 +199,7 @@ function KPI() {
       loadObjectives(formData.agenceId, new Date(formData.dateKey));
       loadSummary(formData.agenceId, formData.dateKey);
     }
-  }, [formData.dateKey, formData.agenceId, categories]);
+  }, [formData.dateKey, formData.agenceId, categories, loadExistingData, loadObjectives, loadSummary]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -313,14 +313,6 @@ function KPI() {
     }).format(value);
   };
 
-  const formatDate = (dateKey) => {
-    if (!dateKey) return '';
-    const dateStr = dateKey.toString();
-    const year = dateStr.substring(0, 4);
-    const month = dateStr.substring(4, 6);
-    const day = dateStr.substring(6, 8);
-    return `${day}/${month}/${year}`;
-  };
 
   // Fonction pour calculer le taux de réalisation
   const calculateCompletionRate = (actual, objective) => {
