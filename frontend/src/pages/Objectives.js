@@ -256,9 +256,6 @@ function Objectives() {
                 {objectives.filter(obj => isDateInObjectiveRange(obj)).length} actif(s)
               </span>
             )}
-            <button onClick={openCreate} className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
-              <Plus className="h-3 w-3" /> Ajouter
-            </button>
           </div>
         </div>
       </div>
@@ -274,7 +271,7 @@ function Objectives() {
         </div>
       ) : (
         <div className="bg-white border rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-96">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 text-gray-700">
                 <tr>
@@ -422,6 +419,22 @@ function Objectives() {
                           );
                         })}
                       </div>
+                    </div>
+                  )}
+                  
+                  {!hasObjectives && (
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => {
+                          setEditing({ FK_Agence: agence.AgenceId });
+                          setModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        title="Ajouter un objectif"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Ajouter un objectif
+                      </button>
                     </div>
                   )}
                   

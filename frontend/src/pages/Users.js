@@ -130,7 +130,7 @@ function Users() {
         await userService.update(editUserId, payload);
         await swalSuccess('Utilisateur modifié avec succès.');
       } else {
-        await userService.create(payload);
+      await userService.create(payload);
         await swalSuccess('Utilisateur créé avec succès.');
       }
       setOpen(false);
@@ -205,13 +205,13 @@ function Users() {
                   <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Email</th>
                   <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Agence</th>
                   <th className="py-3 px-6 text-center font-semibold text-sm">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-              {loading && (
+          </tr>
+        </thead>
+        <tbody>
+          {loading && (
                 <tr><td className="py-2 px-6 text-sm" colSpan="5">Chargement…</td></tr>
-              )}
-              {!loading && users.map((u, i) => (
+          )}
+          {!loading && users.map((u, i) => (
                 <tr key={i} className="border-t hover:bg-blue-50">
                   <td className="py-2 px-6 whitespace-nowrap text-sm">{u.username}</td>
                   <td className="py-2 px-6 whitespace-nowrap text-sm">{u.role}</td>
@@ -228,10 +228,10 @@ function Users() {
                       <Printer className="h-3.5 w-3.5 text-gray-700" />
                     </button>
                   </td>
-                </tr>
-              ))}
-              </tbody>
-            </table>
+            </tr>
+          ))}
+        </tbody>
+      </table>
           </div>
 
           <UsersAddModal
