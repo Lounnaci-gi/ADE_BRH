@@ -1,33 +1,27 @@
 const express = require('express');
-const { Connection, Request, TYPES } = require('tedious');
 const db = require('../utils/db');
+const { TYPES } = db;
 
 const router = express.Router();
-
-const getConfig = () => ({
-  server: process.env.DB_SERVER || 'localhost',
-  authentication: {
-    type: 'default',
-    options: {
-      userName: process.env.DB_USER,
-      password: process.env.DB_PASSWORD
-    }
-  },
-  options: {
-    database: process.env.DB_DATABASE,
-    trustServerCertificate: true,
-    encrypt: false,
-    instanceName: 'SQLEXPRESS',
-    enableArithAbort: true
-  }
-});
 
 // GET /api/kpi - liste des KPIs avec jointures (refactor db.query)
 router.get('/', async (req, res) => {
   try {
+    console.log('GET /kpi - Début de la requête');
+    
+    // D'abord vérifier si la table existe et a des données
+    const countQuery = `SELECT COUNT(*) as count FROM dbo.FAIT_KPI_ADE`;
+    const countResult = await db.query(countQuery, []);
+    console.log('Nombre d\'enregistrements dans FAIT_KPI_ADE:', countResult[0]?.count || 0);
+    
+    if (countResult[0]?.count === 0) {
+      console.log('Table FAIT_KPI_ADE vide, retour d\'un tableau vide');
+      return res.json([]);
+    }
+    
     const query = `
       SELECT TOP 500
-        k.DateKey,
+        k.DateKPI,
         k.AgenceId,
         k.CategorieId,
         a.Nom_Agence,
@@ -35,12 +29,15 @@ router.get('/', async (req, res) => {
       FROM dbo.FAIT_KPI_ADE AS k
       LEFT JOIN dbo.DIM_AGENCE AS a ON k.AgenceId = a.AgenceId
       LEFT JOIN dbo.DIM_CATEGORIE AS c ON k.CategorieId = c.CategorieId
-      ORDER BY k.DateKey DESC, a.Nom_Agence, c.Libelle`;
+      ORDER BY k.DateKPI DESC, a.Nom_Agence, c.Libelle`;
 
+    console.log('Exécution de la requête principale');
     const rows = await db.query(query, []);
+    console.log('Résultats obtenus:', rows.length, 'lignes');
     res.json(rows || []);
   } catch (err) {
     console.error('Erreur GET /kpi:', err);
+    console.error('Stack trace:', err.stack);
     res.status(500).json({ message: 'Erreur lors de la lecture des KPIs', error: err.message });
   }
 });
@@ -51,11 +48,16 @@ router.post('/', async (req, res) => {
     const {
       dateKey, agenceId, categorieId,
       encaissementJournalierGlobal, nbCoupures, mtCoupures,
+      nbRetablissements, mtRetablissements,
+      nbBranchements, mtBranchements,
+      nbCompteursRemplaces, mtCompteursRemplaces,
       nbDossiersJuridiques, mtDossiersJuridiques,
+      nbControles, mtControles,
       nbMisesEnDemeureEnvoyees, mtMisesEnDemeureEnvoyees,
       nbMisesEnDemeureReglees, mtMisesEnDemeureReglees,
       nbRelancesEnvoyees, mtRelancesEnvoyees,
       nbRelancesReglees, mtRelancesReglees,
+      observation,
       objCoupures, objDossiersJuridiques, objMisesEnDemeureEnvoyees, objRelancesEnvoyees
     } = req.body || {};
 
@@ -63,13 +65,34 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'DateKey, AgenceId et CategorieId sont requis' });
     }
 
-    // UPSERT (MERGE) avec tous les champs - INSERT si n'existe pas, UPDATE si existe
-    const query = `
-      MERGE dbo.FAIT_KPI_ADE AS target
-      USING (SELECT @dateKey AS DateKey, @agenceId AS AgenceId, @categorieId AS CategorieId) AS source
-      ON (target.DateKey = source.DateKey AND target.AgenceId = source.AgenceId AND target.CategorieId = source.CategorieId)
-      WHEN MATCHED THEN
-        UPDATE SET
+    // Convertir dateKey (YYYYMMDD) en format DATE
+    const year1 = parseInt(dateKey.toString().substring(0, 4));
+    const month1 = parseInt(dateKey.toString().substring(4, 6));
+    const day1 = parseInt(dateKey.toString().substring(6, 8));
+    const dateValue = new Date(year1, month1 - 1, day1);
+
+    // D'abord vérifier si l'enregistrement existe
+    const checkQuery = `
+      SELECT COUNT(*) as count 
+      FROM dbo.FAIT_KPI_ADE 
+      WHERE DateKPI = @dateKey AND AgenceId = @agenceId AND CategorieId = @categorieId
+    `;
+    
+    console.log('Checking if record exists...');
+    const checkResult = await db.query(checkQuery, [
+      { name: 'dateKey', type: TYPES.Date, value: dateValue },
+      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
+      { name: 'categorieId', type: TYPES.Int, value: parseInt(categorieId, 10) }
+    ]);
+    
+    const exists = checkResult[0]?.count > 0;
+    console.log('Record exists:', exists);
+    
+    let query;
+    if (exists) {
+      // UPDATE
+      query = `
+        UPDATE dbo.FAIT_KPI_ADE SET
           Nb_RelancesEnvoyees = @nbRelancesEnvoyees,
           Mt_RelancesEnvoyees = @mtRelancesEnvoyees,
           Nb_RelancesReglees = @nbRelancesReglees,
@@ -82,32 +105,54 @@ router.post('/', async (req, res) => {
           Mt_Dossiers_Juridiques = @mtDossiersJuridiques,
           Nb_Coupures = @nbCoupures,
           Mt_Coupures = @mtCoupures,
+          Nb_Retablissements = @nbRetablissements,
+          Mt_Retablissements = @mtRetablissements,
+          Nb_Branchements = @nbBranchements,
+          Mt_Branchements = @mtBranchements,
+          Nb_Compteurs_Remplaces = @nbCompteursRemplaces,
+          Mt_Compteurs_Remplaces = @mtCompteursRemplaces,
+          Nb_Controles = @nbControles,
+          Mt_Controles = @mtControles,
           Encaissement_Journalier_Global = @encaissementJournalierGlobal,
+          Observation = @observation,
           ModifiedAt = SYSUTCDATETIME()
-      WHEN NOT MATCHED THEN
-        INSERT (
-        DateKey, AgenceId, CategorieId,
-        Nb_RelancesEnvoyees, Mt_RelancesEnvoyees,
-        Nb_RelancesReglees, Mt_RelancesReglees,
-        Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
+        WHERE DateKPI = @dateKey AND AgenceId = @agenceId AND CategorieId = @categorieId
+      `;
+    } else {
+      // INSERT
+      query = `
+        INSERT INTO dbo.FAIT_KPI_ADE (
+          DateKPI, AgenceId, CategorieId,
+          Nb_RelancesEnvoyees, Mt_RelancesEnvoyees,
+          Nb_RelancesReglees, Mt_RelancesReglees,
+          Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
           Nb_MisesEnDemeure_Reglees, Mt_MisesEnDemeure_Reglees,
-        Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques,
-        Nb_Coupures, Mt_Coupures,
-        Encaissement_Journalier_Global
-      ) VALUES (
-        @dateKey, @agenceId, @categorieId,
-        @nbRelancesEnvoyees, @mtRelancesEnvoyees,
-        @nbRelancesReglees, @mtRelancesReglees,
-        @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
+          Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques,
+          Nb_Coupures, Mt_Coupures,
+          Nb_Retablissements, Mt_Retablissements,
+          Nb_Branchements, Mt_Branchements,
+          Nb_Compteurs_Remplaces, Mt_Compteurs_Remplaces,
+          Nb_Controles, Mt_Controles,
+          Encaissement_Journalier_Global, Observation
+        ) VALUES (
+          @dateKey, @agenceId, @categorieId,
+          @nbRelancesEnvoyees, @mtRelancesEnvoyees,
+          @nbRelancesReglees, @mtRelancesReglees,
+          @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
           @nbMisesEnDemeureReglees, @mtMisesEnDemeureReglees,
-        @nbDossiersJuridiques, @mtDossiersJuridiques,
-        @nbCoupures, @mtCoupures,
-        @encaissementJournalierGlobal
-        );
-    `;
+          @nbDossiersJuridiques, @mtDossiersJuridiques,
+          @nbCoupures, @mtCoupures,
+          @nbRetablissements, @mtRetablissements,
+          @nbBranchements, @mtBranchements,
+          @nbCompteursRemplaces, @mtCompteursRemplaces,
+          @nbControles, @mtControles,
+          @encaissementJournalierGlobal, @observation
+        )
+      `;
+    }
 
     const params = [
-      { name: 'dateKey', type: TYPES.Int, value: parseInt(dateKey, 10) },
+      { name: 'dateKey', type: TYPES.Date, value: dateValue },
       { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
       { name: 'categorieId', type: TYPES.Int, value: parseInt(categorieId, 10) },
       { name: 'nbRelancesEnvoyees', type: TYPES.Int, value: parseInt(nbRelancesEnvoyees || 0, 10) },
@@ -122,7 +167,16 @@ router.post('/', async (req, res) => {
       { name: 'mtDossiersJuridiques', type: TYPES.Money, value: parseFloat(mtDossiersJuridiques || 0) },
       { name: 'nbCoupures', type: TYPES.Int, value: parseInt(nbCoupures || 0, 10) },
       { name: 'mtCoupures', type: TYPES.Money, value: parseFloat(mtCoupures || 0) },
-      { name: 'encaissementJournalierGlobal', type: TYPES.Money, value: parseFloat(encaissementJournalierGlobal || 0) }
+      { name: 'nbRetablissements', type: TYPES.Int, value: parseInt(nbRetablissements || 0, 10) },
+      { name: 'mtRetablissements', type: TYPES.Money, value: parseFloat(mtRetablissements || 0) },
+      { name: 'nbBranchements', type: TYPES.Int, value: parseInt(nbBranchements || 0, 10) },
+      { name: 'mtBranchements', type: TYPES.Money, value: parseFloat(mtBranchements || 0) },
+      { name: 'nbCompteursRemplaces', type: TYPES.Int, value: parseInt(nbCompteursRemplaces || 0, 10) },
+      { name: 'mtCompteursRemplaces', type: TYPES.Money, value: parseFloat(mtCompteursRemplaces || 0) },
+      { name: 'nbControles', type: TYPES.Int, value: parseInt(nbControles || 0, 10) },
+      { name: 'mtControles', type: TYPES.Money, value: parseFloat(mtControles || 0) },
+      { name: 'encaissementJournalierGlobal', type: TYPES.Money, value: parseFloat(encaissementJournalierGlobal || 0) },
+      { name: 'observation', type: TYPES.NVarChar, value: observation || '' }
     ];
 
     console.log('Attempting to upsert KPI with all fields:', { 
@@ -133,14 +187,21 @@ router.post('/', async (req, res) => {
       nbMisesEnDemeureReglees, mtMisesEnDemeureReglees,
       nbDossiersJuridiques, mtDossiersJuridiques,
       nbCoupures, mtCoupures,
-      encaissementJournalierGlobal
+      nbRetablissements, mtRetablissements,
+      nbBranchements, mtBranchements,
+      nbCompteursRemplaces, mtCompteursRemplaces,
+      nbControles, mtControles,
+      encaissementJournalierGlobal, observation
     });
-    await db.query(query, params);
+    
+    console.log('Executing', exists ? 'UPDATE' : 'INSERT', 'query with params:', params.length, 'parameters');
+    const result = await db.query(query, params);
+    console.log('Query result:', result);
+    
     res.status(200).json({ message: 'KPI sauvegardé avec succès' });
   } catch (err) {
     console.error('Erreur POST /kpi:', err);
-    console.error('Query:', query);
-    console.error('Params:', params);
+    console.error('Error details:', err.message);
     res.status(500).json({ message: 'Erreur lors de la sauvegarde du KPI', error: err.message });
   }
 });
@@ -150,37 +211,69 @@ router.get('/existing', async (req, res) => {
   try {
     const { dateKey, agenceId } = req.query;
     
+    console.log('GET /kpi/existing - Paramètres:', { dateKey, agenceId });
+    
     if (!dateKey || !agenceId) {
       return res.status(400).json({ message: 'DateKey et AgenceId sont requis' });
     }
 
+    // D'abord vérifier si la table existe et a des données
+    const countQuery = `SELECT COUNT(*) as count FROM dbo.FAIT_KPI_ADE WHERE DateKPI = @dateKey AND AgenceId = @agenceId`;
+    // Convertir dateKey (YYYYMMDD) en format DATE
+    const year1 = parseInt(dateKey.toString().substring(0, 4));
+    const month1 = parseInt(dateKey.toString().substring(4, 6));
+    const day1 = parseInt(dateKey.toString().substring(6, 8));
+    const dateValue = new Date(year1, month1 - 1, day1);
+    
+    const countParams = [
+      { name: 'dateKey', type: TYPES.Date, value: dateValue },
+      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) }
+    ];
+    
+    console.log('Vérification du nombre d\'enregistrements...');
+    const countResult = await db.query(countQuery, countParams);
+    console.log('Nombre d\'enregistrements trouvés:', countResult[0]?.count || 0);
+    
+    if (countResult[0]?.count === 0) {
+      console.log('Aucun enregistrement trouvé, retour d\'un tableau vide');
+      return res.json([]);
+    }
+
     const query = `
       SELECT 
-        k.DateKey, k.AgenceId, k.CategorieId,
+        k.DateKPI, k.AgenceId, k.CategorieId,
+        k.Encaissement_Journalier_Global,
         k.Nb_RelancesEnvoyees, k.Mt_RelancesEnvoyees,
         k.Nb_RelancesReglees, k.Mt_RelancesReglees,
         k.Nb_MisesEnDemeure_Envoyees, k.Mt_MisesEnDemeure_Envoyees,
         k.Nb_MisesEnDemeure_Reglees, k.Mt_MisesEnDemeure_Reglees,
         k.Nb_Dossiers_Juridiques, k.Mt_Dossiers_Juridiques,
         k.Nb_Coupures, k.Mt_Coupures,
-        k.Encaissement_Journalier_Global,
+        k.Nb_Retablissements, k.Mt_Retablissements,
+        k.Nb_Branchements, k.Mt_Branchements,
+        k.Nb_Compteurs_Remplaces, k.Mt_Compteurs_Remplaces,
+        k.Nb_Controles, k.Mt_Controles,
+        k.Observation,
         c.Libelle AS CategorieLibelle
       FROM dbo.FAIT_KPI_ADE k
       LEFT JOIN dbo.DIM_CATEGORIE c ON k.CategorieId = c.CategorieId
-      WHERE k.DateKey = @dateKey AND k.AgenceId = @agenceId
+      WHERE k.DateKPI = @dateKey AND k.AgenceId = @agenceId
       ORDER BY k.CategorieId
     `;
 
     const params = [
-      { name: 'dateKey', type: TYPES.Int, value: parseInt(dateKey, 10) },
+      { name: 'dateKey', type: TYPES.Date, value: dateValue },
       { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) }
     ];
 
+    console.log('Exécution de la requête principale...');
     const results = await db.query(query, params);
+    console.log('Résultats obtenus:', results.length, 'lignes');
     res.json(results);
   } catch (err) {
     console.error('Erreur GET /kpi/existing:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération des données existantes' });
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ message: 'Erreur lors de la récupération des données existantes', error: err.message });
   }
 });
 
@@ -217,40 +310,87 @@ router.get('/agences', async (req, res) => {
   }
 });
 
-// GET /api/kpi/objectives - récupérer les objectifs pour une agence et période
+// GET /api/kpi/objectives - récupérer les objectifs pour une agence et période (optionnelle)
 router.get('/objectives', async (req, res) => {
   try {
     const { agenceId, year, month } = req.query;
     
-    if (!agenceId || !year || !month) {
-      return res.status(400).json({ message: 'AgenceId, year et month sont requis' });
+    if (!agenceId) {
+      return res.status(400).json({ message: 'AgenceId est requis' });
     }
 
-    // Get objectives from DIM_OBJECTIF table instead of FAIT_KPI_ADE
-    const query = `
-      SELECT 
-        o.AgenceId,
-        o.Obj_Relances_Envoyees,
-        o.Obj_MisesEnDemeure_Envoyees,
-        o.Obj_Dossiers_Juridiques,
-        o.Obj_Coupures,
-        a.Nom_Agence
-      FROM dbo.DIM_OBJECTIF o
-      LEFT JOIN dbo.DIM_AGENCE a ON o.AgenceId = a.AgenceId
-      WHERE o.AgenceId = @agenceId 
-        AND o.Annee = @year 
-        AND o.Mois = @month
-        AND o.IsDeleted = 0
-    `;
+    let query, params;
 
-    const params = [
-      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
-      { name: 'year', type: TYPES.Int, value: parseInt(year, 10) },
-      { name: 'month', type: TYPES.Int, value: parseInt(month, 10) }
-    ];
+    if (year && month) {
+      // Récupérer les objectifs pour une période spécifique
+      query = `
+        SELECT 
+          o.ObjectifId,
+          o.Titre,
+          o.Description,
+          o.DateDebut,
+          o.DateFin,
+          o.FK_Agence,
+          o.Obj_Encaissement,
+          o.Obj_Relances,
+          o.Obj_MisesEnDemeure,
+          o.Obj_Dossiers_Juridiques,
+          o.Obj_Coupures,
+          o.Obj_Controles,
+          o.Obj_Compteurs_Remplaces,
+          a.Nom_Agence
+        FROM dbo.DIM_OBJECTIF o
+        LEFT JOIN dbo.DIM_AGENCE a ON o.FK_Agence = a.AgenceId
+        WHERE o.FK_Agence = @agenceId 
+          AND o.DateDebut <= @dateValue 
+          AND o.DateFin >= @dateValue
+          AND o.IsActive = 1
+      `;
 
-    const results = await db.query(query, params);
-    res.json(results[0] || null);
+      // Convertir year/month en date pour la comparaison
+      const year1 = parseInt(year, 10);
+      const month1 = parseInt(month, 10);
+      const dateValue = new Date(year1, month1 - 1, 1); // Premier jour du mois
+      
+      params = [
+        { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
+        { name: 'dateValue', type: TYPES.Date, value: dateValue }
+      ];
+
+      const results = await db.query(query, params);
+      res.json(results[0] || null);
+    } else {
+      // Récupérer tous les objectifs de l'agence
+      query = `
+        SELECT 
+          o.ObjectifId,
+          o.Titre,
+          o.Description,
+          o.DateDebut,
+          o.DateFin,
+          o.FK_Agence,
+          o.Obj_Encaissement,
+          o.Obj_Relances,
+          o.Obj_MisesEnDemeure,
+          o.Obj_Dossiers_Juridiques,
+          o.Obj_Coupures,
+          o.Obj_Controles,
+          o.Obj_Compteurs_Remplaces,
+          a.Nom_Agence
+        FROM dbo.DIM_OBJECTIF o
+        LEFT JOIN dbo.DIM_AGENCE a ON o.FK_Agence = a.AgenceId
+        WHERE o.FK_Agence = @agenceId 
+          AND o.IsActive = 1
+        ORDER BY o.DateDebut DESC
+      `;
+      
+      params = [
+        { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) }
+      ];
+
+      const results = await db.query(query, params);
+      res.json(results || []);
+    }
   } catch (err) {
     console.error('Erreur GET /kpi/objectives:', err);
     res.status(500).json({ message: 'Erreur lors de la récupération des objectifs' });
@@ -285,7 +425,7 @@ router.get('/summary', async (req, res) => {
         a.Nom_Agence
       FROM dbo.FAIT_KPI_ADE k
       LEFT JOIN dbo.DIM_AGENCE a ON k.AgenceId = a.AgenceId
-      WHERE k.AgenceId = @agenceId AND k.DateKey = @dateKey
+      WHERE k.AgenceId = @agenceId AND k.DateKPI = @dateKey
       GROUP BY a.Nom_Agence
     `;
 
@@ -296,26 +436,31 @@ router.get('/summary', async (req, res) => {
 
     const objectivesQuery = `
       SELECT 
-        o.Obj_Relances_Envoyees,
-        o.Obj_MisesEnDemeure_Envoyees,
+        o.Obj_Relances,
+        o.Obj_MisesEnDemeure,
         o.Obj_Dossiers_Juridiques,
         o.Obj_Coupures
       FROM dbo.DIM_OBJECTIF o
-      WHERE o.AgenceId = @agenceId 
-        AND o.Annee = @year 
-        AND o.Mois = @month
-        AND o.IsDeleted = 0
+      WHERE o.FK_Agence = @agenceId 
+        AND o.DateDebut <= @dateValue 
+        AND o.DateFin >= @dateValue
+        AND o.IsActive = 1
     `;
 
+    // Convertir dateKey (YYYYMMDD) en format DATE
+    const year1 = parseInt(dateKey.toString().substring(0, 4));
+    const month1 = parseInt(dateKey.toString().substring(4, 6));
+    const day1 = parseInt(dateKey.toString().substring(6, 8));
+    const dateValue = new Date(year1, month1 - 1, day1);
+    
     const dailyParams = [
       { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
-      { name: 'dateKey', type: TYPES.Int, value: parseInt(dateKey, 10) }
+      { name: 'dateKey', type: TYPES.Date, value: dateValue }
     ];
 
     const objectivesParams = [
       { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
-      { name: 'year', type: TYPES.Int, value: year },
-      { name: 'month', type: TYPES.Int, value: month }
+      { name: 'dateValue', type: TYPES.Date, value: dateValue }
     ];
 
     const [dailyResults, objectivesResults] = await Promise.all([

@@ -144,8 +144,7 @@ CREATE TABLE dbo.FAIT_KPI_ADE
     Mt_Dossiers_Juridiques MONEY NOT NULL DEFAULT 0,
     
     -- Contrôles
-    Nb_Controles INT NOT NULL DEFAULT 0,
-    Mt_Controles MONEY NOT NULL DEFAULT 0,
+    Nb_Controles INT NOT NULL DEFAULT 0,   
     
     -- Mises en demeure
     Nb_MisesEnDemeure_Envoyees INT NOT NULL DEFAULT 0,

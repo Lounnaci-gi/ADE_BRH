@@ -11,6 +11,7 @@ function KPI() {
   const [sortedCategories, setSortedCategories] = useState([]);
   const [entriesByCategory, setEntriesByCategory] = useState({});
   const [objectives, setObjectives] = useState(null);
+  const [allObjectives, setAllObjectives] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   // Toast remplacé par SweetAlert2
@@ -37,7 +38,6 @@ function KPI() {
     mtDossiersJuridiques: '',
     // Contrôles
     nbControles: '',
-    mtControles: '',
     // Mises en demeure
     nbMisesEnDemeureEnvoyees: '',
     mtMisesEnDemeureEnvoyees: '',
@@ -54,6 +54,7 @@ function KPI() {
 
   // Fonction pour trier les catégories dans l'ordre souhaité
   const sortCategories = (categories) => {
+    if (!categories || !Array.isArray(categories)) return [];
     const order = ['MENAGE', 'ADMIN', 'ARTCOM', 'IND'];
     return categories.sort((a, b) => {
       const indexA = order.indexOf(a.CodeCategorie);
@@ -80,9 +81,9 @@ function KPI() {
         // Pour les utilisateurs Standard, pré-sélectionner leur agence
         setFormData(prev => ({ ...prev, agenceId: userAgenceId.toString() }));
       }
-      setKpis(kpisData);
-      setAgences(agencesData);
-      setCategories(categoriesData);
+      setKpis(kpisData || []);
+      setAgences(agencesData || []);
+      setCategories(categoriesData || []);
       
       // Trier les catégories dans l'ordre souhaité
       const sortedCats = sortCategories(categoriesData || []);
@@ -101,7 +102,7 @@ function KPI() {
           // Dossiers juridiques
           nbDossiersJuridiques: '', mtDossiersJuridiques: '',
           // Contrôles
-          nbControles: '', mtControles: '',
+          nbControles: '',
           // Mises en demeure
           nbMisesEnDemeureEnvoyees: '', mtMisesEnDemeureEnvoyees: '',
           nbMisesEnDemeureReglees: '', mtMisesEnDemeureReglees: '',
@@ -134,40 +135,84 @@ function KPI() {
       
       const existingData = await kpiService.getExistingData(dateKeyInt, parseInt(agenceId, 10));
       
+      console.log('🔍 Données existantes reçues:', existingData);
+      
       // Réinitialiser les entrées par catégorie
       const init = (sortedCategories || []).reduce((acc, cat) => {
         acc[cat.CategorieId] = {
+          // Encaissement
+          encaissementJournalierGlobal: '',
+          // Relances
           nbRelancesEnvoyees: '', mtRelancesEnvoyees: '',
           nbRelancesReglees: '', mtRelancesReglees: '',
+          // Mises en demeure
           nbMisesEnDemeureEnvoyees: '', mtMisesEnDemeureEnvoyees: '',
           nbMisesEnDemeureReglees: '', mtMisesEnDemeureReglees: '',
+          // Dossiers juridiques
           nbDossiersJuridiques: '', mtDossiersJuridiques: '',
-          nbPoseCompteurs: '', nbRemplacementCompteurs: ''
+          // Coupures
+          nbCoupures: '', mtCoupures: '',
+          // Rétablissements
+          nbRetablissements: '', mtRetablissements: '',
+          // Branchements
+          nbBranchements: '', mtBranchements: '',
+          // Compteurs remplacés
+          nbCompteursRemplaces: '', mtCompteursRemplaces: '',
+          // Contrôles
+          nbControles: '',
+          // Observation
+          observation: ''
         };
         return acc;
       }, {});
       
       // Pré-remplir avec les données existantes
       existingData.forEach(item => {
+        console.log(`📊 Traitement des données pour catégorie ${item.CategorieId}:`, item);
         if (init[item.CategorieId]) {
           init[item.CategorieId] = {
+            // Encaissement
+            encaissementJournalierGlobal: item.Encaissement_Journalier_Global || '',
+            // Relances
             nbRelancesEnvoyees: item.Nb_RelancesEnvoyees || '',
             mtRelancesEnvoyees: item.Mt_RelancesEnvoyees || '',
             nbRelancesReglees: item.Nb_RelancesReglees || '',
             mtRelancesReglees: item.Mt_RelancesReglees || '',
+            // Mises en demeure
             nbMisesEnDemeureEnvoyees: item.Nb_MisesEnDemeure_Envoyees || '',
             mtMisesEnDemeureEnvoyees: item.Mt_MisesEnDemeure_Envoyees || '',
             nbMisesEnDemeureReglees: item.Nb_MisesEnDemeure_Reglees || '',
             mtMisesEnDemeureReglees: item.Mt_MisesEnDemeure_Reglees || '',
+            // Dossiers juridiques
             nbDossiersJuridiques: item.Nb_Dossiers_Juridiques || '',
             mtDossiersJuridiques: item.Mt_Dossiers_Juridiques || '',
-            nbPoseCompteurs: '', // Pas encore dans la DB
-            nbRemplacementCompteurs: '' // Pas encore dans la DB
+            // Coupures
+            nbCoupures: item.Nb_Coupures || '',
+            mtCoupures: item.Mt_Coupures || '',
+            // Rétablissements
+            nbRetablissements: item.Nb_Retablissements || '',
+            mtRetablissements: item.Mt_Retablissements || '',
+            // Branchements
+            nbBranchements: item.Nb_Branchements || '',
+            mtBranchements: item.Mt_Branchements || '',
+            // Compteurs remplacés
+            nbCompteursRemplaces: item.Nb_Compteurs_Remplaces || '',
+            mtCompteursRemplaces: item.Mt_Compteurs_Remplaces || '',
+            // Contrôles
+            nbControles: item.Nb_Controles || '',
+            // Observation
+            observation: item.Observation || ''
           };
         }
       });
       
+      console.log('📝 Données mappées pour le formulaire:', init);
       setEntriesByCategory(init);
+      
+      // Charger l'observation si elle existe
+      if (existingData.length > 0 && existingData[0].Observation) {
+        setFormData(prev => ({ ...prev, observation: existingData[0].Observation }));
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des données existantes:', error);
     }
@@ -198,6 +243,19 @@ function KPI() {
     }
   };
 
+  // Fonction pour charger tous les objectifs de l'agence
+  const loadAllObjectives = async (agenceId) => {
+    if (!agenceId) return;
+    
+    try {
+      const allObjectivesData = await kpiService.getAllObjectives(agenceId);
+      setAllObjectives(allObjectivesData);
+    } catch (error) {
+      console.error('Erreur lors du chargement de tous les objectifs:', error);
+      setAllObjectives([]);
+    }
+  };
+
   // Fonction pour charger le résumé des données
   const loadSummary = async (agenceId, dateKey) => {
     if (!agenceId || !dateKey) return;
@@ -220,12 +278,20 @@ function KPI() {
 
   // Charger les données existantes quand la date ou l'agence change
   useEffect(() => {
-    if (formData.dateKey && formData.agenceId && categories.length > 0) {
+    if (formData.dateKey && formData.agenceId && sortedCategories && sortedCategories.length > 0) {
+      console.log('🔄 Chargement des données existantes pour:', { dateKey: formData.dateKey, agenceId: formData.agenceId, categoriesCount: sortedCategories.length });
       loadExistingData(formData.dateKey, formData.agenceId);
       loadObjectives(formData.agenceId, new Date(formData.dateKey));
       loadSummary(formData.agenceId, formData.dateKey);
     }
-  }, [formData.dateKey, formData.agenceId, categories]); // Remove function dependencies to prevent infinite loop
+  }, [formData.dateKey, formData.agenceId, sortedCategories]);
+
+  // Charger tous les objectifs quand l'agence change
+  useEffect(() => {
+    if (formData.agenceId) {
+      loadAllObjectives(formData.agenceId);
+    }
+  }, [formData.agenceId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -356,6 +422,17 @@ function KPI() {
     return 'text-red-600';
   };
 
+  // Fonction pour formater les dates
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -363,43 +440,74 @@ function KPI() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {/* Objectifs mensuels */}
+        {/* Objectifs de l'agence */}
         <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-sky-800">Objectifs mensuels</h3>
-            {objectives && (
+            <h3 className="text-lg font-semibold text-sky-800">Objectifs de l'agence</h3>
+            {allObjectives.length > 0 && (
               <span className="text-sm text-sky-600 bg-sky-100 px-3 py-1 rounded-full">
-                {new Date(formData.dateKey).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                {allObjectives.length} objectif{allObjectives.length > 1 ? 's' : ''}
               </span>
             )}
           </div>
           
-          {objectives ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg p-4 border border-blue-200">
-                <div className="text-sm text-blue-600 font-medium mb-1">Relances</div>
-                <div className="text-2xl font-bold text-blue-800">{objectives.Obj_Relances_Envoyees || 0}</div>
-                <div className="text-xs text-gray-500">Objectif mensuel</div>
-              </div>
-              <div className="bg-white rounded-lg p-4 border border-green-200">
-                <div className="text-sm text-green-600 font-medium mb-1">Mises en demeure</div>
-                <div className="text-2xl font-bold text-green-800">{objectives.Obj_MisesEnDemeure_Envoyees || 0}</div>
-                <div className="text-xs text-gray-500">Objectif mensuel</div>
-              </div>
-              <div className="bg-white rounded-lg p-4 border border-purple-200">
-                <div className="text-sm text-purple-600 font-medium mb-1">Dossiers juridiques</div>
-                <div className="text-2xl font-bold text-purple-800">{objectives.Obj_Dossiers_Juridiques || 0}</div>
-                <div className="text-xs text-gray-500">Objectif mensuel</div>
-              </div>
-              <div className="bg-white rounded-lg p-4 border border-orange-200">
-                <div className="text-sm text-orange-600 font-medium mb-1">Coupures</div>
-                <div className="text-2xl font-bold text-orange-800">{objectives.Obj_Coupures || 0}</div>
-                <div className="text-xs text-gray-500">Objectif mensuel</div>
-              </div>
+          {allObjectives.length > 0 ? (
+            <div className="space-y-4">
+              {allObjectives.map((objective, index) => (
+                <div key={objective.ObjectifId || index} className="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-semibold text-gray-800">{objective.Titre || `Objectif ${index + 1}`}</h4>
+                      {objective.Description && (
+                        <p className="text-sm text-gray-600 mt-1">{objective.Description}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">Période</div>
+                      <div className="text-sm font-medium text-gray-700">
+                        {formatDate(objective.DateDebut)} - {formatDate(objective.DateFin)}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+                    <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+                      <div className="text-xs text-emerald-600 font-medium mb-1">Encaissement</div>
+                      <div className="text-lg font-bold text-emerald-800">
+                        {objective.Obj_Encaissement ? `${objective.Obj_Encaissement.toLocaleString('fr-FR')} DA` : '0 DA'}
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                      <div className="text-xs text-blue-600 font-medium mb-1">Relances</div>
+                      <div className="text-lg font-bold text-blue-800">{objective.Obj_Relances || 0}</div>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                      <div className="text-xs text-green-600 font-medium mb-1">Mises en demeure</div>
+                      <div className="text-lg font-bold text-green-800">{objective.Obj_MisesEnDemeure || 0}</div>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                      <div className="text-xs text-purple-600 font-medium mb-1">Dossiers juridiques</div>
+                      <div className="text-lg font-bold text-purple-800">{objective.Obj_Dossiers_Juridiques || 0}</div>
+                    </div>
+                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                      <div className="text-xs text-orange-600 font-medium mb-1">Coupures</div>
+                      <div className="text-lg font-bold text-orange-800">{objective.Obj_Coupures || 0}</div>
+                    </div>
+                    <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-200">
+                      <div className="text-xs text-cyan-600 font-medium mb-1">Contrôles</div>
+                      <div className="text-lg font-bold text-cyan-800">{objective.Obj_Controles || 0}</div>
+                    </div>
+                    <div className="bg-pink-50 rounded-lg p-3 border border-pink-200">
+                      <div className="text-xs text-pink-600 font-medium mb-1">Compteurs remplacés</div>
+                      <div className="text-lg font-bold text-pink-800">{objective.Obj_Compteurs_Remplaces || 0}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-6 text-sky-600">
-              <div className="text-sm">Aucun objectif défini pour cette période</div>
+              <div className="text-sm">Aucun objectif défini pour cette agence</div>
               <div className="text-xs text-gray-500 mt-1">Les objectifs sont définis dans la section Objectifs</div>
             </div>
           )}
@@ -516,7 +624,6 @@ function KPI() {
                       <th className="px-3 py-4 text-center font-semibold text-orange-700">Dossiers Juridiques (Mt)</th>
                       {/* Contrôles */}
                       <th className="px-3 py-4 text-center font-semibold text-indigo-700">Contrôles (Nb)</th>
-                      <th className="px-3 py-4 text-center font-semibold text-indigo-700">Contrôles (Mt)</th>
                       {/* Mises en demeure */}
                       <th className="px-3 py-4 text-center font-semibold text-yellow-700">Mises en Demeure Envoyées (Nb)</th>
                       <th className="px-3 py-4 text-center font-semibold text-yellow-700">Mises en Demeure Envoyées (Mt)</th>
@@ -653,16 +760,6 @@ function KPI() {
                               className="w-20 border-2 border-indigo-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
                             />
                           </td>
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtControles || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtControles: ev.target.value } }))} 
-                              className="w-20 border-2 border-indigo-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
                           {/* Mises en demeure envoyées */}
                           <td className="px-2 py-2 text-center">
                             <input 
@@ -773,7 +870,7 @@ function KPI() {
                   maxLength={500}
                 />
                 <p className="text-xs text-gray-500">
-                  {formData.observation.length}/500 caractères
+                  {(formData.observation || '').length}/500 caractères
                 </p>
               </div>
             </div>
@@ -809,7 +906,7 @@ function KPI() {
                   selectedDate.getDate().toString().padStart(2, '0')
                 );
                 
-                const filteredKpis = kpis.filter(k => k.DateKey === dateKeyFilter);
+                const filteredKpis = (kpis || []).filter(k => k.DateKey === dateKeyFilter);
                 
                 if (filteredKpis.length === 0) {
                   return (
