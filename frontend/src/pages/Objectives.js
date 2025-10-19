@@ -109,7 +109,7 @@ function Objectives() {
 
   const handleSubmitModal = async (payload) => {
     try {
-      if (!editing) {
+      if (!editing || !editing.ObjectifId) {
         await objectivesService.save(payload);
       } else {
         await objectivesService.update(payload);
@@ -137,7 +137,7 @@ function Objectives() {
     if (isAdmin) {
       loadData();
     }
-  }, [isAdmin, loadData]);
+  }, [isAdmin]); // Retirer loadData des dépendances pour éviter la boucle infinie
 
   // Recharger les agences quand les filtres changent (pour mettre à jour l'affichage)
   useEffect(() => {
@@ -280,8 +280,6 @@ function Objectives() {
                   <th className="px-4 py-2 text-left">Période</th>
                   <th className="px-4 py-2 text-left">Encaissement</th>
                   <th className="px-4 py-2 text-left">Coupures</th>
-                  <th className="px-4 py-2 text-left">Rétablissements</th>
-                  <th className="px-4 py-2 text-left">Branchements</th>
                   <th className="px-4 py-2 text-left">Dossiers Juridiques</th>
                   <th className="px-4 py-2 text-left">Mises en Demeure</th>
                   <th className="px-4 py-2 text-left">Relances</th>
@@ -307,8 +305,6 @@ function Objectives() {
                       </td>
                       <td className="px-4 py-2">{o.Obj_Encaissement ? new Intl.NumberFormat('fr-DZ', { style: 'currency', currency: 'DZD' }).format(o.Obj_Encaissement) : '-'}</td>
                       <td className="px-4 py-2">{o.Obj_Coupures ?? '-'}</td>
-                      <td className="px-4 py-2">{o.Obj_Retablissements ?? '-'}</td>
-                      <td className="px-4 py-2">{o.Obj_Branchements ?? '-'}</td>
                       <td className="px-4 py-2">{o.Obj_Dossiers_Juridiques ?? '-'}</td>
                       <td className="px-4 py-2">{o.Obj_MisesEnDemeure ?? '-'}</td>
                       <td className="px-4 py-2">{o.Obj_Relances ?? '-'}</td>
@@ -429,11 +425,10 @@ function Objectives() {
                           setEditing({ FK_Agence: agence.AgenceId });
                           setModalOpen(true);
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
                         title="Ajouter un objectif"
                       >
-                        <Plus className="h-4 w-4" />
-                        Ajouter un objectif
+                        <Plus className="h-5 w-5" />
                       </button>
                     </div>
                   )}

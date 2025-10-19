@@ -104,27 +104,27 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
-      <div className="bg-white dark:bg-water-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto">
+      <div className="bg-white dark:bg-water-800 rounded-2xl shadow-2xl w-full max-w-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-water-200 dark:border-water-700">
-          <div className="flex items-center space-x-3">
-            <div className="p-1.5 bg-water-600 rounded-lg">
-              <Building2 className="h-5 w-5 text-white" />
+          <div className="flex items-center space-x-2">
+            <div className="p-1 bg-water-600 rounded-lg">
+              <Building2 className="h-4 w-4 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-water-900 dark:text-white">
+            <h2 className="text-lg font-bold text-water-900 dark:text-white">
               {initialValues ? 'Modifier le Centre' : 'Nouveau Centre'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-water-500 hover:text-water-700 dark:text-water-400 dark:hover:text-water-200 hover:bg-water-100 dark:hover:bg-water-700 rounded-lg transition-colors"
+            className="p-1 text-water-500 hover:text-water-700 dark:text-water-400 dark:hover:text-water-200 hover:bg-water-100 dark:hover:bg-water-700 rounded-lg transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-3 space-y-3">
+        <form onSubmit={handleSubmit} className="p-2 space-y-2">
           {/* Nom du Centre */}
           <div>
             <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
@@ -136,7 +136,7 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
               name="nom_centre"
               value={formData.nom_centre}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-2.5 py-1.5 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.nom_centre
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -147,9 +147,6 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
             {errors.nom_centre && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.nom_centre}</p>
             )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.nom_centre.length}/60 caractères
-            </p>
           </div>
 
           {/* Adresse */}
@@ -163,7 +160,7 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
               value={formData.adresse}
               onChange={handleChange}
               rows={2}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 resize-none ${
+              className={`w-full px-2.5 py-1.5 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 resize-none ${
                 errors.adresse
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -174,9 +171,6 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
             {errors.adresse && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.adresse}</p>
             )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.adresse.length}/300 caractères
-            </p>
           </div>
 
           {/* Téléphone */}
@@ -190,7 +184,7 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
               name="telephone"
               value={formData.telephone}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-2.5 py-1.5 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.telephone
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -201,9 +195,6 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
             {errors.telephone && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.telephone}</p>
             )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.telephone.length}/10 caractères
-            </p>
           </div>
 
           {/* Email */}
@@ -217,7 +208,7 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-2.5 py-1.5 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.email
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -228,9 +219,6 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
             {errors.email && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
             )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.email.length}/80 caractères
-            </p>
           </div>
 
           {/* Fax */}
@@ -244,7 +232,7 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
               name="fax"
               value={formData.fax}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
+              className={`w-full px-2.5 py-1.5 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.fax
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
@@ -255,23 +243,20 @@ const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {
             {errors.fax && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fax}</p>
             )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.fax.length}/10 caractères
-            </p>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-water-200 dark:border-water-700">
+          <div className="flex items-center justify-end space-x-2 pt-3 border-t border-water-200 dark:border-water-700">
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 text-water-600 dark:text-water-400 hover:bg-water-100 dark:hover:bg-water-700 rounded-xl transition-colors font-semibold"
+              className="px-3 py-1.5 text-water-600 dark:text-water-400 hover:bg-water-100 dark:hover:bg-water-700 rounded-xl transition-colors font-semibold"
             >
               Annuler
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-water-600 hover:bg-water-700 text-white rounded-xl transition-colors font-semibold shadow-lg hover:shadow-xl"
+              className="px-3 py-1.5 bg-water-600 hover:bg-water-700 text-white rounded-xl transition-colors font-semibold shadow-lg hover:shadow-xl"
             >
               {initialValues ? 'Modifier' : 'Créer'}
             </button>

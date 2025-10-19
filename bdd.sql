@@ -1,3 +1,4 @@
+/*******************************************************
   Création base de données et utilisation
 *******************************************************/
 IF DB_ID(N'ADE_KPI') IS NULL
@@ -158,6 +159,9 @@ CREATE TABLE dbo.FAIT_KPI_ADE
     Nb_RelancesReglees INT NOT NULL DEFAULT 0,
     Mt_RelancesReglees MONEY NOT NULL DEFAULT 0,
 
+    -- Observation
+    Observation NVARCHAR(500) NULL,
+
     -- Audit
     CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     ModifiedAt DATETIME2 NULL,
@@ -189,8 +193,6 @@ CREATE TABLE dbo.DIM_OBJECTIF
     -- Objectifs numériques
     Obj_Encaissement MONEY NULL,
     Obj_Coupures INT NULL,
-    Obj_Retablissements INT NULL,
-    Obj_Branchements INT NULL,
     Obj_Dossiers_Juridiques INT NULL,
     Obj_MisesEnDemeure INT NULL,
     Obj_Relances INT NULL,

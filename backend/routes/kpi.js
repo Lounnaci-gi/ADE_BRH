@@ -86,23 +86,23 @@ router.post('/', async (req, res) => {
           ModifiedAt = SYSUTCDATETIME()
       WHEN NOT MATCHED THEN
         INSERT (
-          DateKey, AgenceId, CategorieId,
-          Nb_RelancesEnvoyees, Mt_RelancesEnvoyees,
-          Nb_RelancesReglees, Mt_RelancesReglees,
-          Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
+        DateKey, AgenceId, CategorieId,
+        Nb_RelancesEnvoyees, Mt_RelancesEnvoyees,
+        Nb_RelancesReglees, Mt_RelancesReglees,
+        Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
           Nb_MisesEnDemeure_Reglees, Mt_MisesEnDemeure_Reglees,
-          Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques,
-          Nb_Coupures, Mt_Coupures,
-          Encaissement_Journalier_Global
-        ) VALUES (
-          @dateKey, @agenceId, @categorieId,
-          @nbRelancesEnvoyees, @mtRelancesEnvoyees,
-          @nbRelancesReglees, @mtRelancesReglees,
-          @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
+        Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques,
+        Nb_Coupures, Mt_Coupures,
+        Encaissement_Journalier_Global
+      ) VALUES (
+        @dateKey, @agenceId, @categorieId,
+        @nbRelancesEnvoyees, @mtRelancesEnvoyees,
+        @nbRelancesReglees, @mtRelancesReglees,
+        @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
           @nbMisesEnDemeureReglees, @mtMisesEnDemeureReglees,
-          @nbDossiersJuridiques, @mtDossiersJuridiques,
-          @nbCoupures, @mtCoupures,
-          @encaissementJournalierGlobal
+        @nbDossiersJuridiques, @mtDossiersJuridiques,
+        @nbCoupures, @mtCoupures,
+        @encaissementJournalierGlobal
         );
     `;
 
@@ -185,17 +185,11 @@ router.get('/existing', async (req, res) => {
 });
 
 // GET /api/kpi/agences - liste des agences pour le formulaire (avec restriction par rôle)
-router.get('/agences', (req, res) => {
+router.get('/agences', async (req, res) => {
+  try {
   const role = (req.headers['x-role'] || '').toString();
   const userAgenceId = parseInt(req.headers['x-user-agence'], 10) || null;
-  const connection = new Connection(getConfig());
-
-  connection.on('connect', (err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
-    }
-
-    const agences = [];
+    
     const isAdmin = role === 'Administrateur';
     const query = isAdmin || !userAgenceId
       ? `
@@ -210,28 +204,17 @@ router.get('/agences', (req, res) => {
         ORDER BY Nom_Agence
       `;
 
-    const request = new Request(query, (err) => {
-      connection.close();
-      if (err) {
-        return res.status(500).json({ message: 'Erreur lors de la lecture des agences', error: err.message });
-      }
-      res.json(agences);
-    });
-
+    const params = [];
     if (!isAdmin && userAgenceId) {
-      request.addParameter('agenceId', TYPES.Int, userAgenceId);
+      params.push({ name: 'agenceId', type: TYPES.Int, value: userAgenceId });
     }
 
-    request.on('row', (columns) => {
-      const row = {};
-      columns.forEach((c) => { row[c.metadata.colName] = c.value; });
-      agences.push(row);
-    });
-
-    connection.execSql(request);
-  });
-
-  connection.connect();
+    const results = await db.query(query, params);
+    res.json(results || []);
+  } catch (err) {
+    console.error('Erreur GET /kpi/agences:', err);
+    res.status(500).json({ message: 'Erreur lors de la lecture des agences', error: err.message });
+  }
 });
 
 // GET /api/kpi/objectives - récupérer les objectifs pour une agence et période
@@ -243,11 +226,7 @@ router.get('/objectives', async (req, res) => {
       return res.status(400).json({ message: 'AgenceId, year et month sont requis' });
     }
 
-    const dateKey = parseInt(`${year}${month.toString().padStart(2, '0')}01`);
-    const nextMonth = month === 12 ? 1 : parseInt(month) + 1;
-    const nextYear = month === 12 ? parseInt(year) + 1 : parseInt(year);
-    const nextMonthDateKey = parseInt(`${nextYear}${nextMonth.toString().padStart(2, '0')}01`);
-
+    // Get objectives from DIM_OBJECTIF table instead of FAIT_KPI_ADE
     const query = `
       SELECT 
         o.AgenceId,
@@ -256,21 +235,18 @@ router.get('/objectives', async (req, res) => {
         o.Obj_Dossiers_Juridiques,
         o.Obj_Coupures,
         a.Nom_Agence
-      FROM dbo.FAIT_KPI_ADE o
+      FROM dbo.DIM_OBJECTIF o
       LEFT JOIN dbo.DIM_AGENCE a ON o.AgenceId = a.AgenceId
       WHERE o.AgenceId = @agenceId 
-        AND o.DateKey >= @dateKey 
-        AND o.DateKey < @nextMonthDateKey
-        AND (o.Obj_Relances_Envoyees IS NOT NULL 
-             OR o.Obj_MisesEnDemeure_Envoyees IS NOT NULL 
-             OR o.Obj_Dossiers_Juridiques IS NOT NULL 
-             OR o.Obj_Coupures IS NOT NULL)
+        AND o.Annee = @year 
+        AND o.Mois = @month
+        AND o.IsDeleted = 0
     `;
 
     const params = [
       { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
-      { name: 'dateKey', type: TYPES.Int, value: dateKey },
-      { name: 'nextMonthDateKey', type: TYPES.Int, value: nextMonthDateKey }
+      { name: 'year', type: TYPES.Int, value: parseInt(year, 10) },
+      { name: 'month', type: TYPES.Int, value: parseInt(month, 10) }
     ];
 
     const results = await db.query(query, params);
@@ -305,12 +281,6 @@ router.get('/summary', async (req, res) => {
         SUM(k.Mt_Dossiers_Juridiques) as Total_Mt_DossiersJuridiques,
         SUM(k.Nb_Coupures) as Total_Coupures,
         SUM(k.Mt_Coupures) as Total_Mt_Coupures,
-        SUM(k.Nb_Retablissements) as Total_Retablissements,
-        SUM(k.Mt_Retablissements) as Total_Mt_Retablissements,
-        SUM(k.Nb_Branchements) as Total_Branchements,
-        SUM(k.Mt_Branchements) as Total_Mt_Branchements,
-        SUM(k.Nb_Compteurs_Remplaces) as Total_CompteursRemplaces,
-        SUM(k.Mt_Compteurs_Remplaces) as Total_Mt_CompteursRemplaces,
         SUM(k.Encaissement_Journalier_Global) as Total_EncaissementGlobal,
         a.Nom_Agence
       FROM dbo.FAIT_KPI_ADE k
@@ -323,10 +293,6 @@ router.get('/summary', async (req, res) => {
     const date = new Date(parseInt(dateKey.toString().substring(0,4)), parseInt(dateKey.toString().substring(4,6)) - 1, 1);
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
-    const monthDateKey = parseInt(`${year}${month.toString().padStart(2, '0')}01`);
-    const nextMonth = month === 12 ? 1 : month + 1;
-    const nextYear = month === 12 ? year + 1 : year;
-    const nextMonthDateKey = parseInt(`${nextYear}${nextMonth.toString().padStart(2, '0')}01`);
 
     const objectivesQuery = `
       SELECT 
@@ -334,14 +300,11 @@ router.get('/summary', async (req, res) => {
         o.Obj_MisesEnDemeure_Envoyees,
         o.Obj_Dossiers_Juridiques,
         o.Obj_Coupures
-      FROM dbo.FAIT_KPI_ADE o
+      FROM dbo.DIM_OBJECTIF o
       WHERE o.AgenceId = @agenceId 
-        AND o.DateKey >= @monthDateKey 
-        AND o.DateKey < @nextMonthDateKey
-        AND (o.Obj_Relances_Envoyees IS NOT NULL 
-             OR o.Obj_MisesEnDemeure_Envoyees IS NOT NULL 
-             OR o.Obj_Dossiers_Juridiques IS NOT NULL 
-             OR o.Obj_Coupures IS NOT NULL)
+        AND o.Annee = @year 
+        AND o.Mois = @month
+        AND o.IsDeleted = 0
     `;
 
     const dailyParams = [
@@ -351,8 +314,8 @@ router.get('/summary', async (req, res) => {
 
     const objectivesParams = [
       { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
-      { name: 'monthDateKey', type: TYPES.Int, value: monthDateKey },
-      { name: 'nextMonthDateKey', type: TYPES.Int, value: nextMonthDateKey }
+      { name: 'year', type: TYPES.Int, value: year },
+      { name: 'month', type: TYPES.Int, value: month }
     ];
 
     const [dailyResults, objectivesResults] = await Promise.all([
@@ -371,39 +334,20 @@ router.get('/summary', async (req, res) => {
 });
 
 // GET /api/kpi/categories - liste des catégories pour le formulaire
-router.get('/categories', (req, res) => {
-  const connection = new Connection(getConfig());
-
-  connection.on('connect', (err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
-    }
-
-    const categories = [];
+router.get('/categories', async (req, res) => {
+  try {
     const query = `
       SELECT CategorieId, CodeCategorie, Libelle
       FROM dbo.DIM_CATEGORIE
       ORDER BY CodeCategorie
     `;
 
-    const request = new Request(query, (err) => {
-      connection.close();
-      if (err) {
-        return res.status(500).json({ message: 'Erreur lors de la lecture des catégories', error: err.message });
-      }
-      res.json(categories);
-    });
-
-    request.on('row', (columns) => {
-      const row = {};
-      columns.forEach((c) => { row[c.metadata.colName] = c.value; });
-      categories.push(row);
-    });
-
-    connection.execSql(request);
-  });
-
-  connection.connect();
+    const results = await db.query(query, []);
+    res.json(results || []);
+  } catch (err) {
+    console.error('Erreur GET /kpi/categories:', err);
+    res.status(500).json({ message: 'Erreur lors de la lecture des catégories', error: err.message });
+  }
 });
 
 module.exports = router;

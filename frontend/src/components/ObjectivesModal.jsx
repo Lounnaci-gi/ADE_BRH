@@ -10,8 +10,6 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
     description: '',
     obj_Encaissement: '',
     obj_Coupures: '',
-    obj_Retablissements: '',
-    obj_Branchements: '',
     obj_Dossiers_Juridiques: '',
     obj_MisesEnDemeure: '',
     obj_Relances: '',
@@ -35,8 +33,6 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
           description: initialValues.Description || '',
           obj_Encaissement: initialValues.Obj_Encaissement ?? '',
           obj_Coupures: initialValues.Obj_Coupures ?? '',
-          obj_Retablissements: initialValues.Obj_Retablissements ?? '',
-          obj_Branchements: initialValues.Obj_Branchements ?? '',
           obj_Dossiers_Juridiques: initialValues.Obj_Dossiers_Juridiques ?? '',
           obj_MisesEnDemeure: initialValues.Obj_MisesEnDemeure ?? '',
           obj_Relances: initialValues.Obj_Relances ?? '',
@@ -56,8 +52,6 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
           description: '',
           obj_Encaissement: '',
           obj_Coupures: '',
-          obj_Retablissements: '',
-          obj_Branchements: '',
           obj_Dossiers_Juridiques: '',
           obj_MisesEnDemeure: '',
           obj_Relances: '',
@@ -116,18 +110,16 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
     e.preventDefault();
     
     if (validateForm()) {
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
         const payload = {
-          agenceId: parseInt(formData.agenceId, 10),
+        agenceId: parseInt(formData.agenceId, 10),
           dateDebut: formData.dateDebut,
           dateFin: formData.dateFin,
           titre: formData.titre,
           description: formData.description || null,
           obj_Encaissement: formData.obj_Encaissement ? parseFloat(formData.obj_Encaissement) : null,
           obj_Coupures: formData.obj_Coupures ? parseInt(formData.obj_Coupures, 10) : null,
-          obj_Retablissements: formData.obj_Retablissements ? parseInt(formData.obj_Retablissements, 10) : null,
-          obj_Branchements: formData.obj_Branchements ? parseInt(formData.obj_Branchements, 10) : null,
           obj_Dossiers_Juridiques: formData.obj_Dossiers_Juridiques ? parseInt(formData.obj_Dossiers_Juridiques, 10) : null,
           obj_MisesEnDemeure: formData.obj_MisesEnDemeure ? parseInt(formData.obj_MisesEnDemeure, 10) : null,
           obj_Relances: formData.obj_Relances ? parseInt(formData.obj_Relances, 10) : null,
@@ -140,13 +132,13 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
         }
 
         await onSubmit(payload);
-        onClose();
-      } catch (err) {
-        const msg = err?.response?.data?.message || 'Erreur lors de l\'enregistrement';
-        setError(msg);
-      } finally {
-        setLoading(false);
-      }
+      onClose();
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Erreur lors de l\'enregistrement';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
     }
   };
 
@@ -189,35 +181,35 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-3 space-y-3">
           {/* Agence */}
-          <div>
+            <div>
             <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
               <Building2 className="inline h-4 w-4 mr-2" />
               Agence *
             </label>
-            <select
+              <select
               name="agenceId"
-              value={formData.agenceId}
+                value={formData.agenceId}
               onChange={handleChange}
               className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
                 errors.agenceId
                   ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
-              required
-            >
+                required
+              >
               <option value="">Sélectionnez une agence</option>
-              {agences.map((a) => (
-                <option key={a.AgenceId} value={a.AgenceId}>{a.Nom_Agence}</option>
-              ))}
-            </select>
+                {agences.map((a) => (
+                  <option key={a.AgenceId} value={a.AgenceId}>{a.Nom_Agence}</option>
+                ))}
+              </select>
             {errors.agenceId && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.agenceId}</p>
             )}
-          </div>
+            </div>
 
           {/* Titre et Description */}
           <div className="grid grid-cols-1 gap-3">
-            <div>
+              <div>
               <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
                 <Target className="inline h-4 w-4 mr-2" />
                 Titre de l'objectif *
@@ -233,7 +225,7 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
                     : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
                 }`}
                 placeholder="Ex: Objectifs mensuels - Janvier 2025"
-                required
+                  required
               />
               {errors.titre && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.titre}</p>
@@ -280,9 +272,9 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
               />
               {errors.dateDebut && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dateDebut}</p>
-              )}
-            </div>
-            <div>
+                )}
+              </div>
+              <div>
               <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
                 <Calendar className="inline h-4 w-4 mr-2" />
                 Date de fin *
@@ -297,12 +289,12 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
                     ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                     : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
                 }`}
-                required
+                  required
               />
               {errors.dateFin && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dateFin}</p>
               )}
-            </div>
+              </div>
           </div>
 
           {/* Objectifs financiers */}
@@ -332,43 +324,14 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
                 name="obj_Coupures"
                 value={formData.obj_Coupures}
                 onChange={handleChange}
+                step="1"
+                min="0"
                 className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
                 placeholder="Nombre de coupures"
               />
             </div>
           </div>
 
-          {/* Objectifs opérationnels */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <RotateCcw className="inline h-4 w-4 mr-2" />
-                Rétablissements
-              </label>
-              <input
-                type="number"
-                name="obj_Retablissements"
-                value={formData.obj_Retablissements}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-                placeholder="Nombre de rétablissements"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <Wrench className="inline h-4 w-4 mr-2" />
-                Branchements
-              </label>
-              <input
-                type="number"
-                name="obj_Branchements"
-                value={formData.obj_Branchements}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-                placeholder="Nombre de branchements"
-              />
-            </div>
-          </div>
 
           {/* Objectifs juridiques et administratifs */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -382,6 +345,8 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
                 name="obj_Dossiers_Juridiques"
                 value={formData.obj_Dossiers_Juridiques}
                 onChange={handleChange}
+                step="1"
+                min="0"
                 className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
                 placeholder="Nombre de dossiers"
               />
@@ -396,11 +361,13 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
                 name="obj_MisesEnDemeure"
                 value={formData.obj_MisesEnDemeure}
                 onChange={handleChange}
+                step="1"
+                min="0"
                 className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
                 placeholder="Nombre de mises en demeure"
               />
             </div>
-          </div>
+            </div>
 
           {/* Objectifs de suivi */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -414,6 +381,8 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
                 name="obj_Relances"
                 value={formData.obj_Relances}
                 onChange={handleChange}
+                step="1"
+                min="0"
                 className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
                 placeholder="Nombre de relances"
               />
@@ -428,6 +397,8 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
                 name="obj_Controles"
                 value={formData.obj_Controles}
                 onChange={handleChange}
+                step="1"
+                min="0"
                 className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
                 placeholder="Nombre de contrôles"
               />
@@ -445,6 +416,8 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
               name="obj_Compteurs_Remplaces"
               value={formData.obj_Compteurs_Remplaces}
               onChange={handleChange}
+              step="1"
+              min="0"
               className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
               placeholder="Nombre de compteurs remplacés"
             />
