@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import authService from '../services/authService';
 import './Login.css';
 
@@ -11,6 +12,7 @@ const Login = () => {
     const [lockRemaining, setLockRemaining] = useState(0); // seconds
     const [attemptsRemaining, setAttemptsRemaining] = useState(null);
     const [isShaking, setIsShaking] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -22,7 +24,6 @@ const Login = () => {
             const response = await authService.login(username, password);
             
             if (response.success) {
-                console.log('Connexion réussie:', response.user);
                 navigate('/dashboard');
             } else {
                 setError(response.error || 'Erreur de connexion');
@@ -105,15 +106,32 @@ const Login = () => {
 
                     <div className="form-group">
                         <label htmlFor="password">Mot de passe</label>
-                        <input
-                            type="password"
-                            id="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Entrez votre mot de passe"
-                            required
-                            disabled={loading || lockRemaining > 0}
-                        />
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                id="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Entrez votre mot de passe"
+                                required
+                                disabled={loading || lockRemaining > 0}
+                                className="w-full pr-10"
+                            />
+                            <button
+                                type="button"
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                onMouseDown={() => setShowPassword(true)}
+                                onMouseUp={() => setShowPassword(false)}
+                                onMouseLeave={() => setShowPassword(false)}
+                                disabled={loading || lockRemaining > 0}
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="h-4 w-4" />
+                                ) : (
+                                    <Eye className="h-4 w-4" />
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     <button 

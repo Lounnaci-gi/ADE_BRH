@@ -247,102 +247,163 @@ function Users() {
           />
         </>
       ) : (
-        // Interface Standard - Formulaire de profil
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <form onSubmit={handleProfileUpdate} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <User className="inline h-4 w-4 mr-2" />
-                    Nom d'utilisateur
-                  </label>
-                  <input
-                    type="text"
-                    value={profileForm.username}
-                    onChange={(e) => setProfileForm(prev => ({ ...prev, username: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
+        // Interface Standard - Formulaire de profil élégant et professionnel
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-3xl shadow-xl p-8 border border-blue-100/50 backdrop-blur-sm">
+            {/* En-tête du formulaire */}
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
+                <User className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Mon Profil</h2>
+                <p className="text-sm text-gray-600">Gérez vos informations personnelles et votre sécurité</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleProfileUpdate} className="space-y-8">
+              {/* Section Informations personnelles */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <User className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800">Informations personnelles</h3>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Mail className="inline h-4 w-4 mr-2" />
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={profileForm.email}
-                    onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                      <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                        <User className="h-4 w-4 text-blue-600" />
+                      </div>
+                      Nom d'utilisateur *
+                    </label>
+                    <input
+                      type="text"
+                      value={profileForm.username}
+                      onChange={(e) => setProfileForm(prev => ({ ...prev, username: e.target.value }))}
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                      placeholder="Entrez votre nom d'utilisateur"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                      <div className="p-2 bg-green-100 rounded-lg mr-3">
+                        <Mail className="h-4 w-4 text-green-600" />
+                      </div>
+                      Adresse email *
+                    </label>
+                    <input
+                      type="email"
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                      placeholder="votre.email@exemple.com"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  <Lock className="inline h-5 w-5 mr-2" />
-                  Changer le mot de passe (optionnel)
-                </h3>
-                
-                <div className="space-y-4">
+              {/* Section Sécurité */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Lock className="h-5 w-5 text-orange-600" />
+                  </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-800">Sécurité du compte</h3>
+                    <p className="text-sm text-gray-500">Modifiez votre mot de passe pour renforcer la sécurité</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                      <div className="p-2 bg-gray-100 rounded-lg mr-3">
+                        <Lock className="h-4 w-4 text-gray-600" />
+                      </div>
                       Mot de passe actuel
                     </label>
                     <input
                       type="password"
                       value={profileForm.currentPassword}
                       onChange={(e) => setProfileForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                      placeholder="Entrez votre mot de passe actuel"
                     />
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                        <div className="p-2 bg-purple-100 rounded-lg mr-3">
+                          <Lock className="h-4 w-4 text-purple-600" />
+                        </div>
                         Nouveau mot de passe
                       </label>
                       <input
                         type="password"
                         value={profileForm.newPassword}
                         onChange={(e) => setProfileForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                        placeholder="Entrez votre nouveau mot de passe"
                       />
                     </div>
                     
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                        <div className="p-2 bg-red-100 rounded-lg mr-3">
+                          <Lock className="h-4 w-4 text-red-600" />
+                        </div>
                         Confirmer le mot de passe
                       </label>
                       <input
                         type="password"
                         value={profileForm.confirmPassword}
                         onChange={(e) => setProfileForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                        placeholder="Confirmez votre nouveau mot de passe"
                       />
+                    </div>
+                  </div>
+                  
+                  {/* Note informative */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1 bg-blue-100 rounded-lg">
+                        <Lock className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-blue-800 mb-1">Conseils de sécurité</h4>
+                        <p className="text-sm text-blue-700">
+                          Utilisez un mot de passe fort avec au moins 8 caractères, incluant des majuscules, des minuscules, des chiffres et des symboles.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3">
+              {/* Boutons d'action */}
+              <div className="flex justify-end gap-4 pt-6">
                 <button
                   type="button"
                   onClick={handleProfileCancel}
-                  className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg shadow-md transition inline-flex items-center gap-2"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm transform hover:scale-105"
                 >
-                  Annuler
+                  <span>Annuler</span>
                 </button>
                 <button
                   type="submit"
                   disabled={profileLoading}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 text-white px-6 py-2 rounded-lg shadow-md transition inline-flex items-center gap-2"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm transform hover:scale-105"
                 >
                   <Save className="h-4 w-4" />
-                  {profileLoading ? 'Mise à jour...' : 'Sauvegarder'}
+                  {profileLoading ? 'Mise à jour...' : 'Sauvegarder les modifications'}
                 </button>
               </div>
             </form>

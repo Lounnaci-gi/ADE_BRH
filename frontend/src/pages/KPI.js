@@ -107,8 +107,6 @@ function KPI() {
       
       const existingData = await kpiService.getExistingData(dateKeyInt, parseInt(agenceId, 10));
       
-      console.log('🔍 Données existantes reçues:', existingData);
-      
       // Réinitialiser les entrées par catégorie
       const init = (sortedCategories || []).reduce((acc, cat) => {
         acc[cat.CategorieId] = {
@@ -136,7 +134,6 @@ function KPI() {
       
       // Pré-remplir avec les données existantes
       existingData.forEach(item => {
-        console.log(`📊 Traitement des données pour catégorie ${item.CategorieId}:`, item);
         if (init[item.CategorieId]) {
           init[item.CategorieId] = {
             // Relances
@@ -168,7 +165,6 @@ function KPI() {
         }
       });
       
-      console.log('📝 Données mappées pour le formulaire:', init);
       setEntriesByCategory(init);
       
       // Renseigner l'encaissement journalier global unique si disponible (valeur du jour, non sommée)
@@ -252,7 +248,6 @@ function KPI() {
   // Charger les données existantes quand la date ou l'agence change
   useEffect(() => {
     if (formData.dateKey && formData.agenceId && sortedCategories && sortedCategories.length > 0) {
-      console.log('🔄 Chargement des données existantes pour:', { dateKey: formData.dateKey, agenceId: formData.agenceId, categoriesCount: sortedCategories.length });
       loadExistingData(formData.dateKey, formData.agenceId);
       loadObjectives(formData.agenceId, new Date(formData.dateKey));
       loadSummary(formData.agenceId, formData.dateKey);
@@ -336,7 +331,6 @@ function KPI() {
           encaissementJournalierGlobal: parseFloat(formData.encaissementJournalierGlobal || 0),
           observation: formData.observation || ''
         };
-        console.log('➡️ Envoi KPI', payload);
         return kpiService.create(payload);
       });
 
@@ -440,89 +434,80 @@ function KPI() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {/* Encaissement du jour - élément dédié en tête de page */}
-        {formData.agenceId && formData.dateKey && summary && summary.daily && (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-emerald-700">Encaissement du jour</div>
-              <div className="text-xl font-extrabold text-emerald-800">
-                {formatCurrency(Number(summary.daily.Total_EncaissementGlobal) || 0)}
-              </div>
-            </div>
-          </div>
-        )}
         {/* Objectifs de l'agence */}
-        <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-sky-800">Objectifs de l'agence</h3>
-            {allObjectives.length > 0 && (
-              <span className="text-sm text-sky-600 bg-sky-100 px-3 py-1 rounded-full">
-                {allObjectives.length} objectif{allObjectives.length > 1 ? 's' : ''}
-              </span>
+        {formData.agenceId && (
+          <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-sky-800">Objectifs de l'agence</h3>
+              {allObjectives.length > 0 && (
+                <span className="text-sm text-sky-600 bg-sky-100 px-3 py-1 rounded-full">
+                  {allObjectives.length} objectif{allObjectives.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            
+            {allObjectives.length > 0 ? (
+              <div className="space-y-4">
+                {allObjectives.map((objective, index) => (
+                  <div key={objective.ObjectifId || index} className="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold text-gray-800">{objective.Titre || `Objectif ${index + 1}`}</h4>
+                        {objective.Description && (
+                          <p className="text-sm text-gray-600 mt-1">{objective.Description}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">Période</div>
+                        <div className="text-sm font-medium text-gray-700">
+                          {formatDate(objective.DateDebut)} - {formatDate(objective.DateFin)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+                      <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+                        <div className="text-xs text-emerald-600 font-medium mb-1">Encaissement</div>
+                        <div className="text-lg font-bold text-emerald-800">
+                          {objective.Obj_Encaissement ? `${objective.Obj_Encaissement.toLocaleString('fr-FR')} DA` : '0 DA'}
+                        </div>
+                      </div>
+                      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                        <div className="text-xs text-blue-600 font-medium mb-1">Relances</div>
+                        <div className="text-lg font-bold text-blue-800">{objective.Obj_Relances || 0}</div>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                        <div className="text-xs text-green-600 font-medium mb-1">Mises en demeure</div>
+                        <div className="text-lg font-bold text-green-800">{objective.Obj_MisesEnDemeure || 0}</div>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                        <div className="text-xs text-purple-600 font-medium mb-1">Dossiers juridiques</div>
+                        <div className="text-lg font-bold text-purple-800">{objective.Obj_Dossiers_Juridiques || 0}</div>
+                      </div>
+                      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                        <div className="text-xs text-orange-600 font-medium mb-1">Coupures</div>
+                        <div className="text-lg font-bold text-orange-800">{objective.Obj_Coupures || 0}</div>
+                      </div>
+                      <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-200">
+                        <div className="text-xs text-cyan-600 font-medium mb-1">Contrôles</div>
+                        <div className="text-lg font-bold text-cyan-800">{objective.Obj_Controles || 0}</div>
+                      </div>
+                      <div className="bg-pink-50 rounded-lg p-3 border border-pink-200">
+                        <div className="text-xs text-pink-600 font-medium mb-1">Compteurs remplacés</div>
+                        <div className="text-lg font-bold text-pink-800">{objective.Obj_Compteurs_Remplaces || 0}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-sky-600">
+                <div className="text-sm">Aucun objectif défini pour cette agence</div>
+                <div className="text-xs text-gray-500 mt-1">Les objectifs sont définis dans la section Objectifs</div>
+              </div>
             )}
           </div>
-          
-          {allObjectives.length > 0 ? (
-            <div className="space-y-4">
-              {allObjectives.map((objective, index) => (
-                <div key={objective.ObjectifId || index} className="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="font-semibold text-gray-800">{objective.Titre || `Objectif ${index + 1}`}</h4>
-                      {objective.Description && (
-                        <p className="text-sm text-gray-600 mt-1">{objective.Description}</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-500">Période</div>
-                      <div className="text-sm font-medium text-gray-700">
-                        {formatDate(objective.DateDebut)} - {formatDate(objective.DateFin)}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-                    <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-                      <div className="text-xs text-emerald-600 font-medium mb-1">Encaissement</div>
-                      <div className="text-lg font-bold text-emerald-800">
-                        {objective.Obj_Encaissement ? `${objective.Obj_Encaissement.toLocaleString('fr-FR')} DA` : '0 DA'}
-                      </div>
-                    </div>
-                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                      <div className="text-xs text-blue-600 font-medium mb-1">Relances</div>
-                      <div className="text-lg font-bold text-blue-800">{objective.Obj_Relances || 0}</div>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                      <div className="text-xs text-green-600 font-medium mb-1">Mises en demeure</div>
-                      <div className="text-lg font-bold text-green-800">{objective.Obj_MisesEnDemeure || 0}</div>
-                    </div>
-                    <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                      <div className="text-xs text-purple-600 font-medium mb-1">Dossiers juridiques</div>
-                      <div className="text-lg font-bold text-purple-800">{objective.Obj_Dossiers_Juridiques || 0}</div>
-                    </div>
-                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                      <div className="text-xs text-orange-600 font-medium mb-1">Coupures</div>
-                      <div className="text-lg font-bold text-orange-800">{objective.Obj_Coupures || 0}</div>
-                    </div>
-                    <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-200">
-                      <div className="text-xs text-cyan-600 font-medium mb-1">Contrôles</div>
-                      <div className="text-lg font-bold text-cyan-800">{objective.Obj_Controles || 0}</div>
-                    </div>
-                    <div className="bg-pink-50 rounded-lg p-3 border border-pink-200">
-                      <div className="text-xs text-pink-600 font-medium mb-1">Compteurs remplacés</div>
-                      <div className="text-lg font-bold text-pink-800">{objective.Obj_Compteurs_Remplaces || 0}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6 text-sky-600">
-              <div className="text-sm">Aucun objectif défini pour cette agence</div>
-              <div className="text-xs text-gray-500 mt-1">Les objectifs sont définis dans la section Objectifs</div>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Formulaire élargi avec style élégant */}
         <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-3xl shadow-xl p-8 border border-blue-100/50 backdrop-blur-sm">
@@ -605,239 +590,279 @@ function KPI() {
 
             </div>
 
-            {/* Saisie par catégorie avec style élégant */}
+            {/* Saisie par catégorie avec design compact et professionnel */}
             <div className="border-t border-gray-200 pt-6">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-purple-100 rounded-lg">
                   <Building2 className="h-5 w-5 text-purple-600" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-800">Saisie par catégorie</h3>
               </div>
-              <div className="overflow-auto rounded-2xl border-2 border-gray-200 shadow-lg bg-white">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                    <tr>
-                      <th className="px-4 py-4 text-left font-bold text-gray-800 border-r border-gray-200">Catégorie</th>
-                      {/* Relances */}
-                      <th className="px-3 py-4 text-center font-semibold text-cyan-700">Relances Envoyées (Nb)</th>
-                      <th className="px-3 py-4 text-center font-semibold text-cyan-700">Relances Envoyées (Mt)</th>
-                      <th className="px-3 py-4 text-center font-semibold text-cyan-600">Relances Réglées (Nb)</th>
-                      <th className="px-3 py-4 text-center font-semibold text-cyan-600">Relances Réglées (Mt)</th>
-                      {/* Mises en demeure */}
-                      <th className="px-3 py-4 text-center font-semibold text-yellow-700">Mises en Demeure Envoyées (Nb)</th>
-                      <th className="px-3 py-4 text-center font-semibold text-yellow-700">Mises en Demeure Envoyées (Mt)</th>
-                      <th className="px-3 py-4 text-center font-semibold text-yellow-600">Mises en Demeure Réglées (Nb)</th>
-                      <th className="px-3 py-4 text-center font-semibold text-yellow-600">Mises en Demeure Réglées (Mt)</th>
-                      {/* Dossiers juridiques */}
-                      <th className="px-3 py-4 text-center font-semibold text-orange-700">Dossiers Juridiques (Nb)</th>
-                      <th className="px-3 py-4 text-center font-semibold text-orange-700">Dossiers Juridiques (Mt)</th>
-                      {/* Coupures */}
-                      <th className="px-3 py-4 text-center font-semibold text-red-700">Coupures (Nb)</th>
-                      <th className="px-3 py-4 text-center font-semibold text-red-700">Coupures (Mt)</th>
-                      {/* Rétablissements */}
-                      <th className="px-3 py-4 text-center font-semibold text-green-700">Rétablissements (Nb)</th>
-                      <th className="px-3 py-4 text-center font-semibold text-green-700">Rétablissements (Mt)</th>
-                      {/* Branchements */}
-                      <th className="px-3 py-4 text-center font-semibold text-blue-700">Branchements (Nb)</th>
-                      {/* Compteurs remplacés */}
-                      <th className="px-3 py-4 text-center font-semibold text-purple-700">Compteurs Remplacés (Nb)</th>
-                      {/* Contrôles */}
-                      <th className="px-3 py-4 text-center font-semibold text-indigo-700">Contrôles (Nb)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(sortedCategories || []).map((cat, index) => {
-                      const e = entriesByCategory[cat.CategorieId] || {};
-                      return (
-                        <tr key={cat.CategorieId} className={`border-t border-gray-100 hover:bg-gray-50/50 transition-colors duration-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
-                          <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-800 border-r border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                            {cat.Libelle}
-                          </td>
-                          {/* Relances Envoyées */}
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbRelancesEnvoyees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesEnvoyees: ev.target.value } }))} 
-                              className="w-20 border-2 border-cyan-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtRelancesEnvoyees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesEnvoyees: ev.target.value } }))} 
-                              className="w-20 border-2 border-cyan-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          {/* Relances Réglées */}
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbRelancesReglees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesReglees: ev.target.value } }))} 
-                              className="w-20 border-2 border-cyan-300 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtRelancesReglees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesReglees: ev.target.value } }))} 
-                              className="w-20 border-2 border-cyan-300 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          {/* Mises en demeure Envoyées */}
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbMisesEnDemeureEnvoyees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureEnvoyees: ev.target.value } }))} 
-                              className="w-20 border-2 border-yellow-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtMisesEnDemeureEnvoyees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureEnvoyees: ev.target.value } }))} 
-                              className="w-20 border-2 border-yellow-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          {/* Mises en demeure Réglées */}
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbMisesEnDemeureReglees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureReglees: ev.target.value } }))} 
-                              className="w-20 border-2 border-yellow-300 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtMisesEnDemeureReglees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureReglees: ev.target.value } }))} 
-                              className="w-20 border-2 border-yellow-300 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          {/* Dossiers juridiques */}
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbDossiersJuridiques || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbDossiersJuridiques: ev.target.value } }))} 
-                              className="w-20 border-2 border-orange-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtDossiersJuridiques || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtDossiersJuridiques: ev.target.value } }))} 
-                              className="w-20 border-2 border-orange-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          {/* Coupures */}
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbCoupures || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbCoupures: ev.target.value } }))} 
-                              className="w-20 border-2 border-red-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtCoupures || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtCoupures: ev.target.value } }))} 
-                              className="w-20 border-2 border-red-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          {/* Rétablissements */}
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbRetablissements || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRetablissements: ev.target.value } }))} 
-                              className="w-20 border-2 border-green-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtRetablissements || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRetablissements: ev.target.value } }))} 
-                              className="w-20 border-2 border-green-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          {/* Branchements */}
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbBranchements || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbBranchements: ev.target.value } }))} 
-                              className="w-20 border-2 border-blue-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          {/* Compteurs remplacés */}
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbCompteursRemplaces || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbCompteursRemplaces: ev.target.value } }))} 
-                              className="w-20 border-2 border-purple-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                          {/* Contrôles */}
-                          <td className="px-2 py-2 text-center">
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbControles || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbControles: ev.target.value } }))} 
-                              className="w-20 border-2 border-indigo-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md" 
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              
+              {/* Design en cartes groupées par type d'opération */}
+              <div className="space-y-6">
+                {(sortedCategories || []).map((cat, index) => {
+                  const e = entriesByCategory[cat.CategorieId] || {};
+                  return (
+                    <div key={cat.CategorieId} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                      {/* En-tête de catégorie */}
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 rounded-t-xl border-b border-gray-200">
+                        <h4 className="text-lg font-semibold text-gray-800">{cat.Libelle}</h4>
+                      </div>
+                      
+                      {/* Contenu organisé en sections */}
+                      <div className="p-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                          
+                          {/* Section Relances */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-3 h-3 bg-cyan-500 rounded-full"></div>
+                              <h5 className="font-semibold text-cyan-700 text-sm">Relances</h5>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Envoyées (Nb)</label>
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  step="1"
+                                  value={e.nbRelancesEnvoyees || ''} 
+                                  onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesEnvoyees: ev.target.value } }))} 
+                                  className="w-full border border-cyan-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Envoyées (Mt)</label>
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  step="0.01" 
+                                  value={e.mtRelancesEnvoyees || ''} 
+                                  onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesEnvoyees: ev.target.value } }))} 
+                                  className="w-full border border-cyan-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Réglées (Nb)</label>
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  step="1"
+                                  value={e.nbRelancesReglees || ''} 
+                                  onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesReglees: ev.target.value } }))} 
+                                  className="w-full border border-cyan-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-all duration-200" 
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Réglées (Mt)</label>
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  step="0.01" 
+                                  value={e.mtRelancesReglees || ''} 
+                                  onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesReglees: ev.target.value } }))} 
+                                  className="w-full border border-cyan-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-all duration-200" 
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Section Mises en demeure */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                              <h5 className="font-semibold text-yellow-700 text-sm">Mises en demeure</h5>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Envoyées (Nb)</label>
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  step="1"
+                                  value={e.nbMisesEnDemeureEnvoyees || ''} 
+                                  onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureEnvoyees: ev.target.value } }))} 
+                                  className="w-full border border-yellow-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Envoyées (Mt)</label>
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  step="0.01" 
+                                  value={e.mtMisesEnDemeureEnvoyees || ''} 
+                                  onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureEnvoyees: ev.target.value } }))} 
+                                  className="w-full border border-yellow-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Réglées (Nb)</label>
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  step="1"
+                                  value={e.nbMisesEnDemeureReglees || ''} 
+                                  onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureReglees: ev.target.value } }))} 
+                                  className="w-full border border-yellow-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all duration-200" 
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Réglées (Mt)</label>
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  step="0.01" 
+                                  value={e.mtMisesEnDemeureReglees || ''} 
+                                  onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureReglees: ev.target.value } }))} 
+                                  className="w-full border border-yellow-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all duration-200" 
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Section Activité Juridique */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                              <h5 className="font-semibold text-orange-700 text-sm">Activité Juridique</h5>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Dossiers juridiques (Nb)</label>
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  step="1"
+                                  value={e.nbDossiersJuridiques || ''} 
+                                  onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbDossiersJuridiques: ev.target.value } }))} 
+                                  className="w-full border border-orange-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200" 
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Dossiers juridiques (Mt)</label>
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  step="0.01" 
+                                  value={e.mtDossiersJuridiques || ''} 
+                                  onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtDossiersJuridiques: ev.target.value } }))} 
+                                  className="w-full border border-orange-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200" 
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Section Activité Coupure & Rétablissement */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                              <h5 className="font-semibold text-red-700 text-sm">Activité Coupure & Rétablissement</h5>
+                            </div>
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-xs text-gray-600 mb-1 block">Coupures (Nb)</label>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="1"
+                                    value={e.nbCoupures || ''} 
+                                    onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbCoupures: ev.target.value } }))} 
+                                    className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200" 
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-600 mb-1 block">Coupures (Mt)</label>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="0.01" 
+                                    value={e.mtCoupures || ''} 
+                                    onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtCoupures: ev.target.value } }))} 
+                                    className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200" 
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-xs text-gray-600 mb-1 block">Rétablissements (Nb)</label>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="1"
+                                    value={e.nbRetablissements || ''} 
+                                    onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRetablissements: ev.target.value } }))} 
+                                    className="w-full border border-green-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" 
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-600 mb-1 block">Rétablissements (Mt)</label>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="0.01" 
+                                    value={e.mtRetablissements || ''} 
+                                    onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRetablissements: ev.target.value } }))} 
+                                    className="w-full border border-green-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" 
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Section Gestion des Compteurs */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                              <h5 className="font-semibold text-purple-700 text-sm">Gestion des Compteurs</h5>
+                            </div>
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-xs text-gray-600 mb-1 block">Branchements</label>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="1"
+                                    value={e.nbBranchements || ''} 
+                                    onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbBranchements: ev.target.value } }))} 
+                                    className="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-600 mb-1 block">Compteurs remplacés</label>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="1"
+                                    value={e.nbCompteursRemplaces || ''} 
+                                    onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbCompteursRemplaces: ev.target.value } }))} 
+                                    className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200" 
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 gap-3">
+                                <div>
+                                  <label className="text-xs text-gray-600 mb-1 block">Contrôles</label>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="1"
+                                    value={e.nbControles || ''} 
+                                    onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbControles: ev.target.value } }))} 
+                                    className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200" 
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
