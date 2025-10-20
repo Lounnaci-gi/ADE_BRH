@@ -120,8 +120,21 @@ CREATE TABLE dbo.FAIT_KPI_ADE
     AgenceId INT NOT NULL,
     CategorieId INT NOT NULL,
 
-    -- Encaissement
-    Encaissement_Journalier_Global MONEY NULL,
+     -- Relances
+    Nb_RelancesEnvoyees INT NOT NULL DEFAULT 0,
+    Mt_RelancesEnvoyees MONEY NOT NULL DEFAULT 0,
+    Nb_RelancesReglees INT NOT NULL DEFAULT 0,
+    Mt_RelancesReglees MONEY NOT NULL DEFAULT 0,
+
+      -- Mises en demeure
+    Nb_MisesEnDemeure_Envoyees INT NOT NULL DEFAULT 0,
+    Mt_MisesEnDemeure_Envoyees MONEY NOT NULL DEFAULT 0,
+    Nb_MisesEnDemeure_Reglees INT NOT NULL DEFAULT 0,
+    Mt_MisesEnDemeure_Reglees MONEY NOT NULL DEFAULT 0,
+
+     -- Dossiers juridiques
+    Nb_Dossiers_Juridiques INT NOT NULL DEFAULT 0,
+    Mt_Dossiers_Juridiques MONEY NOT NULL DEFAULT 0,
 
     -- Coupures
     Nb_Coupures INT NOT NULL DEFAULT 0,
@@ -130,35 +143,20 @@ CREATE TABLE dbo.FAIT_KPI_ADE
     -- Rétablissements
     Nb_Retablissements INT NOT NULL DEFAULT 0,
     Mt_Retablissements MONEY NOT NULL DEFAULT 0,
-    
-    -- Branchements
+
+     -- Branchements
     Nb_Branchements INT NOT NULL DEFAULT 0,
-    Mt_Branchements MONEY NOT NULL DEFAULT 0,
     
     -- Compteurs remplacés
     Nb_Compteurs_Remplaces INT NOT NULL DEFAULT 0,
-    Mt_Compteurs_Remplaces MONEY NOT NULL DEFAULT 0,
-    
-    -- Dossiers juridiques
-    Nb_Dossiers_Juridiques INT NOT NULL DEFAULT 0,
-    Mt_Dossiers_Juridiques MONEY NOT NULL DEFAULT 0,
-    
+        
     -- Contrôles
-    Nb_Controles INT NOT NULL DEFAULT 0,   
-    
-    -- Mises en demeure
-    Nb_MisesEnDemeure_Envoyees INT NOT NULL DEFAULT 0,
-    Mt_MisesEnDemeure_Envoyees MONEY NOT NULL DEFAULT 0,
-    Nb_MisesEnDemeure_Reglees INT NOT NULL DEFAULT 0,
-    Mt_MisesEnDemeure_Reglees MONEY NOT NULL DEFAULT 0,
-    
-    -- Relances
-    Nb_RelancesEnvoyees INT NOT NULL DEFAULT 0,
-    Mt_RelancesEnvoyees MONEY NOT NULL DEFAULT 0,
-    Nb_RelancesReglees INT NOT NULL DEFAULT 0,
-    Mt_RelancesReglees MONEY NOT NULL DEFAULT 0,
+    Nb_Controles INT NOT NULL DEFAULT 0, 
 
-    -- Observation
+    -- Encaissement
+    Encaissement_Journalier_Global MONEY NULL,
+
+   -- Observation
     Observation NVARCHAR(500) NULL,
 
     -- Audit

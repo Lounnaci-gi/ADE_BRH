@@ -22,6 +22,7 @@ router.get('/', async (req, res) => {
     const query = `
       SELECT TOP 500
         k.DateKPI,
+        CONVERT(INT, CONVERT(VARCHAR(8), k.DateKPI, 112)) AS DateKey,
         k.AgenceId,
         k.CategorieId,
         a.Nom_Agence,
@@ -52,7 +53,7 @@ router.post('/', async (req, res) => {
       nbBranchements, mtBranchements,
       nbCompteursRemplaces, mtCompteursRemplaces,
       nbDossiersJuridiques, mtDossiersJuridiques,
-      nbControles, mtControles,
+      nbControles,
       nbMisesEnDemeureEnvoyees, mtMisesEnDemeureEnvoyees,
       nbMisesEnDemeureReglees, mtMisesEnDemeureReglees,
       nbRelancesEnvoyees, mtRelancesEnvoyees,
@@ -106,13 +107,9 @@ router.post('/', async (req, res) => {
           Nb_Coupures = @nbCoupures,
           Mt_Coupures = @mtCoupures,
           Nb_Retablissements = @nbRetablissements,
-          Mt_Retablissements = @mtRetablissements,
           Nb_Branchements = @nbBranchements,
-          Mt_Branchements = @mtBranchements,
           Nb_Compteurs_Remplaces = @nbCompteursRemplaces,
-          Mt_Compteurs_Remplaces = @mtCompteursRemplaces,
           Nb_Controles = @nbControles,
-          Mt_Controles = @mtControles,
           Encaissement_Journalier_Global = @encaissementJournalierGlobal,
           Observation = @observation,
           ModifiedAt = SYSUTCDATETIME()
@@ -121,31 +118,31 @@ router.post('/', async (req, res) => {
     } else {
       // INSERT
       query = `
-        INSERT INTO dbo.FAIT_KPI_ADE (
+      INSERT INTO dbo.FAIT_KPI_ADE (
           DateKPI, AgenceId, CategorieId,
-          Nb_RelancesEnvoyees, Mt_RelancesEnvoyees,
-          Nb_RelancesReglees, Mt_RelancesReglees,
-          Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
+        Nb_RelancesEnvoyees, Mt_RelancesEnvoyees,
+        Nb_RelancesReglees, Mt_RelancesReglees,
+        Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
           Nb_MisesEnDemeure_Reglees, Mt_MisesEnDemeure_Reglees,
-          Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques,
-          Nb_Coupures, Mt_Coupures,
-          Nb_Retablissements, Mt_Retablissements,
-          Nb_Branchements, Mt_Branchements,
-          Nb_Compteurs_Remplaces, Mt_Compteurs_Remplaces,
-          Nb_Controles, Mt_Controles,
+        Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques,
+        Nb_Coupures, Mt_Coupures,
+          Nb_Retablissements,
+          Nb_Branchements,
+          Nb_Compteurs_Remplaces,
+          Nb_Controles,
           Encaissement_Journalier_Global, Observation
-        ) VALUES (
-          @dateKey, @agenceId, @categorieId,
-          @nbRelancesEnvoyees, @mtRelancesEnvoyees,
-          @nbRelancesReglees, @mtRelancesReglees,
-          @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
+      ) VALUES (
+        @dateKey, @agenceId, @categorieId,
+        @nbRelancesEnvoyees, @mtRelancesEnvoyees,
+        @nbRelancesReglees, @mtRelancesReglees,
+        @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
           @nbMisesEnDemeureReglees, @mtMisesEnDemeureReglees,
-          @nbDossiersJuridiques, @mtDossiersJuridiques,
-          @nbCoupures, @mtCoupures,
-          @nbRetablissements, @mtRetablissements,
-          @nbBranchements, @mtBranchements,
-          @nbCompteursRemplaces, @mtCompteursRemplaces,
-          @nbControles, @mtControles,
+        @nbDossiersJuridiques, @mtDossiersJuridiques,
+        @nbCoupures, @mtCoupures,
+          @nbRetablissements,
+          @nbBranchements,
+          @nbCompteursRemplaces,
+          @nbControles,
           @encaissementJournalierGlobal, @observation
         )
       `;
@@ -168,18 +165,14 @@ router.post('/', async (req, res) => {
       { name: 'nbCoupures', type: TYPES.Int, value: parseInt(nbCoupures || 0, 10) },
       { name: 'mtCoupures', type: TYPES.Money, value: parseFloat(mtCoupures || 0) },
       { name: 'nbRetablissements', type: TYPES.Int, value: parseInt(nbRetablissements || 0, 10) },
-      { name: 'mtRetablissements', type: TYPES.Money, value: parseFloat(mtRetablissements || 0) },
       { name: 'nbBranchements', type: TYPES.Int, value: parseInt(nbBranchements || 0, 10) },
-      { name: 'mtBranchements', type: TYPES.Money, value: parseFloat(mtBranchements || 0) },
       { name: 'nbCompteursRemplaces', type: TYPES.Int, value: parseInt(nbCompteursRemplaces || 0, 10) },
-      { name: 'mtCompteursRemplaces', type: TYPES.Money, value: parseFloat(mtCompteursRemplaces || 0) },
       { name: 'nbControles', type: TYPES.Int, value: parseInt(nbControles || 0, 10) },
-      { name: 'mtControles', type: TYPES.Money, value: parseFloat(mtControles || 0) },
       { name: 'encaissementJournalierGlobal', type: TYPES.Money, value: parseFloat(encaissementJournalierGlobal || 0) },
       { name: 'observation', type: TYPES.NVarChar, value: observation || '' }
     ];
 
-    console.log('Attempting to upsert KPI with all fields:', { 
+    console.log('Attempting to upsert KPI with fields:', { 
       dateKey, agenceId, categorieId,
       nbRelancesEnvoyees, mtRelancesEnvoyees,
       nbRelancesReglees, mtRelancesReglees,
@@ -190,7 +183,7 @@ router.post('/', async (req, res) => {
       nbRetablissements, mtRetablissements,
       nbBranchements, mtBranchements,
       nbCompteursRemplaces, mtCompteursRemplaces,
-      nbControles, mtControles,
+      nbControles,
       encaissementJournalierGlobal, observation
     });
     
@@ -249,10 +242,10 @@ router.get('/existing', async (req, res) => {
         k.Nb_MisesEnDemeure_Reglees, k.Mt_MisesEnDemeure_Reglees,
         k.Nb_Dossiers_Juridiques, k.Mt_Dossiers_Juridiques,
         k.Nb_Coupures, k.Mt_Coupures,
-        k.Nb_Retablissements, k.Mt_Retablissements,
-        k.Nb_Branchements, k.Mt_Branchements,
-        k.Nb_Compteurs_Remplaces, k.Mt_Compteurs_Remplaces,
-        k.Nb_Controles, k.Mt_Controles,
+        k.Nb_Retablissements,
+        k.Nb_Branchements,
+        k.Nb_Compteurs_Remplaces,
+        k.Nb_Controles,
         k.Observation,
         c.Libelle AS CategorieLibelle
       FROM dbo.FAIT_KPI_ADE k
@@ -421,7 +414,8 @@ router.get('/summary', async (req, res) => {
         SUM(k.Mt_Dossiers_Juridiques) as Total_Mt_DossiersJuridiques,
         SUM(k.Nb_Coupures) as Total_Coupures,
         SUM(k.Mt_Coupures) as Total_Mt_Coupures,
-        SUM(k.Encaissement_Journalier_Global) as Total_EncaissementGlobal,
+        SUM(k.Nb_Compteurs_Remplaces) as Total_CompteursRemplaces,
+        MAX(k.Encaissement_Journalier_Global) as Total_EncaissementGlobal,
         a.Nom_Agence
       FROM dbo.FAIT_KPI_ADE k
       LEFT JOIN dbo.DIM_AGENCE a ON k.AgenceId = a.AgenceId
@@ -436,10 +430,12 @@ router.get('/summary', async (req, res) => {
 
     const objectivesQuery = `
       SELECT 
+        o.Obj_Encaissement,
         o.Obj_Relances,
         o.Obj_MisesEnDemeure,
         o.Obj_Dossiers_Juridiques,
-        o.Obj_Coupures
+        o.Obj_Coupures,
+        o.Obj_Compteurs_Remplaces
       FROM dbo.DIM_OBJECTIF o
       WHERE o.FK_Agence = @agenceId 
         AND o.DateDebut <= @dateValue 
