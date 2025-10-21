@@ -875,15 +875,17 @@ function KPI() {
                   </div>
                   Encaissement Journalier Global (optionnel)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.encaissementJournalierGlobal}
-                  onChange={(e) => setFormData({ ...formData, encaissementJournalierGlobal: e.target.value })}
-                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
-                  placeholder="Montant de l'encaissement journalier global..."
-                />
+                <div className="flex justify-start">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.encaissementJournalierGlobal}
+                    onChange={(e) => setFormData({ ...formData, encaissementJournalierGlobal: e.target.value })}
+                    className="w-64 border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                    placeholder="Montant de l'encaissement journalier global..."
+                  />
+                </div>
               </div>
             </div>
 
@@ -1051,7 +1053,16 @@ function KPI() {
 
                     {/* Encaissement global */}
                     <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                      <div className="text-sm text-emerald-600 font-medium mb-2">Encaissement du jour</div>
+                      <div className="text-sm text-emerald-600 font-medium mb-2 flex items-center justify-between">
+                        <span>Encaissement du jour</span>
+                        {summary.objectives && (
+                          <span className={`text-xs font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_EncaissementGlobal, summary.objectives.Obj_Encaissement))}`}>
+                            {calculateCompletionRate(summary.daily.Total_EncaissementGlobal, summary.objectives.Obj_Encaissement) !== null 
+                              ? `${calculateCompletionRate(summary.daily.Total_EncaissementGlobal, summary.objectives.Obj_Encaissement)}%`
+                              : 'N/A'}
+                          </span>
+                        )}
+                      </div>
                       <div className="space-y-1 text-sm">
                         <div className="flex justify-between">
                           <span>Montant journalier:</span>

@@ -186,7 +186,11 @@ function Users() {
           {isAdmin ? '👥 Gestion des utilisateurs' : '👤 Mon profil'}
         </h1>
         {isAdmin && (
-          <button onClick={() => setOpen(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white px-4 py-2 rounded-xl shadow-md transition inline-flex items-center gap-2">
+          <button onClick={() => {
+            setEditUser(null);
+            setEditUserId(null);
+            setOpen(true);
+          }} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white px-4 py-2 rounded-xl shadow-md transition inline-flex items-center gap-2">
             <span>➕</span>
             <span className="font-medium">Nouvel utilisateur</span>
           </button>
@@ -235,15 +239,20 @@ function Users() {
           </div>
 
           <UsersAddModal
+            key={editUser ? `edit-${editUser.UtilisateurId || editUser.id}` : 'new'}
             open={open}
-            onClose={() => { setOpen(false); setEditUser(null); setEditUserId(null); }}
+            onClose={() => { 
+              setOpen(false); 
+              setEditUser(null); 
+              setEditUserId(null); 
+            }}
             onSubmit={handleCreate}
             initialValues={editUser ? {
               username: editUser.username,
               email: editUser.email,
               role: editUser.role,
               agenceId: editUser.agenceId || ''
-            } : undefined}
+            } : null}
           />
         </>
       ) : (
