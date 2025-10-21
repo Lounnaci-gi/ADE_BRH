@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Users, Building2, Activity, PlusCircle, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Building2, Activity, MapPin } from 'lucide-react';
 import authService from '../services/authService';
 import centresService from '../services/centresService';
 import agenceService from '../services/agenceService';
@@ -16,6 +16,7 @@ const Dashboard = () => {
     loading: true
   });
   const user = authService.getCurrentUser();
+  const navigate = useNavigate();
 
 
   useEffect(() => {
@@ -63,9 +64,12 @@ const Dashboard = () => {
 
         {/* Contenu principal */}
         <main className="p-6 fade-in space-y-6">
-          {/* Cartes KPI */}
+          {/* Cartes KPI interactives */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-md transition">
+            <div 
+              className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+              onClick={() => navigate('/users')}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-gray-500">Utilisateurs</p>
@@ -79,9 +83,15 @@ const Dashboard = () => {
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Actifs'}
               </div>
+              <div className="mt-3 text-xs text-sky-600 font-medium">
+                Cliquez pour gérer →
+              </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-md transition">
+            <div 
+              className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+              onClick={() => navigate('/centres')}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-gray-500">Centres</p>
@@ -95,9 +105,15 @@ const Dashboard = () => {
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Opérationnels'}
               </div>
+              <div className="mt-3 text-xs text-indigo-600 font-medium">
+                Cliquez pour gérer →
+              </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-md transition">
+            <div 
+              className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+              onClick={() => navigate('/agences')}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-gray-500">Agences</p>
@@ -111,9 +127,15 @@ const Dashboard = () => {
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'En service'}
               </div>
+              <div className="mt-3 text-xs text-emerald-600 font-medium">
+                Cliquez pour gérer →
+              </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-md transition">
+            <div 
+              className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+              onClick={() => navigate('/communes')}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-gray-500">Communes</p>
@@ -127,50 +149,10 @@ const Dashboard = () => {
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Couvrent'}
               </div>
+              <div className="mt-3 text-xs text-amber-600 font-medium">
+                Cliquez pour gérer →
+              </div>
             </div>
-          </div>
-
-          {/* Actions rapides */}
-          <div className="grid gap-6 md:grid-cols-4">
-            <Link to="/users" className="group bg-white rounded-xl border border-blue-50 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
-              <div className="absolute -right-6 -top-6 w-24 h-24 bg-sky-50 rounded-full -z-10 pointer-events-none" aria-hidden="true" />
-              <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-sky-600" />
-                <h4 className="font-medium text-sky-700">Gérer les utilisateurs</h4>
-              </div>
-              <p className="mt-2 text-sm text-gray-600">Créer, modifier et gérer les accès.</p>
-              <div className="mt-4 inline-flex items-center gap-2 text-sky-600 group-hover:gap-3 transition">Accéder <PlusCircle className="w-4 h-4" /></div>
-            </Link>
-
-            <Link to="/centres" className="group bg-white rounded-xl border border-blue-50 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
-              <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50 rounded-full -z-10 pointer-events-none" aria-hidden="true" />
-              <div className="flex items-center gap-3">
-                <Building2 className="w-5 h-5 text-indigo-600" />
-                <h4 className="font-medium text-indigo-700">Gérer les centres</h4>
-              </div>
-              <p className="mt-2 text-sm text-gray-600">Ajouter, mettre à jour et consulter.</p>
-              <div className="mt-4 inline-flex items-center gap-2 text-indigo-600 group-hover:gap-3 transition">Accéder <PlusCircle className="w-4 h-4" /></div>
-            </Link>
-
-            <Link to="/agences" className="group bg-white rounded-xl border border-blue-50 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
-              <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-50 rounded-full -z-10 pointer-events-none" aria-hidden="true" />
-              <div className="flex items-center gap-3">
-                <Building2 className="w-5 h-5 text-emerald-600" />
-                <h4 className="font-medium text-emerald-700">Gérer les agences</h4>
-              </div>
-              <p className="mt-2 text-sm text-gray-600">Ajouter, mettre à jour et consulter.</p>
-              <div className="mt-4 inline-flex items-center gap-2 text-emerald-600 group-hover:gap-3 transition">Accéder <PlusCircle className="w-4 h-4" /></div>
-            </Link>
-
-            <Link to="/communes" className="group bg-white rounded-xl border border-blue-50 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
-              <div className="absolute -right-6 -top-6 w-24 h-24 bg-amber-50 rounded-full -z-10 pointer-events-none" aria-hidden="true" />
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-amber-600" />
-                <h4 className="font-medium text-amber-700">Gérer les communes</h4>
-              </div>
-              <p className="mt-2 text-sm text-gray-600">Ajouter, mettre à jour et consulter.</p>
-              <div className="mt-4 inline-flex items-center gap-2 text-amber-600 group-hover:gap-3 transition">Accéder <PlusCircle className="w-4 h-4" /></div>
-            </Link>
           </div>
         </main>
       </div>

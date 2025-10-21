@@ -1082,6 +1082,43 @@ function KPI() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Rétablissement */}
+                    <div className="bg-cyan-50 rounded-lg p-4 border border-cyan-200">
+                      <div className="text-sm text-cyan-600 font-medium mb-2">
+                        <span>Rétablissement</span>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Nombre:</span>
+                          <span className="font-semibold text-cyan-700">{summary.daily.Total_Retablissements || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Montant:</span>
+                          <span>{formatCurrency(summary.daily.Total_Mt_Retablissements || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Contrôle */}
+                    <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
+                      <div className="text-sm text-teal-600 font-medium mb-2 flex items-center justify-between">
+                        <span>Contrôle</span>
+                        {summary.objectives && summary.objectives.Obj_Controles && (
+                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_Controles, summary.objectives.Obj_Controles))}`}>
+                            {calculateCompletionRate(summary.daily.Total_Controles, summary.objectives.Obj_Controles) !== null 
+                              ? `${calculateCompletionRate(summary.daily.Total_Controles, summary.objectives.Obj_Controles)}%`
+                              : 'N/A'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Nombre:</span>
+                          <span className="font-semibold text-teal-700">{summary.daily.Total_Controles || 0}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

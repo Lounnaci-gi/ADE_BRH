@@ -91,16 +91,16 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
         </div>
 
         {/* Contenu du formulaire */}
-        <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="p-3">
+          <form onSubmit={handleSubmit} className="space-y-2">
             {/* Section Informations de base */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 gap-3">
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-1 gap-1.5">
                 {/* Nom d'utilisateur */}
-                <div className="space-y-2">
-                  <label className="flex items-center text-sm font-semibold text-gray-700">
-                    <div className="p-1.5 bg-blue-100 rounded-lg mr-3">
-                      <User className="h-4 w-4 text-blue-600" />
+                <div className="space-y-1">
+                  <label className="flex items-center text-xs font-semibold text-gray-700">
+                    <div className="p-1 bg-blue-100 rounded mr-2">
+                      <User className="h-3 w-3 text-blue-600" />
                     </div>
                     Nom d'utilisateur *
                   </label>
@@ -108,17 +108,17 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
                     type="text"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                    className="w-full border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-sm"
                     placeholder="Entrez le nom d'utilisateur"
                     required
                   />
                 </div>
 
                 {/* Email */}
-                <div className="space-y-2">
-                  <label className="flex items-center text-sm font-semibold text-gray-700">
-                    <div className="p-1.5 bg-green-100 rounded-lg mr-3">
-                      <Mail className="h-4 w-4 text-green-600" />
+                <div className="space-y-1">
+                  <label className="flex items-center text-xs font-semibold text-gray-700">
+                    <div className="p-1 bg-green-100 rounded mr-2">
+                      <Mail className="h-3 w-3 text-green-600" />
                     </div>
                     Adresse email *
                   </label>
@@ -126,7 +126,7 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                    className="w-full border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-sm"
                     placeholder="utilisateur@exemple.com"
                     required
                   />
@@ -135,20 +135,20 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
             </div>
 
             {/* Section Rôle et Agence */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 gap-3">
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-1 gap-1.5">
                 {/* Rôle */}
-                <div className="space-y-2">
-                  <label className="flex items-center text-sm font-semibold text-gray-700">
-                    <div className="p-1.5 bg-orange-100 rounded-lg mr-3">
-                      <Shield className="h-4 w-4 text-orange-600" />
+                <div className="space-y-1">
+                  <label className="flex items-center text-xs font-semibold text-gray-700">
+                    <div className="p-1 bg-orange-100 rounded mr-2">
+                      <Shield className="h-3 w-3 text-orange-600" />
                     </div>
                     Rôle *
                   </label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value, agenceId: e.target.value === 'Administrateur' ? '' : formData.agenceId })}
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                    className="w-full border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-sm"
                   >
                     <option value="Standard">👤 Utilisateur Standard</option>
                     <option value="Administrateur">👑 Administrateur</option>
@@ -156,17 +156,17 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
                 </div>
 
                 {/* Agence */}
-                <div className="space-y-2">
-                  <label className="flex items-center text-sm font-semibold text-gray-700">
-                    <div className="p-1.5 bg-purple-100 rounded-lg mr-3">
-                      <Building2 className="h-4 w-4 text-purple-600" />
+                <div className="space-y-1">
+                  <label className="flex items-center text-xs font-semibold text-gray-700">
+                    <div className="p-1 bg-purple-100 rounded mr-2">
+                      <Building2 className="h-3 w-3 text-purple-600" />
                     </div>
                     Agence {formData.role !== 'Administrateur' && '*'}
                   </label>
                   <select
                     value={formData.agenceId}
                     onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                    className="w-full border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-sm"
                     required={formData.role !== 'Administrateur'}
                     disabled={formData.role === 'Administrateur'}
                   >
@@ -180,11 +180,11 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
             </div>
 
             {/* Section Sécurité */}
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <label className="flex items-center text-sm font-semibold text-gray-700">
-                  <div className="p-1.5 bg-red-100 rounded-lg mr-3">
-                    <Lock className="h-4 w-4 text-red-600" />
+            <div className="space-y-1.5">
+              <div className="space-y-1">
+                <label className="flex items-center text-xs font-semibold text-gray-700">
+                  <div className="p-1 bg-red-100 rounded mr-2">
+                    <Lock className="h-3 w-3 text-red-600" />
                   </div>
                   Mot de passe *
                 </label>
@@ -192,19 +192,19 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                  className="w-full border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-sm"
                   placeholder="Définissez un mot de passe sécurisé"
                   required
                 />
                 
                 {/* Note de sécurité */}
-                <div className="bg-red-50 border border-red-200 rounded-lg p-2">
-                  <div className="flex items-start gap-2">
-                    <Lock className="h-3 w-3 text-red-600 mt-0.5" />
+                <div className="bg-red-50 border border-red-200 rounded p-1">
+                  <div className="flex items-start gap-1">
+                    <Lock className="h-2.5 w-2.5 text-red-600 mt-0.5" />
                     <div>
-                      <h5 className="text-xs font-semibold text-red-800 mb-1">Conseils de sécurité</h5>
+                      <h5 className="text-xs font-semibold text-red-800">Conseils de sécurité</h5>
                       <p className="text-xs text-red-700">
-                        Utilisez au moins 8 caractères avec des majuscules, minuscules, chiffres et symboles.
+                        Min. 8 caractères avec majuscules, minuscules, chiffres et symboles.
                       </p>
                     </div>
                   </div>
@@ -213,20 +213,20 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
             </div>
 
             {/* Boutons d'action */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <div className="flex justify-end gap-1.5 pt-2 border-t border-gray-200">
               <button 
                 type="button" 
                 onClick={handleClose}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm"
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded shadow-sm hover:shadow-md transition-all duration-200 inline-flex items-center gap-1 font-medium text-xs"
               >
                 Annuler
               </button>
               <button 
                 type="submit" 
                 disabled={loading}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1 rounded shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center gap-1 font-medium text-xs"
               >
-                <UserPlus className="h-4 w-4" />
+                <UserPlus className="h-3 w-3" />
                 {loading ? 'Enregistrement...' : (initialValues ? 'Mettre à jour' : 'Créer l\'utilisateur')}
               </button>
             </div>
