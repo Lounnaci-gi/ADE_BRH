@@ -1165,7 +1165,7 @@ function KPI() {
                             </div>
                           </div>
                           <div className="text-xs text-blue-600 font-medium bg-blue-50 rounded-full px-3 py-1">
-                            {summary.daily.Total_RelancesEnvoyees || 0} / {summary.objectives.Obj_Relances || 0}
+                            {summary.daily.Total_RelancesEnvoyees || 0}
                           </div>
                         </div>
                       </div>
@@ -1205,7 +1205,7 @@ function KPI() {
                             </div>
                           </div>
                           <div className="text-xs text-green-600 font-medium bg-green-50 rounded-full px-3 py-1">
-                            {summary.daily.Total_MisesEnDemeureEnvoyees || 0} / {summary.objectives.Obj_MisesEnDemeure || 0}
+                            {summary.daily.Total_MisesEnDemeureEnvoyees || 0}
                           </div>
                         </div>
                       </div>
@@ -1245,7 +1245,7 @@ function KPI() {
                             </div>
                           </div>
                           <div className="text-xs text-purple-600 font-medium bg-purple-50 rounded-full px-3 py-1">
-                            {summary.daily.Total_DossiersJuridiques || 0} / {summary.objectives.Obj_Dossiers_Juridiques || 0}
+                            {summary.daily.Total_DossiersJuridiques || 0}
                           </div>
                         </div>
                       </div>
@@ -1285,7 +1285,7 @@ function KPI() {
                             </div>
                           </div>
                           <div className="text-xs text-orange-600 font-medium bg-orange-50 rounded-full px-3 py-1">
-                            {summary.daily.Total_Coupures || 0} / {summary.objectives.Obj_Coupures || 0}
+                            {summary.daily.Total_Coupures || 0}
                           </div>
                         </div>
                       </div>
@@ -1325,7 +1325,7 @@ function KPI() {
                             </div>
                           </div>
                           <div className="text-xs text-emerald-600 font-medium bg-emerald-50 rounded-full px-3 py-1">
-                            {formatCurrency(summary.daily.Total_EncaissementGlobal || 0)} / {formatCurrency(summary.objectives.Obj_Encaissement || 0)}
+                            {formatCurrency(summary.daily.Total_EncaissementGlobal || 0)}
                           </div>
                         </div>
                       </div>
@@ -1365,7 +1365,7 @@ function KPI() {
                             </div>
                           </div>
                           <div className="text-xs text-pink-600 font-medium bg-pink-50 rounded-full px-3 py-1">
-                            {summary.daily.Total_CompteursRemplaces || 0} / {summary.objectives.Obj_Compteurs_Remplaces || 0}
+                            {summary.daily.Total_CompteursRemplaces || 0}
                           </div>
                         </div>
                       </div>
