@@ -93,100 +93,141 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
         {/* Contenu du formulaire */}
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Nom d'utilisateur */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Nom d'utilisateur *
-              </label>
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
-                placeholder="Entrez le nom d'utilisateur"
-                required
-              />
+            {/* Section Informations de base */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3">
+                {/* Nom d'utilisateur */}
+                <div className="space-y-2">
+                  <label className="flex items-center text-sm font-semibold text-gray-700">
+                    <div className="p-1.5 bg-blue-100 rounded-lg mr-3">
+                      <User className="h-4 w-4 text-blue-600" />
+                    </div>
+                    Nom d'utilisateur *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                    placeholder="Entrez le nom d'utilisateur"
+                    required
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="space-y-2">
+                  <label className="flex items-center text-sm font-semibold text-gray-700">
+                    <div className="p-1.5 bg-green-100 rounded-lg mr-3">
+                      <Mail className="h-4 w-4 text-green-600" />
+                    </div>
+                    Adresse email *
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                    placeholder="utilisateur@exemple.com"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email *
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
-                placeholder="utilisateur@exemple.com"
-                required
-              />
+            {/* Section Rôle et Agence */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3">
+                {/* Rôle */}
+                <div className="space-y-2">
+                  <label className="flex items-center text-sm font-semibold text-gray-700">
+                    <div className="p-1.5 bg-orange-100 rounded-lg mr-3">
+                      <Shield className="h-4 w-4 text-orange-600" />
+                    </div>
+                    Rôle *
+                  </label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value, agenceId: e.target.value === 'Administrateur' ? '' : formData.agenceId })}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                  >
+                    <option value="Standard">👤 Utilisateur Standard</option>
+                    <option value="Administrateur">👑 Administrateur</option>
+                  </select>
+                </div>
+
+                {/* Agence */}
+                <div className="space-y-2">
+                  <label className="flex items-center text-sm font-semibold text-gray-700">
+                    <div className="p-1.5 bg-purple-100 rounded-lg mr-3">
+                      <Building2 className="h-4 w-4 text-purple-600" />
+                    </div>
+                    Agence {formData.role !== 'Administrateur' && '*'}
+                  </label>
+                  <select
+                    value={formData.agenceId}
+                    onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                    required={formData.role !== 'Administrateur'}
+                    disabled={formData.role === 'Administrateur'}
+                  >
+                    <option value="">-- Sélectionner une agence --</option>
+                    {agences.map((a) => (
+                      <option key={a.AgenceId} value={a.AgenceId}>{a.Nom_Agence}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
-            {/* Rôle */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Rôle *
-              </label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value, agenceId: e.target.value === 'Administrateur' ? '' : formData.agenceId })}
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
-              >
-                <option value="Standard">Standard</option>
-                <option value="Administrateur">Administrateur</option>
-              </select>
-            </div>
-
-            {/* Agence */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Agence {formData.role !== 'Administrateur' && '*'}
-              </label>
-              <select
-                value={formData.agenceId}
-                onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
-                required={formData.role !== 'Administrateur'}
-                disabled={formData.role === 'Administrateur'}
-              >
-                <option value="">-- Sélectionner une agence --</option>
-                {agences.map((a) => (
-                  <option key={a.AgenceId} value={a.AgenceId}>{a.Nom_Agence}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Mot de passe */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Mot de passe *
-              </label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
-                placeholder="Définissez un mot de passe"
-                required
-              />
+            {/* Section Sécurité */}
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <label className="flex items-center text-sm font-semibold text-gray-700">
+                  <div className="p-1.5 bg-red-100 rounded-lg mr-3">
+                    <Lock className="h-4 w-4 text-red-600" />
+                  </div>
+                  Mot de passe *
+                </label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                  placeholder="Définissez un mot de passe sécurisé"
+                  required
+                />
+                
+                {/* Note de sécurité */}
+                <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+                  <div className="flex items-start gap-2">
+                    <Lock className="h-3 w-3 text-red-600 mt-0.5" />
+                    <div>
+                      <h5 className="text-xs font-semibold text-red-800 mb-1">Conseils de sécurité</h5>
+                      <p className="text-xs text-red-700">
+                        Utilisez au moins 8 caractères avec des majuscules, minuscules, chiffres et symboles.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Boutons d'action */}
-            <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
               <button 
                 type="button" 
                 onClick={handleClose}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm"
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm"
               >
                 Annuler
               </button>
               <button 
                 type="submit" 
                 disabled={loading}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm"
               >
-                {loading ? 'Enregistrement...' : (initialValues ? 'Mettre à jour' : 'Créer')}
+                <UserPlus className="h-4 w-4" />
+                {loading ? 'Enregistrement...' : (initialValues ? 'Mettre à jour' : 'Créer l\'utilisateur')}
               </button>
             </div>
           </form>

@@ -429,9 +429,6 @@ function KPI() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">📊 Saisie des Données Quotidiennes</h1>
-      </div>
 
       <div className="grid grid-cols-1 gap-6">
         {/* Objectifs de l'agence */}
@@ -511,14 +508,9 @@ function KPI() {
 
         {/* Formulaire élargi avec style élégant */}
         <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-3xl shadow-xl p-8 border border-blue-100/50 backdrop-blur-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
-              <Plus className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">Saisie des données</h2>
-              <p className="text-sm text-gray-600">Enregistrez les indicateurs quotidiens par catégorie</p>
-            </div>
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-800">Saisie des données</h2>
+            <p className="text-sm text-gray-600">Enregistrez les indicateurs quotidiens par catégorie</p>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -535,7 +527,7 @@ function KPI() {
                   type="date"
                   value={formData.dateKey}
                   onChange={(e) => setFormData({ ...formData, dateKey: e.target.value })}
-                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                  className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-sm"
                   required
                 />
               </div>
@@ -557,7 +549,7 @@ function KPI() {
                       <select
                         value={formData.agenceId}
                         onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
-                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                        className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-sm"
                         required
                       >
                         <option value="">Sélectionner une agence</option>
@@ -1129,7 +1121,7 @@ function KPI() {
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="text-center">
-                                <div className={`text-2xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_RelancesEnvoyees, summary.objectives.Obj_Relances)).split(' ')[0]}`}>
+                                <div className={`text-xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_RelancesEnvoyees, summary.objectives.Obj_Relances)).split(' ')[0]}`}>
                                   {calculateCompletionRate(summary.daily.Total_RelancesEnvoyees, summary.objectives.Obj_Relances) || 0}%
                                 </div>
                               </div>
@@ -1169,7 +1161,7 @@ function KPI() {
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="text-center">
-                                <div className={`text-2xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_MisesEnDemeureEnvoyees, summary.objectives.Obj_MisesEnDemeure)).split(' ')[0]}`}>
+                                <div className={`text-xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_MisesEnDemeureEnvoyees, summary.objectives.Obj_MisesEnDemeure)).split(' ')[0]}`}>
                                   {calculateCompletionRate(summary.daily.Total_MisesEnDemeureEnvoyees, summary.objectives.Obj_MisesEnDemeure) || 0}%
                                 </div>
                               </div>
@@ -1209,7 +1201,7 @@ function KPI() {
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="text-center">
-                                <div className={`text-2xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_DossiersJuridiques, summary.objectives.Obj_Dossiers_Juridiques)).split(' ')[0]}`}>
+                                <div className={`text-xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_DossiersJuridiques, summary.objectives.Obj_Dossiers_Juridiques)).split(' ')[0]}`}>
                                   {calculateCompletionRate(summary.daily.Total_DossiersJuridiques, summary.objectives.Obj_Dossiers_Juridiques) || 0}%
                                 </div>
                               </div>
@@ -1249,7 +1241,7 @@ function KPI() {
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="text-center">
-                                <div className={`text-2xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_Coupures, summary.objectives.Obj_Coupures)).split(' ')[0]}`}>
+                                <div className={`text-xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_Coupures, summary.objectives.Obj_Coupures)).split(' ')[0]}`}>
                                   {calculateCompletionRate(summary.daily.Total_Coupures, summary.objectives.Obj_Coupures) || 0}%
                                 </div>
                               </div>
@@ -1289,7 +1281,7 @@ function KPI() {
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="text-center">
-                                <div className={`text-2xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_EncaissementGlobal, summary.objectives.Obj_Encaissement)).split(' ')[0]}`}>
+                                <div className={`text-xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_EncaissementGlobal, summary.objectives.Obj_Encaissement)).split(' ')[0]}`}>
                                   {calculateCompletionRate(summary.daily.Total_EncaissementGlobal, summary.objectives.Obj_Encaissement) || 0}%
                                 </div>
                               </div>
@@ -1329,7 +1321,7 @@ function KPI() {
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="text-center">
-                                <div className={`text-2xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_CompteursRemplaces, summary.objectives.Obj_Compteurs_Remplaces)).split(' ')[0]}`}>
+                                <div className={`text-xl font-bold ${getCompletionRateColor(calculateCompletionRate(summary.daily.Total_CompteursRemplaces, summary.objectives.Obj_Compteurs_Remplaces)).split(' ')[0]}`}>
                                   {calculateCompletionRate(summary.daily.Total_CompteursRemplaces, summary.objectives.Obj_Compteurs_Remplaces) || 0}%
                                 </div>
                               </div>
