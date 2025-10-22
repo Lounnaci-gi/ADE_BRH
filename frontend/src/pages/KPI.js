@@ -1,8 +1,184 @@
-import React, { useEffect, useState } from 'react';
-import { Calendar, Building2, Save, Plus } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Calendar, Building2, Save, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
 import { swalSuccess, swalError } from '../utils/swal';
+
+// Composant de sélecteur de date moderne
+const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une date" }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(value ? new Date(value) : null);
+  const datePickerRef = useRef(null);
+
+  const months = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+  ];
+
+  const daysOfWeek = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days = [];
+    
+    // Ajouter les jours vides du mois précédent
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    
+    // Ajouter les jours du mois
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day));
+    }
+    
+    return days;
+  };
+
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    // Corriger le bug de timezone en utilisant les composants locaux de la date
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const localDateString = `${year}-${month}-${day}`;
+    onChange(localDateString);
+    setIsOpen(false);
+  };
+
+  const navigateMonth = (direction) => {
+    setCurrentMonth(prev => {
+      const newMonth = new Date(prev);
+      newMonth.setMonth(prev.getMonth() + direction);
+      return newMonth;
+    });
+  };
+
+  const formatDisplayDate = (dateString) => {
+    if (!dateString) return placeholder;
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Fermer le picker quand on clique à l'extérieur
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const days = getDaysInMonth(currentMonth);
+  const today = new Date();
+
+  return (
+    <div className="relative" ref={datePickerRef}>
+      {/* Input trigger */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-xs text-left flex items-center justify-between min-w-[100px] max-w-[120px]"
+      >
+        <span className={selectedDate ? 'text-gray-900' : 'text-gray-500'}>
+          {formatDisplayDate(value)}
+        </span>
+        <Calendar className="h-3 w-3 text-gray-400" />
+      </button>
+
+      {/* Calendar dropdown */}
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-4 min-w-[280px]">
+          {/* Header avec navigation */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={() => navigateMonth(-1)}
+              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4 text-gray-600" />
+            </button>
+            
+            <h3 className="text-sm font-semibold text-gray-900">
+              {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+            </h3>
+            
+            <button
+              type="button"
+              onClick={() => navigateMonth(1)}
+              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronRight className="h-4 w-4 text-gray-600" />
+            </button>
+          </div>
+
+          {/* Jours de la semaine */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {daysOfWeek.map(day => (
+              <div key={day} className="text-xs text-gray-500 font-medium text-center py-2">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Grille des jours */}
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((day, index) => {
+              if (!day) {
+                return <div key={index} className="h-8" />;
+              }
+
+              const isToday = day.toDateString() === today.toDateString();
+              const isSelected = selectedDate && day.toDateString() === selectedDate.toDateString();
+              const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
+
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => handleDateSelect(day)}
+                  className={`
+                    h-8 w-8 text-xs rounded-lg transition-all duration-150 flex items-center justify-center
+                    ${isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}
+                    ${isToday ? 'bg-blue-100 text-blue-600 font-semibold' : ''}
+                    ${isSelected ? 'bg-blue-600 text-white font-semibold' : ''}
+                    ${!isSelected && !isToday ? 'hover:bg-gray-100' : ''}
+                  `}
+                >
+                  {day.getDate()}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Actions rapides */}
+          <div className="mt-4 pt-3 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => handleDateSelect(today)}
+              className="w-full text-xs text-blue-600 hover:text-blue-700 font-medium py-2 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              Aujourd'hui
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 function KPI() {
   const [kpis, setKpis] = useState([]);
@@ -515,23 +691,7 @@ function KPI() {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Informations de base avec style amélioré */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
-                  <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                    <Calendar className="h-4 w-4 text-blue-600" />
-                  </div>
-                  Date *
-                </label>
-                <input
-                  type="date"
-                  value={formData.dateKey}
-                  onChange={(e) => setFormData({ ...formData, dateKey: e.target.value })}
-                  className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-sm"
-                  required
-                />
-              </div>
-
+            <div className="space-y-3">
               {/* Sélecteur d'agence - visible seulement pour les Administrateurs */}
               {(() => {
                 const user = authService.getCurrentUser();
@@ -539,17 +699,17 @@ function KPI() {
                 
                 if (isAdmin) {
                   return (
-                    <div className="space-y-2">
-                      <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
-                        <div className="p-2 bg-green-100 rounded-lg mr-3">
-                          <Building2 className="h-4 w-4 text-green-600" />
+                    <div className="space-y-1">
+                      <label className="flex items-center text-xs font-semibold text-gray-700 mb-1">
+                        <div className="p-1 bg-green-100 rounded mr-2">
+                          <Building2 className="h-3 w-3 text-green-600" />
                         </div>
                         Agence *
                       </label>
                       <select
                         value={formData.agenceId}
                         onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
-                        className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-sm"
+                        className="w-full border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-xs max-w-[200px]"
                         required
                       >
                         <option value="">Sélectionner une agence</option>
@@ -565,14 +725,14 @@ function KPI() {
                   // Pour les utilisateurs Standard, afficher l'agence en lecture seule
                   const userAgence = agences.find(a => Number(a.AgenceId) === Number(formData.agenceId));
                   return (
-                    <div className="space-y-2">
-                      <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
-                        <div className="p-2 bg-green-100 rounded-lg mr-3">
-                          <Building2 className="h-4 w-4 text-green-600" />
+                    <div className="space-y-1">
+                      <label className="flex items-center text-xs font-semibold text-gray-700 mb-1">
+                        <div className="p-1 bg-green-100 rounded mr-2">
+                          <Building2 className="h-3 w-3 text-green-600" />
                         </div>
                         Agence assignée
                       </label>
-                      <div className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 shadow-sm">
+                      <div className="w-full border border-gray-200 rounded px-2 py-1 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 shadow-sm text-xs max-w-[200px]">
                         {userAgence ? userAgence.Nom_Agence : 'Chargement...'}
                       </div>
                     </div>
@@ -580,6 +740,20 @@ function KPI() {
                 }
               })()}
 
+              {/* Champ de date */}
+              <div className="space-y-1">
+                <label className="flex items-center text-xs font-semibold text-gray-700 mb-1">
+                  <div className="p-1 bg-blue-100 rounded mr-2">
+                    <Calendar className="h-3 w-3 text-blue-600" />
+                  </div>
+                  Date *
+                </label>
+                <ModernDatePicker
+                  value={formData.dateKey}
+                  onChange={(date) => setFormData({ ...formData, dateKey: date })}
+                  placeholder="Sélectionner une date"
+                />
+              </div>
             </div>
 
             {/* Saisie par catégorie avec design compact et professionnel */}
