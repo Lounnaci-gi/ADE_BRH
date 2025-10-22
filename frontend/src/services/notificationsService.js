@@ -13,6 +13,10 @@ const notificationsService = {
   },
   async markAllRead() {
     await axios.post(`${API_URL}/notifications/mark-all-read`);
+  },
+  async getAgenciesStatus() {
+    const res = await axios.get(`${API_URL}/notifications/agencies-status`);
+    return res.data || { agencies: [], summary: { total: 0, completed: 0, pending: 0 } };
   }
 };
 

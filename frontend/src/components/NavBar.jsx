@@ -8,6 +8,8 @@ import authService from '../services/authService';
 const NavBar = () => {
   const [open, setOpen] = React.useState(false);
   const [unread, setUnread] = React.useState(0);
+  const [agenciesStatus, setAgenciesStatus] = React.useState({ agencies: [], summary: { total: 0, completed: 0, pending: 0 } });
+  const [showAgenciesStatus, setShowAgenciesStatus] = React.useState(false);
   const navigate = useNavigate();
 
   const linkBase = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 ease-out relative group";
@@ -32,18 +34,40 @@ const NavBar = () => {
     let mounted = true;
     const load = async () => {
       try {
-        const count = await notificationsService.getUnreadCount();
-        if (mounted) setUnread(count);
-      } catch {}
+        const [count, status] = await Promise.all([
+          notificationsService.getUnreadCount(),
+          notificationsService.getAgenciesStatus()
+        ]);
+        if (mounted) {
+          setUnread(count);
+          setAgenciesStatus(status);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des notifications:', error);
+      }
     };
     load();
     const id = setInterval(load, 30000); // refresh toutes les 30s
     return () => { mounted = false; clearInterval(id); };
   }, []);
 
+  // Fermer le dropdown quand on clique à l'extérieur
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showAgenciesStatus && !event.target.closest('.agencies-status-dropdown')) {
+        setShowAgenciesStatus(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAgenciesStatus]);
+
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-gradient-to-r from-white/95 via-blue-50/95 to-white/95 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 border-b border-water-200/30 dark:border-slate-700/30 shadow-sm">
-      <div className="mx-auto max-w-7xl px-3 py-1.5 flex items-center justify-between">
+    <header className="sticky top-0 z-50 backdrop-blur-xl bg-gradient-to-r from-white/95 via-blue-50/95 to-white/95 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 border-b border-water-200/30 dark:border-slate-700/30 shadow-sm overflow-visible">
+      <div className="mx-auto max-w-7xl px-3 py-1.5 flex items-center justify-between overflow-visible">
         <div className="flex items-center gap-1.5">
           <button
             className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-lg border border-water-200/40 dark:border-water-700/40 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm hover:bg-water-50/80 dark:hover:bg-slate-700/50 hover:scale-105 transition-all duration-200"
@@ -105,16 +129,94 @@ const NavBar = () => {
           </NavLink>
         </nav>
 
-        <div className="flex items-center gap-1">
-          {/* Badge notifications */}
-          <button className="relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-water-200/40 dark:border-water-700/40 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm hover:bg-water-50/80 dark:hover:bg-slate-700/50 hover:scale-105 transition-all duration-200 group">
-            <Bell className="h-3.5 w-3.5 text-water-600 dark:text-water-300 group-hover:text-water-700 dark:group-hover:text-water-200 transition-colors" />
-            {unread > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-1 shadow-md animate-pulse">
-                {unread}
-              </span>
+        <div className="flex items-center gap-1 overflow-visible">
+          {/* Badge notifications avec statut des agences */}
+          <div className="relative agencies-status-dropdown">
+            <button 
+              onClick={() => setShowAgenciesStatus(!showAgenciesStatus)}
+              className={`relative inline-flex h-7 w-7 items-center justify-center rounded-md border backdrop-blur-sm hover:scale-105 transition-all duration-200 group ${
+                agenciesStatus.summary.pending > 0
+                  ? 'border-red-200/60 dark:border-red-700/60 bg-red-50/80 dark:bg-red-900/20'
+                  : agenciesStatus.summary.completed > 0 && agenciesStatus.summary.pending === 0
+                  ? 'border-green-200/60 dark:border-green-700/60 bg-green-50/80 dark:bg-green-900/20'
+                  : 'border-water-200/40 dark:border-water-700/40 bg-white/60 dark:bg-slate-800/60'
+              }`}
+            >
+              <Bell className={`h-3.5 w-3.5 transition-colors ${
+                agenciesStatus.summary.pending > 0
+                  ? 'text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300'
+                  : agenciesStatus.summary.completed > 0 && agenciesStatus.summary.pending === 0
+                  ? 'text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300'
+                  : 'text-water-600 dark:text-water-300 group-hover:text-water-700 dark:group-hover:text-water-200'
+              }`} />
+              {agenciesStatus.summary.pending > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-1 shadow-md animate-pulse">
+                  {agenciesStatus.summary.pending}
+                </span>
+              )}
+              {agenciesStatus.summary.completed > 0 && agenciesStatus.summary.pending === 0 && (
+                <span className="absolute -top-0.5 -right-0.5 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-1 shadow-md">
+                  ✓
+                </span>
+              )}
+            </button>
+            
+            {/* Dropdown du statut des agences */}
+            {showAgenciesStatus && (
+              <div className="fixed right-4 top-16 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-water-200/50 dark:border-slate-700/50 z-[9999] agencies-status-dropdown animate-in slide-in-from-top-2 duration-200">
+                <div className="p-3 border-b border-water-200/30 dark:border-slate-700/30">
+                  <h3 className="text-sm font-semibold text-water-800 dark:text-water-200">
+                    {agenciesStatus.summary.pending > 0 
+                      ? `⚠️ ${agenciesStatus.summary.pending} agence(s) en retard` 
+                      : '✅ Toutes les agences ont saisi leurs données'}
+                  </h3>
+                  <p className="text-xs text-water-600 dark:text-water-400 mt-1">
+                    {agenciesStatus.summary.completed}/{agenciesStatus.summary.total} agences ont saisi leurs données du jour
+                  </p>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {agenciesStatus.agencies.map((agency) => (
+                    <div key={agency.agenceId} className="flex items-center justify-between p-2 hover:bg-water-50/50 dark:hover:bg-slate-700/50">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          agency.hasDataToday 
+                            ? 'bg-green-500 animate-pulse' 
+                            : 'bg-red-500 animate-pulse'
+                        }`}></div>
+                        <div>
+                          <div className="text-xs font-medium text-water-800 dark:text-water-200">
+                            {agency.nomAgence}
+                          </div>
+                          <div className="text-xs text-water-600 dark:text-water-400">
+                            {agency.nomCentre}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`text-xs px-2 py-1 rounded-full ${
+                        agency.hasDataToday
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                          : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                      }`}>
+                        {agency.hasDataToday ? 'Complété' : 'En attente'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-2 border-t border-water-200/30 dark:border-slate-700/30">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-600 dark:text-green-400">
+                      ✓ {agenciesStatus.summary.completed} complétées
+                    </span>
+                    {agenciesStatus.summary.pending > 0 && (
+                      <span className="text-red-600 dark:text-red-400 font-semibold">
+                        ⚠ {agenciesStatus.summary.pending} en retard
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
-          </button>
+          </div>
 
           <ThemeToggle />
 
