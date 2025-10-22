@@ -44,7 +44,10 @@ router.post('/mark-all-read', (req, res) => {
 router.get('/agencies-status', async (req, res) => {
   try {
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0]; // Format YYYY-MM-DD
+    // Utiliser la date locale pour éviter les problèmes de timezone
+    const todayStr = today.getFullYear() + '-' + 
+                     String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                     String(today.getDate()).padStart(2, '0');
     
     // Récupérer TOUTES les agences avec leur statut de saisie pour aujourd'hui
     const agenciesStatusQuery = `
@@ -62,13 +65,13 @@ router.get('/agencies-status', async (req, res) => {
       LEFT JOIN (
         SELECT DISTINCT AgenceId 
         FROM dbo.FAIT_KPI_ADE 
-        WHERE DateKPI = @today
+        WHERE CONVERT(DATE, CreatedAt) = @today
       ) k ON a.AgenceId = k.AgenceId
       ORDER BY a.Nom_Agence
     `;
     
     const agenciesWithStatus = await db.query(agenciesStatusQuery, [
-      { name: 'today', type: TYPES.Date, value: today }
+      { name: 'today', type: TYPES.Date, value: todayStr }
     ]);
     
     // Construire la réponse avec toutes les agences et leur statut
