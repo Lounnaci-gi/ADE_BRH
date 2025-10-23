@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
 import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
 import categoriesService from '../services/categoriesService';
+import authService from '../services/authService';
 
 function Categories() {
   const [categories, setCategories] = useState([]);
@@ -14,7 +15,15 @@ function Categories() {
     description: ''
   });
 
+  const user = authService.getCurrentUser();
+  const isAdmin = (user?.role || '').toString() === 'Administrateur';
+
   const loadCategories = async () => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       console.log('Chargement des catégories...');
@@ -115,6 +124,18 @@ function Categories() {
   };
 
   console.log('Categories component render - categories:', categories, 'loading:', loading);
+
+  if (!isAdmin) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Accès Refusé</h1>
+          <p className="text-gray-600">Vous n'avez pas les permissions nécessaires.</p>
+          <p className="text-sm text-gray-500 mt-2">Veuillez vous connecter avec un compte administrateur.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">

@@ -34,10 +34,12 @@ const NavBar = () => {
     let mounted = true;
     const load = async () => {
       try {
+        console.log('Loading notifications...');
         const [count, status] = await Promise.all([
           notificationsService.getUnreadCount(),
           notificationsService.getAgenciesStatus()
         ]);
+        console.log('Notifications loaded:', { count, status });
         if (mounted) {
           setUnread(count);
           setAgenciesStatus(status);

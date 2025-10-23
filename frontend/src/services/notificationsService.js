@@ -1,21 +1,19 @@
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import api from './api';
 
 const notificationsService = {
   async getUnreadCount() {
-    const res = await axios.get(`${API_URL}/notifications/unread-count`);
+    const res = await api.get('/notifications/unread-count');
     return res.data?.count ?? 0;
   },
   async list({ limit = 10 } = {}) {
-    const res = await axios.get(`${API_URL}/notifications?limit=${limit}`);
+    const res = await api.get(`/notifications?limit=${limit}`);
     return res.data || [];
   },
   async markAllRead() {
-    await axios.post(`${API_URL}/notifications/mark-all-read`);
+    await api.post('/notifications/mark-all-read');
   },
   async getAgenciesStatus() {
-    const res = await axios.get(`${API_URL}/notifications/agencies-status`);
+    const res = await api.get('/notifications/agencies-status');
     return res.data || { agencies: [], summary: { total: 0, completed: 0, pending: 0 } };
   }
 };

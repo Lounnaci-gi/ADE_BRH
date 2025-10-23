@@ -43,36 +43,67 @@ router.post('/mark-all-read', (req, res) => {
 // GET /api/notifications/agencies-status - Récupérer le statut des données journalières par agence
 router.get('/agencies-status', async (req, res) => {
   try {
+    const role = (req.headers['x-role'] || '').toString();
+    const userAgenceId = parseInt(req.headers['x-user-agence'], 10) || null;
+    const isAdmin = role === 'Administrateur';
+    
     const today = new Date();
     // Utiliser la date locale pour éviter les problèmes de timezone
     const todayStr = today.getFullYear() + '-' + 
                      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
                      String(today.getDate()).padStart(2, '0');
     
-    // Récupérer TOUTES les agences avec leur statut de saisie pour aujourd'hui
-    const agenciesStatusQuery = `
-      SELECT 
-        a.AgenceId,
-        a.Nom_Agence,
-        a.FK_Centre,
-        c.Nom_Centre,
-        CASE 
-          WHEN k.AgenceId IS NOT NULL THEN 1 
-          ELSE 0 
-        END as hasDataToday
-      FROM dbo.DIM_AGENCE a
-      LEFT JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
-      LEFT JOIN (
-        SELECT DISTINCT AgenceId 
-        FROM dbo.FAIT_KPI_ADE 
-        WHERE CONVERT(DATE, CreatedAt) = @today
-      ) k ON a.AgenceId = k.AgenceId
-      ORDER BY a.Nom_Agence
-    `;
+    // Construire la requête selon le rôle de l'utilisateur
+    let agenciesStatusQuery;
+    let queryParams = [{ name: 'today', type: TYPES.Date, value: todayStr }];
     
-    const agenciesWithStatus = await db.query(agenciesStatusQuery, [
-      { name: 'today', type: TYPES.Date, value: todayStr }
-    ]);
+    if (isAdmin) {
+      // Administrateurs voient toutes les agences
+      agenciesStatusQuery = `
+        SELECT 
+          a.AgenceId,
+          a.Nom_Agence,
+          a.FK_Centre,
+          c.Nom_Centre,
+          CASE 
+            WHEN k.AgenceId IS NOT NULL THEN 1 
+            ELSE 0 
+          END as hasDataToday
+        FROM dbo.DIM_AGENCE a
+        LEFT JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
+        LEFT JOIN (
+          SELECT DISTINCT AgenceId 
+          FROM dbo.FAIT_KPI_ADE 
+          WHERE CONVERT(DATE, CreatedAt) = @today
+        ) k ON a.AgenceId = k.AgenceId
+        ORDER BY a.Nom_Agence
+      `;
+    } else {
+      // Utilisateurs standards voient seulement leur agence
+      agenciesStatusQuery = `
+        SELECT 
+          a.AgenceId,
+          a.Nom_Agence,
+          a.FK_Centre,
+          c.Nom_Centre,
+          CASE 
+            WHEN k.AgenceId IS NOT NULL THEN 1 
+            ELSE 0 
+          END as hasDataToday
+        FROM dbo.DIM_AGENCE a
+        LEFT JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
+        LEFT JOIN (
+          SELECT DISTINCT AgenceId 
+          FROM dbo.FAIT_KPI_ADE 
+          WHERE CONVERT(DATE, CreatedAt) = @today
+        ) k ON a.AgenceId = k.AgenceId
+        WHERE a.AgenceId = @userAgenceId
+        ORDER BY a.Nom_Agence
+      `;
+      queryParams.push({ name: 'userAgenceId', type: TYPES.Int, value: userAgenceId });
+    }
+    
+    const agenciesWithStatus = await db.query(agenciesStatusQuery, queryParams);
     
     // Construire la réponse avec toutes les agences et leur statut
     const agenciesStatus = agenciesWithStatus.map(agency => ({

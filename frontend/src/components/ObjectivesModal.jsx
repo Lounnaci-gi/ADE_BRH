@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, Building2, Target, Calendar, DollarSign, Zap, Wrench, FileText, AlertTriangle, RotateCcw, CheckCircle, Hash } from 'lucide-react';
+import ModernDatePicker from './ModernDatePicker';
 
 export default function ObjectivesModal({ open, onClose, onSubmit, initialValues, agences = [] }) {
   const [formData, setFormData] = useState({
@@ -258,38 +259,24 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
                 <Calendar className="inline h-4 w-4 mr-2" />
                 Date de début *
               </label>
-              <input
-                type="date"
-                name="dateDebut"
+              <ModernDatePicker
                 value={formData.dateDebut}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                  errors.dateDebut
-                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                    : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-                }`}
-                required
+                onChange={(date) => setFormData(prev => ({ ...prev, dateDebut: date }))}
+                placeholder="Sélectionner la date de début"
               />
               {errors.dateDebut && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dateDebut}</p>
-                )}
+              )}
               </div>
               <div>
               <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
                 <Calendar className="inline h-4 w-4 mr-2" />
                 Date de fin *
               </label>
-              <input
-                type="date"
-                name="dateFin"
+              <ModernDatePicker
                 value={formData.dateFin}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                  errors.dateFin
-                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                    : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-                }`}
-                  required
+                onChange={(date) => setFormData(prev => ({ ...prev, dateFin: date }))}
+                placeholder="Sélectionner la date de fin"
               />
               {errors.dateFin && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dateFin}</p>
