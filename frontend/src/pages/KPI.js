@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Calendar, Building2, Save, Plus, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
+import { Calendar, Building2, Save, Target, TrendingUp, DollarSign, BarChart3, CheckCircle, AlertCircle, Zap, Shield, Users, Wrench, Eye } from 'lucide-react';
+import { motion } from 'framer-motion';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
 import { swalSuccess, swalError } from '../utils/swal';
 import ModernDatePicker from '../components/ModernDatePicker';
+import KpiCard from '../components/KpiCard';
 
 function KPI() {
   const [kpis, setKpis] = useState([]);
@@ -16,11 +18,10 @@ function KPI() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [hasExistingData, setHasExistingData] = useState(false);
-  // Toast remplacé par SweetAlert2
+  
   const [formData, setFormData] = useState({
     dateKey: '',
     agenceId: '',
-    // Encaissement
     encaissementJournalierGlobal: ''
   });
 
@@ -50,38 +51,28 @@ function KPI() {
       let agencesData = await kpiService.getAgences();
       if (!isAdmin && userAgenceId) {
         agencesData = agencesData.filter(a => Number(a.AgenceId) === userAgenceId);
-        // Pour les utilisateurs Standard, pré-sélectionner leur agence
         setFormData(prev => ({ ...prev, agenceId: userAgenceId.toString() }));
       }
+      
       setKpis(kpisData || []);
       setAgences(agencesData || []);
       setCategories(categoriesData || []);
       
-      // Trier les catégories dans l'ordre souhaité
       const sortedCats = sortCategories(categoriesData || []);
       setSortedCategories(sortedCats);
-      // Initialiser les valeurs par catégorie selon FAIT_KPI_ADE
+      
       const init = (categoriesData || []).reduce((acc, cat) => {
         acc[cat.CategorieId] = {
-          // Relances
           nbRelancesEnvoyees: '', mtRelancesEnvoyees: '',
           nbRelancesReglees: '', mtRelancesReglees: '',
-          // Mises en demeure
           nbMisesEnDemeureEnvoyees: '', mtMisesEnDemeureEnvoyees: '',
           nbMisesEnDemeureReglees: '', mtMisesEnDemeureReglees: '',
-          // Dossiers juridiques
           nbDossiersJuridiques: '', mtDossiersJuridiques: '',
-          // Coupures
           nbCoupures: '', mtCoupures: '',
-          // Rétablissements
           nbRetablissements: '', mtRetablissements: '',
-          // Branchements (Nb seulement)
           nbBranchements: '',
-          // Compteurs remplacés (Nb seulement)
           nbCompteursRemplaces: '',
-          // Contrôles
           nbControles: '',
-          // Observation par catégorie
           observation: ''
         };
         return acc;
@@ -95,7 +86,49 @@ function KPI() {
     }
   };
 
-  // Fonction pour charger les données existantes
+  // Charger les objectifs de l'agence sélectionnée
+  const loadObjectives = async (agenceId) => {
+    if (!agenceId) {
+      setObjectives(null);
+      return;
+    }
+    
+    try {
+      const date = new Date(formData.dateKey);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      
+      const objectivesData = await kpiService.getObjectives(agenceId, year, month);
+      setObjectives(objectivesData);
+    } catch (error) {
+      console.error('Erreur lors du chargement des objectifs:', error);
+      setObjectives(null);
+    }
+  };
+
+  // Charger le résumé des données
+  const loadSummary = async (agenceId, dateKey) => {
+    if (!agenceId || !dateKey) {
+      setSummary(null);
+      return;
+    }
+    
+    try {
+      const date = new Date(dateKey);
+      const dateKeyInt = parseInt(
+        date.getFullYear().toString() + 
+        (date.getMonth() + 1).toString().padStart(2, '0') + 
+        date.getDate().toString().padStart(2, '0')
+      );
+      
+      const summaryData = await kpiService.getSummary(agenceId, dateKeyInt);
+      setSummary(summaryData);
+    } catch (error) {
+      console.error('Erreur lors du chargement du résumé:', error);
+      setSummary(null);
+    }
+  };
+
   const loadExistingData = async (dateKey, agenceId) => {
     if (!dateKey || !agenceId) {
       setHasExistingData(false);
@@ -112,63 +145,43 @@ function KPI() {
       
       const existingData = await kpiService.getExistingData(dateKeyInt, parseInt(agenceId, 10));
       
-      // Réinitialiser les entrées par catégorie
       const init = (sortedCategories || []).reduce((acc, cat) => {
         acc[cat.CategorieId] = {
-          // Relances
           nbRelancesEnvoyees: '', mtRelancesEnvoyees: '',
           nbRelancesReglees: '', mtRelancesReglees: '',
-          // Mises en demeure
           nbMisesEnDemeureEnvoyees: '', mtMisesEnDemeureEnvoyees: '',
           nbMisesEnDemeureReglees: '', mtMisesEnDemeureReglees: '',
-          // Dossiers juridiques
           nbDossiersJuridiques: '', mtDossiersJuridiques: '',
-          // Coupures
           nbCoupures: '', mtCoupures: '',
-          // Rétablissements
           nbRetablissements: '', mtRetablissements: '',
-          // Branchements (Nb seulement)
           nbBranchements: '',
-          // Compteurs remplacés (Nb seulement)
           nbCompteursRemplaces: '',
-          // Contrôles
           nbControles: '',
-          // Observation par catégorie
           observation: ''
         };
         return acc;
       }, {});
       
-      // Pré-remplir avec les données existantes
       existingData.forEach(item => {
         if (init[item.CategorieId]) {
           init[item.CategorieId] = {
-            // Relances
             nbRelancesEnvoyees: item.Nb_RelancesEnvoyees || '',
             mtRelancesEnvoyees: item.Mt_RelancesEnvoyees || '',
             nbRelancesReglees: item.Nb_RelancesReglees || '',
             mtRelancesReglees: item.Mt_RelancesReglees || '',
-            // Mises en demeure
             nbMisesEnDemeureEnvoyees: item.Nb_MisesEnDemeure_Envoyees || '',
             mtMisesEnDemeureEnvoyees: item.Mt_MisesEnDemeure_Envoyees || '',
             nbMisesEnDemeureReglees: item.Nb_MisesEnDemeure_Reglees || '',
             mtMisesEnDemeureReglees: item.Mt_MisesEnDemeure_Reglees || '',
-            // Dossiers juridiques
             nbDossiersJuridiques: item.Nb_Dossiers_Juridiques || '',
             mtDossiersJuridiques: item.Mt_Dossiers_Juridiques || '',
-            // Coupures
             nbCoupures: item.Nb_Coupures || '',
             mtCoupures: item.Mt_Coupures || '',
-            // Rétablissements
             nbRetablissements: item.Nb_Retablissements || '',
             mtRetablissements: item.Mt_Retablissements || '',
-            // Branchements (Nb seulement)
             nbBranchements: item.Nb_Branchements || '',
-            // Compteurs remplacés (Nb seulement)
             nbCompteursRemplaces: item.Nb_Compteurs_Remplaces || '',
-            // Contrôles
             nbControles: item.Nb_Controles || '',
-            // Observation par catégorie
             observation: item.Observation || ''
           };
         }
@@ -176,7 +189,6 @@ function KPI() {
       
       setEntriesByCategory(init);
       
-      // Renseigner l'encaissement journalier global unique si disponible (valeur du jour, non sommée)
       if (existingData && existingData.length > 0) {
         setHasExistingData(true);
         const encVals = existingData
@@ -187,7 +199,6 @@ function KPI() {
           setFormData(prev => ({ ...prev, encaissementJournalierGlobal: uniqueEnc }));
         }
       } else {
-        // Aucune donnée existante - vider les champs
         setHasExistingData(false);
         setFormData(prev => ({ 
           ...prev, 
@@ -200,7 +211,6 @@ function KPI() {
   };
 
   useEffect(() => {
-    // Pré-remplir la date du jour au chargement
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -215,41 +225,15 @@ function KPI() {
       agenceId: isAdmin ? '' : (userAgenceId ? userAgenceId.toString() : ''),
       encaissementJournalierGlobal: ''
     });
-    // Réinitialiser les valeurs par catégorie
-    const initEmpty = Object.keys(entriesByCategory || {}).reduce((acc, key) => {
-      acc[key] = {
-        // Relances
-        nbRelancesEnvoyees: '', mtRelancesEnvoyees: '',
-        nbRelancesReglees: '', mtRelancesReglees: '',
-        // Mises en demeure
-        nbMisesEnDemeureEnvoyees: '', mtMisesEnDemeureEnvoyees: '',
-        nbMisesEnDemeureReglees: '', mtMisesEnDemeureReglees: '',
-        // Dossiers juridiques
-        nbDossiersJuridiques: '', mtDossiersJuridiques: '',
-        // Coupures
-        nbCoupures: '', mtCoupures: '',
-        // Rétablissements
-        nbRetablissements: '', mtRetablissements: '',
-        // Branchements (Nb seulement)
-        nbBranchements: '',
-        // Compteurs remplacés (Nb seulement)
-        nbCompteursRemplaces: '',
-        // Contrôles
-        nbControles: '',
-        // Observation par catégorie
-        observation: ''
-      };
-      return acc;
-    }, {});
-    setEntriesByCategory(initEmpty);
     
     loadData();
   }, []);
 
-  // Charger les données existantes quand la date ou l'agence change
   useEffect(() => {
     if (formData.dateKey && formData.agenceId) {
       loadExistingData(formData.dateKey, formData.agenceId);
+      loadObjectives(formData.agenceId);
+      loadSummary(formData.agenceId, formData.dateKey);
     }
   }, [formData.dateKey, formData.agenceId]);
 
@@ -271,14 +255,13 @@ function KPI() {
         date.getDate().toString().padStart(2, '0')
       );
 
-      // Pour chaque catégorie, envoyer une entrée si au moins un champ pertinent est renseigné
       const agenceIdNum = parseInt(formData.agenceId);
-      let encaissementGlobalSent = false; // Flag pour s'assurer que l'encaissement global n'est envoyé qu'une fois
+      let encaissementGlobalSent = false;
       
       const creates = (sortedCategories || []).map(async (cat) => {
         const catId = parseInt(cat.CategorieId);
         const e = entriesByCategory[cat.CategorieId] || {};
-        // Considérer TOUTES les familles de champs supportées par le backend
+        
         const hasData = [
           e.nbRelancesEnvoyees, e.mtRelancesEnvoyees,
           e.nbRelancesReglees, e.mtRelancesReglees,
@@ -291,9 +274,9 @@ function KPI() {
           e.nbCompteursRemplaces,
           e.nbControles
         ].some((v) => v !== '' && v != null);
+        
         if (!hasData) return null;
 
-        // Déterminer si cette catégorie doit envoyer l'encaissement global
         const shouldSendEncaissementGlobal = !encaissementGlobalSent && formData.encaissementJournalierGlobal;
         if (shouldSendEncaissementGlobal) {
           encaissementGlobalSent = true;
@@ -303,41 +286,29 @@ function KPI() {
           dateKey,
           agenceId: agenceIdNum,
           categorieId: catId,
-          // Champs supportés par le backend selon FAIT_KPI_ADE
-          // Relances
           nbRelancesEnvoyees: parseInt(e.nbRelancesEnvoyees || 0, 10),
           mtRelancesEnvoyees: parseFloat(e.mtRelancesEnvoyees || 0),
           nbRelancesReglees: parseInt(e.nbRelancesReglees || 0, 10),
           mtRelancesReglees: parseFloat(e.mtRelancesReglees || 0),
-          // Mises en demeure
           nbMisesEnDemeureEnvoyees: parseInt(e.nbMisesEnDemeureEnvoyees || 0, 10),
           mtMisesEnDemeureEnvoyees: parseFloat(e.mtMisesEnDemeureEnvoyees || 0),
           nbMisesEnDemeureReglees: parseInt(e.nbMisesEnDemeureReglees || 0, 10),
           mtMisesEnDemeureReglees: parseFloat(e.mtMisesEnDemeureReglees || 0),
-          // Dossiers juridiques
           nbDossiersJuridiques: parseInt(e.nbDossiersJuridiques || 0, 10),
           mtDossiersJuridiques: parseFloat(e.mtDossiersJuridiques || 0),
-          // Coupures
           nbCoupures: parseInt(e.nbCoupures || 0, 10),
           mtCoupures: parseFloat(e.mtCoupures || 0),
-          // Rétablissements
           nbRetablissements: parseInt(e.nbRetablissements || 0, 10),
           mtRetablissements: parseFloat(e.mtRetablissements || 0),
-          // Branchements (Nb seulement)
           nbBranchements: parseInt(e.nbBranchements || 0, 10),
-          // Compteurs remplacés (Nb seulement)
           nbCompteursRemplaces: parseInt(e.nbCompteursRemplaces || 0, 10),
-          // Contrôles
           nbControles: parseInt(e.nbControles || 0, 10),
-          // Observation par catégorie
           observation: e.observation || '',
-          // Encaissement global: envoyé seulement avec la première catégorie qui a des données
           encaissementJournalierGlobal: shouldSendEncaissementGlobal ? parseFloat(formData.encaissementJournalierGlobal || 0) : 0
         };
         return kpiService.create(payload);
       });
 
-      // Filtrer les catégories sans données
       const requests = (await Promise.all(creates)).filter(Boolean);
       if (requests.length === 0) {
         await swalError('Aucune donnée à enregistrer. Remplissez au moins un champ.');
@@ -347,50 +318,12 @@ function KPI() {
       await Promise.all(requests);
       await swalSuccess('Données enregistrées avec succès !');
       
-      // Réinitialiser le formulaire
-      const today = new Date();
-      const y = today.getFullYear();
-      const m = String(today.getMonth() + 1).padStart(2, '0');
-      const d = String(today.getDate()).padStart(2, '0');
-      
-      const user = authService.getCurrentUser();
-      const isAdmin = (user?.role || '').toString() === 'Administrateur';
-      const userAgenceId = user?.agenceId ? Number(user.agenceId) : null;
-      
-      setFormData({
-        dateKey: `${y}-${m}-${d}`,
-        agenceId: isAdmin ? '' : (userAgenceId ? userAgenceId.toString() : ''),
-        encaissementJournalierGlobal: ''
-      });
-      // Réinitialiser les valeurs par catégorie
-      const initEmpty = Object.keys(entriesByCategory || {}).reduce((acc, key) => {
-        acc[key] = {
-          // Relances
-          nbRelancesEnvoyees: '', mtRelancesEnvoyees: '',
-          nbRelancesReglees: '', mtRelancesReglees: '',
-          // Mises en demeure
-          nbMisesEnDemeureEnvoyees: '', mtMisesEnDemeureEnvoyees: '',
-          nbMisesEnDemeureReglees: '', mtMisesEnDemeureReglees: '',
-          // Dossiers juridiques
-          nbDossiersJuridiques: '', mtDossiersJuridiques: '',
-          // Coupures
-          nbCoupures: '', mtCoupures: '',
-          // Rétablissements
-          nbRetablissements: '', mtRetablissements: '',
-          // Branchements (Nb seulement)
-          nbBranchements: '',
-          // Compteurs remplacés (Nb seulement)
-          nbCompteursRemplaces: '',
-          // Contrôles
-          nbControles: '',
-          // Observation par catégorie
-          observation: ''
-        };
-        return acc;
-      }, {});
-      setEntriesByCategory(initEmpty);
-      
+      // Recharger les données
       await loadData();
+      if (formData.agenceId) {
+        await loadObjectives(formData.agenceId);
+        await loadSummary(formData.agenceId, formData.dateKey);
+      }
     } catch (e) {
       const msg = e?.response?.data?.message || 'Une erreur est survenue';
       await swalError(msg);
@@ -405,6 +338,31 @@ function KPI() {
       style: 'currency',
       currency: 'DZD'
     }).format(value);
+  };
+
+  const calculatePercentage = (actual, target) => {
+    if (!target || target === 0) return 0;
+    return Math.round((actual / target) * 100);
+  };
+
+  const createProgressBar = (percentage, color = 'blue') => {
+    const colorClasses = {
+      blue: 'bg-blue-500',
+      green: 'bg-green-500',
+      yellow: 'bg-yellow-500',
+      red: 'bg-red-500',
+      purple: 'bg-purple-500',
+      indigo: 'bg-indigo-500'
+    };
+    
+    return (
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div 
+          className={`h-2 rounded-full ${colorClasses[color]}`}
+          style={{ width: `${Math.min(percentage, 100)}%` }}
+        ></div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -422,10 +380,119 @@ function KPI() {
     <div className="p-6">
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">📊 Tableau de Bord KPI</h1>
-          <p className="text-gray-600">Saisie et suivi des indicateurs de performance quotidiens</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mb-8"
+        >
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+            Tableau de Bord
+          </h1>
+          <p className="text-gray-600 text-lg">Saisie et suivi des indicateurs de performance quotidiens</p>
+        </motion.div>
+
+        {/* A. Section Objectifs Agence - EN HAUT */}
+        {objectives && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50 shadow-xl mb-8 overflow-hidden"
+          >
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-8 py-6">
+              <motion.h2 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="text-2xl font-bold text-white flex items-center gap-3"
+              >
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                >
+                  <Target className="h-6 w-6" />
+                </motion.div>
+                Objectifs de l'Agence
+                <span className="text-blue-200 ml-2">
+                  {agences.find(a => a.AgenceId == formData.agenceId)?.Nom_Agence}
+                </span>
+              </motion.h2>
+            </div>
+            <div className="p-8">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              >
+                {objectives.Obj_Encaissement && (
+                  <KpiCard
+                    title="Encaissement"
+                    value={formatCurrency(objectives.Obj_Encaissement)}
+                    icon={DollarSign}
+                    color="emerald"
+                    size="compact"
+                  />
+                )}
+                {objectives.Obj_Relances && (
+                  <KpiCard
+                    title="Relances"
+                    value={objectives.Obj_Relances}
+                    icon={AlertCircle}
+                    color="cyan"
+                    size="compact"
+                  />
+                )}
+                {objectives.Obj_MisesEnDemeure && (
+                  <KpiCard
+                    title="Mises en demeure"
+                    value={objectives.Obj_MisesEnDemeure}
+                    icon={Shield}
+                    color="yellow"
+                    size="compact"
+                  />
+                )}
+                {objectives.Obj_Dossiers_Juridiques && (
+                  <KpiCard
+                    title="Dossiers juridiques"
+                    value={objectives.Obj_Dossiers_Juridiques}
+                    icon={Users}
+                    color="orange"
+                    size="compact"
+                  />
+                )}
+                {objectives.Obj_Coupures && (
+                  <KpiCard
+                    title="Coupures"
+                    value={objectives.Obj_Coupures}
+                    icon={Zap}
+                    color="red"
+                    size="compact"
+                  />
+                )}
+                {objectives.Obj_Controles && (
+                  <KpiCard
+                    title="Contrôles"
+                    value={objectives.Obj_Controles}
+                    icon={Eye}
+                    color="indigo"
+                    size="compact"
+                  />
+                )}
+                {objectives.Obj_Compteurs_Remplaces && (
+                  <KpiCard
+                    title="Compteurs remplacés"
+                    value={objectives.Obj_Compteurs_Remplaces}
+                    icon={Wrench}
+                    color="purple"
+                    size="compact"
+                  />
+                )}
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Formulaire de saisie */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
@@ -435,9 +502,8 @@ function KPI() {
           
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Informations de base avec style amélioré */}
+              {/* Informations de base */}
               <div className="space-y-3">
-                {/* Sélecteur d'agence - visible seulement pour les Administrateurs */}
                 {(() => {
                   const user = authService.getCurrentUser();
                   const isAdmin = (user?.role || '').toString() === 'Administrateur';
@@ -467,7 +533,6 @@ function KPI() {
                       </div>
                     );
                   } else {
-                    // For standard users, display the assigned agency as read-only
                     const userAgence = agences.find(a => Number(a.AgenceId) === Number(formData.agenceId));
                     return (
                       <div className="space-y-1">
@@ -485,7 +550,6 @@ function KPI() {
                   }
                 })()}
 
-                {/* Champ de date */}
                 <div className="space-y-1">
                   <label className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                     <div className="p-1 bg-blue-100 rounded mr-2">
@@ -507,12 +571,10 @@ function KPI() {
                   const e = entriesByCategory[cat.CategorieId] || {};
                   return (
                     <div key={cat.CategorieId} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-                      {/* En-tête de catégorie */}
                       <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 rounded-t-xl border-b border-gray-200">
                         <h4 className="text-lg font-semibold text-gray-800">{cat.Libelle}</h4>
                       </div>
                       
-                      {/* Contenu organisé en sections */}
                       <div className="p-6">
                         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                           
@@ -802,7 +864,7 @@ function KPI() {
                       type="number"
                       min="0"
                       step="0.01"
-                      value={hasExistingData ? formData.encaissementJournalierGlobal : ''}
+                      value={formData.encaissementJournalierGlobal}
                       onChange={(e) => setFormData({ ...formData, encaissementJournalierGlobal: e.target.value })}
                       className="w-64 border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
                       placeholder="Montant de l'encaissement journalier global..."
@@ -823,6 +885,154 @@ function KPI() {
             </form>
           </div>
         </div>
+
+        {/* B. Section Résumé Détaillé des Données - EN BAS */}
+        {summary && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="bg-gradient-to-br from-slate-50 via-green-50 to-emerald-50 rounded-2xl border border-green-200/50 shadow-xl overflow-hidden"
+          >
+            <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 px-8 py-6">
+              <motion.h2 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+                className="text-2xl font-bold text-white flex items-center gap-3"
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
+                >
+                  <BarChart3 className="h-6 w-6" />
+                </motion.div>
+                Résumé Détaillé des Données
+              </motion.h2>
+            </div>
+            <div className="p-8">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.8 }}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              >
+                {/* Relances Envoyées */}
+                <KpiCard
+                  title="Relances Envoyées"
+                  value={summary.daily?.Total_RelancesEnvoyees || 0}
+                  subtitle={formatCurrency(summary.daily?.Total_Mt_RelancesEnvoyees || 0)}
+                  icon={AlertCircle}
+                  color="cyan"
+                  percentage={objectives?.Obj_Relances ? calculatePercentage(summary.daily?.Total_RelancesEnvoyees || 0, objectives.Obj_Relances) : undefined}
+                  showProgress={!!objectives?.Obj_Relances}
+                />
+
+                {/* Relances Encaissées */}
+                <KpiCard
+                  title="Relances Encaissées"
+                  value={summary.daily?.Total_RelancesReglees || 0}
+                  subtitle={formatCurrency(summary.daily?.Total_Mt_RelancesReglees || 0)}
+                  icon={CheckCircle}
+                  color="green"
+                  percentage={objectives?.Obj_Relances ? calculatePercentage(summary.daily?.Total_RelancesReglees || 0, objectives.Obj_Relances) : undefined}
+                  showProgress={!!objectives?.Obj_Relances}
+                />
+
+                {/* Mises en Demeure Envoyées */}
+                <KpiCard
+                  title="Mises en Demeure Envoyées"
+                  value={summary.daily?.Total_MisesEnDemeureEnvoyees || 0}
+                  subtitle={formatCurrency(summary.daily?.Total_Mt_MisesEnDemeureEnvoyees || 0)}
+                  icon={Shield}
+                  color="yellow"
+                  percentage={objectives?.Obj_MisesEnDemeure ? calculatePercentage(summary.daily?.Total_MisesEnDemeureEnvoyees || 0, objectives.Obj_MisesEnDemeure) : undefined}
+                  showProgress={!!objectives?.Obj_MisesEnDemeure}
+                />
+
+                {/* Mises en Demeure Encaissées */}
+                <KpiCard
+                  title="Mises en Demeure Encaissées"
+                  value={summary.daily?.Total_MisesEnDemeureReglees || 0}
+                  subtitle={formatCurrency(summary.daily?.Total_Mt_MisesEnDemeureReglees || 0)}
+                  icon={CheckCircle}
+                  color="orange"
+                  percentage={objectives?.Obj_MisesEnDemeure ? calculatePercentage(summary.daily?.Total_MisesEnDemeureReglees || 0, objectives.Obj_MisesEnDemeure) : undefined}
+                  showProgress={!!objectives?.Obj_MisesEnDemeure}
+                />
+
+                {/* Dossiers Juridiques Transmis */}
+                <KpiCard
+                  title="Dossiers Juridiques Transmis"
+                  value={summary.daily?.Total_DossiersJuridiques || 0}
+                  subtitle={formatCurrency(summary.daily?.Total_Mt_DossiersJuridiques || 0)}
+                  icon={Users}
+                  color="orange"
+                  percentage={objectives?.Obj_Dossiers_Juridiques ? calculatePercentage(summary.daily?.Total_DossiersJuridiques || 0, objectives.Obj_Dossiers_Juridiques) : undefined}
+                  showProgress={!!objectives?.Obj_Dossiers_Juridiques}
+                />
+
+                {/* Coupures Réalisées */}
+                <KpiCard
+                  title="Coupures Réalisées"
+                  value={summary.daily?.Total_Coupures || 0}
+                  subtitle={formatCurrency(summary.daily?.Total_Mt_Coupures || 0)}
+                  icon={Zap}
+                  color="red"
+                  percentage={objectives?.Obj_Coupures ? calculatePercentage(summary.daily?.Total_Coupures || 0, objectives.Obj_Coupures) : undefined}
+                  showProgress={!!objectives?.Obj_Coupures}
+                />
+
+                {/* Rétablissements */}
+                <KpiCard
+                  title="Rétablissements"
+                  value={summary.daily?.Total_Retablissements || 0}
+                  subtitle={formatCurrency(summary.daily?.Total_Mt_Retablissements || 0)}
+                  icon={CheckCircle}
+                  color="emerald"
+                />
+
+                {/* Branchements Réalisés */}
+                <KpiCard
+                  title="Branchements Réalisés"
+                  value={summary.daily?.Total_Branchements || 0}
+                  icon={Users}
+                  color="blue"
+                />
+
+                {/* Remplacement de Compteur */}
+                <KpiCard
+                  title="Remplacement de Compteur"
+                  value={summary.daily?.Total_CompteursRemplaces || 0}
+                  icon={Wrench}
+                  color="purple"
+                  percentage={objectives?.Obj_Compteurs_Remplaces ? calculatePercentage(summary.daily?.Total_CompteursRemplaces || 0, objectives.Obj_Compteurs_Remplaces) : undefined}
+                  showProgress={!!objectives?.Obj_Compteurs_Remplaces}
+                />
+
+                {/* Contrôles Effectués */}
+                <KpiCard
+                  title="Contrôles Effectués"
+                  value={summary.daily?.Total_Controles || 0}
+                  icon={Eye}
+                  color="indigo"
+                  percentage={objectives?.Obj_Controles ? calculatePercentage(summary.daily?.Total_Controles || 0, objectives.Obj_Controles) : undefined}
+                  showProgress={!!objectives?.Obj_Controles}
+                />
+
+                {/* Encaissement du jour */}
+                <KpiCard
+                  title="Encaissement du jour"
+                  value={formatCurrency(summary.daily?.Total_EncaissementGlobal || 0)}
+                  icon={DollarSign}
+                  color="emerald"
+                  percentage={objectives?.Obj_Encaissement ? calculatePercentage(summary.daily?.Total_EncaissementGlobal || 0, objectives.Obj_Encaissement) : undefined}
+                  showProgress={!!objectives?.Obj_Encaissement}
+                />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

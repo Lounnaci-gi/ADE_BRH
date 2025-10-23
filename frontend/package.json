@@ -8,6 +8,7 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.12.2",
+    "framer-motion": "^12.23.24",
     "lucide-react": "^0.545.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -37,14 +38,19 @@
         "error",
         {
           "paths": [
-            { "name": "sweetalert2", "message": "Utilisez utils/swal.js (swalSuccess/swalError/swalConfirm) au lieu d'importer sweetalert2 directement." }
+            {
+              "name": "sweetalert2",
+              "message": "Utilisez utils/swal.js (swalSuccess/swalError/swalConfirm) au lieu d'importer sweetalert2 directement."
+            }
           ]
         }
       ]
     },
     "overrides": [
       {
-        "files": ["src/utils/swal.js"],
+        "files": [
+          "src/utils/swal.js"
+        ],
         "rules": {
           "no-restricted-imports": "off",
           "no-restricted-globals": "off"
