@@ -122,7 +122,16 @@ router.get('/agences', async (req, res) => {
   }
 
   try {
-    const query = 'SELECT AgenceId, Nom_Agence FROM dbo.DIM_AGENCE ORDER BY Nom_Agence';
+    const query = `
+      SELECT 
+        a.AgenceId, 
+        a.Nom_Agence,
+        a.FK_Centre,
+        c.Nom_Centre
+      FROM dbo.DIM_AGENCE a
+      LEFT JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
+      ORDER BY a.Nom_Agence
+    `;
     const results = await db.query(query);
     res.json(results);
   } catch (err) {

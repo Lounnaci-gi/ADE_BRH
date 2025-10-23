@@ -342,7 +342,7 @@ function KPI() {
 
   const calculatePercentage = (actual, target) => {
     if (!target || target === 0) return 0;
-    return Math.round((actual / target) * 100);
+    return ((actual / target) * 100).toFixed(2).replace('.', ',');
   };
 
   const createProgressBar = (percentage, color = 'blue') => {

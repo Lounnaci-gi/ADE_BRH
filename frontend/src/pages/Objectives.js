@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Building2, Calendar, Pencil, Trash2, Plus } from 'lucide-react';
+import { Building2, Calendar, Pencil, Trash2, Plus, Filter, Target, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 import objectivesService from '../services/objectivesService';
 import authService from '../services/authService';
 import ObjectivesModal from '../components/ObjectivesModal';
@@ -198,67 +199,103 @@ function Objectives() {
       </h1>
 
 
-      {/* Filtre compact */}
-      <div className="mb-4 bg-white border rounded-lg p-3 shadow-sm">
+      {/* Filtre moderne et élégant */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="mb-6 bg-gradient-to-r from-white to-blue-50/30 border border-blue-200/50 rounded-2xl p-4 shadow-lg backdrop-blur-sm"
+      >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">Filtre par période:</span>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-xl">
+                <Filter className="h-5 w-5 text-blue-600" />
+              </div>
+              <span className="text-sm font-semibold text-gray-800">Filtre par période</span>
             </div>
-            <select 
-              value={filters.annee || ''} 
-              onChange={(e) => handleFilterChange('annee', e.target.value || null)}
-              className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">Toutes les années</option>
-              <option value={2024}>2024</option>
-              <option value={2025}>2025</option>
-              <option value={2026}>2026</option>
-            </select>
-            <select 
-              value={filters.mois || ''} 
-              onChange={(e) => handleFilterChange('mois', e.target.value || null)}
-              className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">Tous les mois</option>
-              <option value={1}>Janvier</option>
-              <option value={2}>Février</option>
-              <option value={3}>Mars</option>
-              <option value={4}>Avril</option>
-              <option value={5}>Mai</option>
-              <option value={6}>Juin</option>
-              <option value={7}>Juillet</option>
-              <option value={8}>Août</option>
-              <option value={9}>Septembre</option>
-              <option value={10}>Octobre</option>
-              <option value={11}>Novembre</option>
-              <option value={12}>Décembre</option>
-            </select>
-            <div className="flex gap-1">
-              <button 
+            
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <select 
+                  value={filters.annee || ''} 
+                  onChange={(e) => handleFilterChange('annee', e.target.value || null)}
+                  className="appearance-none bg-white/80 backdrop-blur-sm border border-blue-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/90 shadow-sm"
+                >
+                  <option value="">Toutes les années</option>
+                  <option value={2024}>2024</option>
+                  <option value={2025}>2025</option>
+                  <option value={2026}>2026</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <Calendar className="h-4 w-4 text-blue-500" />
+                </div>
+              </div>
+              
+              <div className="relative">
+                <select 
+                  value={filters.mois || ''} 
+                  onChange={(e) => handleFilterChange('mois', e.target.value || null)}
+                  className="appearance-none bg-white/80 backdrop-blur-sm border border-blue-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/90 shadow-sm"
+                >
+                  <option value="">Tous les mois</option>
+                  <option value={1}>Janvier</option>
+                  <option value={2}>Février</option>
+                  <option value={3}>Mars</option>
+                  <option value={4}>Avril</option>
+                  <option value={5}>Mai</option>
+                  <option value={6}>Juin</option>
+                  <option value={7}>Juillet</option>
+                  <option value={8}>Août</option>
+                  <option value={9}>Septembre</option>
+                  <option value={10}>Octobre</option>
+                  <option value={11}>Novembre</option>
+                  <option value={12}>Décembre</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <Calendar className="h-4 w-4 text-blue-500" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setFilters({ annee: new Date().getFullYear(), mois: new Date().getMonth() + 1 })}
-                className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
               >
+                <Sparkles className="h-4 w-4" />
                 Actuel
-              </button>
-              <button 
+              </motion.button>
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setFilters({ annee: null, mois: null })}
-                className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
+                className="px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
               >
+                <Target className="h-4 w-4" />
                 Tous
-              </button>
+              </motion.button>
             </div>
           </div>
+          
           <div className="flex items-center gap-3">
             {filters.annee && filters.mois && (
-              <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                {objectives.filter(obj => isDateInObjectiveRange(obj)).length} actif(s)
-              </span>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-100/80 backdrop-blur-sm text-blue-800 rounded-xl border border-blue-200"
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span className="text-sm font-semibold">
+                  {objectives.filter(obj => isDateInObjectiveRange(obj)).length} actif(s)
+                </span>
+              </motion.div>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Affichage des agences et objectifs */}
       {objectives.length === 0 ? (
@@ -270,174 +307,333 @@ function Objectives() {
           </p>
         </div>
       ) : (
-        <div className="bg-white border rounded-lg overflow-hidden">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="bg-white border-2 border-gray-200/50 rounded-2xl overflow-hidden shadow-lg"
+        >
           <div className="overflow-x-auto max-h-96">
             <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 text-gray-700">
+              <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-700">
                 <tr>
-                  <th className="px-4 py-2 text-left">Agence</th>
-                  <th className="px-4 py-2 text-left">Titre</th>
-                  <th className="px-4 py-2 text-left">Période</th>
-                  <th className="px-4 py-2 text-left">Encaissement</th>
-                  <th className="px-4 py-2 text-left">Coupures</th>
-                  <th className="px-4 py-2 text-left">Dossiers Juridiques</th>
-                  <th className="px-4 py-2 text-left">Mises en Demeure</th>
-                  <th className="px-4 py-2 text-left">Relances</th>
-                  <th className="px-4 py-2 text-left">Contrôles</th>
-                  <th className="px-4 py-2 text-left">Compteurs</th>
-                  <th className="px-4 py-2 text-center">Actions</th>
+                  <th className="px-6 py-4 text-left font-semibold">Agence</th>
+                  <th className="px-6 py-4 text-left font-semibold">Titre</th>
+                  <th className="px-6 py-4 text-left font-semibold">Période</th>
+                  <th className="px-6 py-4 text-left font-semibold">Encaissement</th>
+                  <th className="px-6 py-4 text-left font-semibold">Coupures</th>
+                  <th className="px-6 py-4 text-left font-semibold">Dossiers Juridiques</th>
+                  <th className="px-6 py-4 text-left font-semibold">Mises en Demeure</th>
+                  <th className="px-6 py-4 text-left font-semibold">Relances</th>
+                  <th className="px-6 py-4 text-left font-semibold">Contrôles</th>
+                  <th className="px-6 py-4 text-left font-semibold">Compteurs</th>
+                  <th className="px-6 py-4 text-center font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {objectives.map((o) => {
+                {objectives.map((o, index) => {
                   const isTooOld = isObjectiveTooOld(o.DateDebut);
                   return (
-                    <tr key={`${o.ObjectifId}`} className="border-t">
-                      <td className="px-4 py-2">{o.Nom_Agence}</td>
-                      <td className="px-4 py-2">
-                        <div className="font-medium">{o.Titre}</div>
+                    <motion.tr 
+                      key={`${o.ObjectifId}`} 
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="border-t border-gray-100 hover:bg-blue-50/30 transition-colors duration-200"
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-900">{o.Nom_Agence}</td>
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-gray-800">{o.Titre}</div>
                         {o.Description && (
                           <div className="text-xs text-gray-500 mt-1">{o.Description}</div>
                         )}
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-6 py-4 text-gray-600">
                         {new Date(o.DateDebut).toLocaleDateString('fr-FR')} - {new Date(o.DateFin).toLocaleDateString('fr-FR')}
                       </td>
-                      <td className="px-4 py-2">{o.Obj_Encaissement ? new Intl.NumberFormat('fr-DZ', { style: 'currency', currency: 'DZD' }).format(o.Obj_Encaissement) : '-'}</td>
-                      <td className="px-4 py-2">{o.Obj_Coupures ?? '-'}</td>
-                      <td className="px-4 py-2">{o.Obj_Dossiers_Juridiques ?? '-'}</td>
-                      <td className="px-4 py-2">{o.Obj_MisesEnDemeure ?? '-'}</td>
-                      <td className="px-4 py-2">{o.Obj_Relances ?? '-'}</td>
-                      <td className="px-4 py-2">{o.Obj_Controles ?? '-'}</td>
-                      <td className="px-4 py-2">{o.Obj_Compteurs_Remplaces ?? '-'}</td>
-                      <td className="px-4 py-2 text-center space-x-2">
-                        {isTooOld ? (
-                          <button title="Verrouillé" disabled className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                        ) : (
-                          <button onClick={() => openEdit(o)} title="Modifier" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50">
-                            <Pencil className="h-3.5 w-3.5 text-blue-600" />
-                          </button>
-                        )}
-                        <button onClick={() => handleDelete(o)} title="Supprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50">
-                          <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                        </button>
+                      <td className="px-6 py-4 font-medium text-green-700">
+                        {o.Obj_Encaissement ? new Intl.NumberFormat('fr-DZ', { style: 'currency', currency: 'DZD' }).format(o.Obj_Encaissement) : '-'}
                       </td>
-                    </tr>
+                      <td className="px-6 py-4 text-gray-600">{o.Obj_Coupures ?? '-'}</td>
+                      <td className="px-6 py-4 text-gray-600">{o.Obj_Dossiers_Juridiques ?? '-'}</td>
+                      <td className="px-6 py-4 text-gray-600">{o.Obj_MisesEnDemeure ?? '-'}</td>
+                      <td className="px-6 py-4 text-gray-600">{o.Obj_Relances ?? '-'}</td>
+                      <td className="px-6 py-4 text-gray-600">{o.Obj_Controles ?? '-'}</td>
+                      <td className="px-6 py-4 text-gray-600">{o.Obj_Compteurs_Remplaces ?? '-'}</td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {!isAdmin ? (
+                            <motion.button 
+                              whileHover={{ scale: 1.1 }}
+                              title="Accès refusé - Seuls les administrateurs peuvent modifier les objectifs" 
+                              disabled 
+                              className="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </motion.button>
+                          ) : (
+                            <motion.button 
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => openEdit(o)} 
+                              title={isTooOld ? "Modifier l'objectif (ancien - plus de 3 mois)" : "Modifier l'objectif"} 
+                              className={`inline-flex items-center justify-center h-9 w-9 rounded-xl border transition-all duration-200 shadow-sm ${
+                                isTooOld 
+                                  ? 'bg-orange-100 text-orange-600 hover:bg-orange-200 border-orange-200' 
+                                  : 'bg-blue-100 text-blue-600 hover:bg-blue-200 border-blue-200'
+                              }`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </motion.button>
+                          )}
+                          <motion.button 
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => handleDelete(o)} 
+                            title="Supprimer l'objectif" 
+                            className="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 transition-all duration-200 shadow-sm"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </motion.button>
+                        </div>
+                      </td>
+                    </motion.tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {/* Affichage des agences avec statut des objectifs */}
+      {/* Affichage des agences avec statut des objectifs - Style moderne */}
       {agences.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Toutes les Agences ({agences.length})
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {agences.map((agence) => {
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mt-8"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-2xl">
+                <Building2 className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">
+                  Toutes les Agences
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {agences.length} agence{agences.length > 1 ? 's' : ''} au total
+                </p>
+              </div>
+            </div>
+            
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {agences.map((agence, index) => {
               const hasObjectives = hasObjectivesForPeriod(agence.AgenceId);
               const agencyObjectives = getObjectivesForAgency(agence.AgenceId);
               
               return (
-                <div 
-                  key={agence.AgenceId} 
-                  className={`p-4 rounded-lg border shadow-sm hover:shadow-md transition-shadow ${
+                <motion.div
+                  key={agence.AgenceId}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  whileHover={{ 
+                    scale: 1.02,
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                  }}
+                  className={`relative overflow-hidden rounded-2xl border-2 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group ${
                     hasObjectives 
-                      ? 'bg-green-50 border-green-200' 
-                      : 'bg-gray-50 border-gray-200'
+                      ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200/60 hover:border-green-300' 
+                      : 'bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200/60 hover:border-gray-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-blue-600" />
-                      <span className="font-medium text-gray-900">{agence.Nom_Agence}</span>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      hasObjectives 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {hasObjectives ? '✓ Objectifs définis' : '⚠ Aucun objectif'}
-                    </span>
-                  </div>
+                  {/* Effet de brillance au survol */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                    initial={{ x: '-100%' }}
+                    whileHover={{ x: '100%' }}
+                  />
                   
-                  {hasObjectives && (
-                    <div className="mb-3">
-                      <p className="text-sm text-gray-600 mb-2">
-                        {agencyObjectives.length} objectif{agencyObjectives.length > 1 ? 's' : ''} défini{agencyObjectives.length > 1 ? 's' : ''} :
-                      </p>
-                      <div className="space-y-1">
-                        {agencyObjectives.map((obj) => {
-                          const isInRange = isDateInObjectiveRange(obj);
-                          return (
-                            <div key={obj.ObjectifId} className={`text-sm bg-white p-3 rounded-lg border-2 transition-all ${
-                              isInRange 
-                                ? 'border-green-200 bg-green-50' 
-                                : 'border-gray-200'
-                            }`}>
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="font-medium text-gray-800">{obj.Titre}</div>
-                                  <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                                    <Calendar className="h-3 w-3" />
-                                    {new Date(obj.DateDebut).toLocaleDateString('fr-FR')} - {new Date(obj.DateFin).toLocaleDateString('fr-FR')}
-                                  </div>
-                                  {isInRange && (
-                                    <div className="mt-2 inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                                      ✓ Période active
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1 ml-2">
-                                  <button
-                                    onClick={() => openEdit(obj)}
-                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                    title="Modifier"
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(obj.ObjectifId)}
-                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                    title="Supprimer"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              </div>
+                  <div className="relative z-10 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <motion.div
+                          whileHover={{ rotate: 5, scale: 1.1 }}
+                          transition={{ duration: 0.2 }}
+                          className={`p-3 rounded-xl ${
+                            hasObjectives 
+                              ? 'bg-green-100 text-green-600' 
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          <Building2 className="h-5 w-5" />
+                        </motion.div>
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-lg">{agence.Nom_Agence}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold border border-blue-200">
+                              Centre: {agence.Nom_Centre || 'Non disponible'}
                             </div>
-                          );
-                        })}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  
-                  {!hasObjectives && (
-                    <div className="flex justify-center">
-                      <button
-                        onClick={() => {
-                          setEditing({ FK_Agence: agence.AgenceId });
-                          setModalOpen(true);
-                        }}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
-                        title="Ajouter un objectif"
+                      
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
+                          hasObjectives 
+                            ? 'bg-green-100 text-green-800 border border-green-200' 
+                            : 'bg-gray-100 text-gray-600 border border-gray-200'
+                        }`}
                       >
-                        <Plus className="h-5 w-5" />
-                      </button>
+                        {hasObjectives ? (
+                          <>
+                            <CheckCircle className="h-3 w-3" />
+                            Objectifs définis
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="h-3 w-3" />
+                            Aucun objectif
+                          </>
+                        )}
+                      </motion.div>
                     </div>
-                  )}
-                  
-                </div>
+                    
+                    {hasObjectives && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        transition={{ duration: 0.3 }}
+                        className="mb-4"
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <Target className="h-4 w-4 text-green-600" />
+                          <p className="text-sm font-semibold text-gray-700">
+                            {agencyObjectives.length} objectif{agencyObjectives.length > 1 ? 's' : ''} défini{agencyObjectives.length > 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {agencyObjectives.map((obj, objIndex) => {
+                            const isInRange = isDateInObjectiveRange(obj);
+                            return (
+                              <motion.div
+                                key={obj.ObjectifId}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: objIndex * 0.1 }}
+                                className={`relative overflow-hidden rounded-xl border-2 transition-all duration-300 hover:shadow-md ${
+                                  isInRange 
+                                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-sm' 
+                                    : 'bg-white border-gray-200'
+                                }`}
+                              >
+                                <div className="p-4">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <h5 className="font-bold text-gray-800 mb-2">{obj.Titre}</h5>
+                                      <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
+                                        <Calendar className="h-3 w-3" />
+                                        <span>
+                                          {new Date(obj.DateDebut).toLocaleDateString('fr-FR')} - {new Date(obj.DateFin).toLocaleDateString('fr-FR')}
+                                        </span>
+                                      </div>
+                                      {isInRange && (
+                                        <motion.div
+                                          initial={{ scale: 0 }}
+                                          animate={{ scale: 1 }}
+                                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold border border-green-200"
+                                        >
+                                          <CheckCircle className="h-3 w-3" />
+                                          Période active
+                                        </motion.div>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-1 ml-3">
+                                      {!isAdmin ? (
+                                        <motion.button
+                                          whileHover={{ scale: 1.1 }}
+                                          disabled
+                                          className="p-2 text-gray-400 cursor-not-allowed rounded-lg transition-colors duration-200"
+                                          title="Accès refusé - Seuls les administrateurs peuvent modifier les objectifs"
+                                        >
+                                          <Pencil className="h-4 w-4" />
+                                        </motion.button>
+                                      ) : (
+                                        <motion.button
+                                          whileHover={{ scale: 1.1 }}
+                                          whileTap={{ scale: 0.9 }}
+                                          onClick={() => openEdit(obj)}
+                                          className={`p-2 rounded-lg transition-colors duration-200 ${
+                                            isObjectiveTooOld(obj.DateDebut)
+                                              ? 'text-orange-600 hover:bg-orange-50'
+                                              : 'text-blue-600 hover:bg-blue-50'
+                                          }`}
+                                          title={isObjectiveTooOld(obj.DateDebut) ? "Modifier l'objectif (ancien - plus de 3 mois)" : "Modifier"}
+                                        >
+                                          <Pencil className="h-4 w-4" />
+                                        </motion.button>
+                                      )}
+                                      <motion.button
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={() => handleDelete(obj.ObjectifId)}
+                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                                        title="Supprimer"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </motion.button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                    
+                    {!hasObjectives && (
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex flex-col items-center justify-center py-6"
+                      >
+                        <div className="p-4 bg-gray-100 rounded-2xl mb-3">
+                          <AlertCircle className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <p className="text-sm text-gray-600 mb-4 text-center">
+                          Aucun objectif défini pour cette agence
+                        </p>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            setEditing({ FK_Agence: agence.AgenceId });
+                            setModalOpen(true);
+                          }}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
+                          title="Ajouter un objectif"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Ajouter un objectif
+                        </motion.button>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
               );
             })}
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
     <ObjectivesModal

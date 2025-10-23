@@ -22,7 +22,7 @@ const objectivesService = {
 
   async getAgences() {
     const user = authService.getCurrentUser();
-    const res = await api.get('/objectives/agences', {
+    const res = await api.get('/agences', {
       headers: {
         'X-Role': user?.role || 'Administrateur',
         'X-User-Id': user?.id || ''
