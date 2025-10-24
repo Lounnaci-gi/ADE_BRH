@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, Crown, Sparkles, FolderOpen, BarChart3, Target, MapPin } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, Crown, Sparkles, FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText } from 'lucide-react';
 import notificationsService from '../services/notificationsService';
 import ThemeToggle from './ThemeToggle';
 import authService from '../services/authService';
@@ -10,6 +10,7 @@ const NavBar = () => {
   const [unread, setUnread] = React.useState(0);
   const [agenciesStatus, setAgenciesStatus] = React.useState({ agencies: [], summary: { total: 0, completed: 0, pending: 0 } });
   const [showAgenciesStatus, setShowAgenciesStatus] = React.useState(false);
+  const [showDataMenu, setShowDataMenu] = React.useState(false);
   const navigate = useNavigate();
 
   const linkBase = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 ease-out relative group";
@@ -53,11 +54,14 @@ const NavBar = () => {
     return () => { mounted = false; clearInterval(id); };
   }, []);
 
-  // Fermer le dropdown quand on clique à l'extérieur
+  // Fermer les dropdowns quand on clique à l'extérieur
   React.useEffect(() => {
     const handleClickOutside = (event) => {
       if (showAgenciesStatus && !event.target.closest('.agencies-status-dropdown')) {
         setShowAgenciesStatus(false);
+      }
+      if (showDataMenu && !event.target.closest('.data-menu-dropdown')) {
+        setShowDataMenu(false);
       }
     };
 
@@ -65,7 +69,7 @@ const NavBar = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showAgenciesStatus]);
+  }, [showAgenciesStatus, showDataMenu]);
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-gradient-to-r from-white/95 via-blue-50/95 to-white/95 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 border-b border-water-200/30 dark:border-slate-700/30 shadow-sm overflow-visible">
@@ -121,10 +125,40 @@ const NavBar = () => {
             <FolderOpen className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> 
             <span className="hidden lg:inline">Catégories</span>
           </NavLink>
-          <NavLink to="/kpi" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-            <BarChart3 className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> 
-            <span className="hidden lg:inline">Saisie des Données</span>
-          </NavLink>
+          <div className="relative group data-menu-dropdown">
+            <button 
+              onClick={() => setShowDataMenu(!showDataMenu)}
+              className={`${linkBase} ${showDataMenu ? linkActive : linkInactive} cursor-pointer`}
+            >
+              <BarChart3 className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> 
+              <span className="hidden lg:inline">Saisie des Données</span>
+              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${showDataMenu ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {/* Sous-menu déroulant */}
+            {showDataMenu && (
+              <div className="fixed right-4 top-16 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-water-200/50 dark:border-slate-700/50 z-[9999] backdrop-blur-sm data-menu-dropdown">
+                <div className="py-2">
+                  <NavLink 
+                    to="/kpi" 
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-water-50 dark:hover:bg-slate-700 transition-colors duration-200 rounded-lg mx-2"
+                    onClick={() => setShowDataMenu(false)}
+                  >
+                    <BarChart3 className="h-4 w-4 text-water-600" />
+                    <span>Saisie des Données</span>
+                  </NavLink>
+                  <NavLink 
+                    to="/bilans-detailles" 
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-water-50 dark:hover:bg-slate-700 transition-colors duration-200 rounded-lg mx-2"
+                    onClick={() => setShowDataMenu(false)}
+                  >
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <span>Bilans liste détaillés</span>
+                  </NavLink>
+                </div>
+              </div>
+            )}
+          </div>
           <NavLink to="/objectives" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
             <Target className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> 
             <span className="hidden lg:inline">Objectifs</span>

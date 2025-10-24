@@ -217,41 +217,41 @@ function Objectives() {
             
             <div className="flex items-center gap-3">
               <div className="relative">
-                <select 
-                  value={filters.annee || ''} 
-                  onChange={(e) => handleFilterChange('annee', e.target.value || null)}
+            <select 
+              value={filters.annee || ''} 
+              onChange={(e) => handleFilterChange('annee', e.target.value || null)}
                   className="appearance-none bg-white/80 backdrop-blur-sm border border-blue-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/90 shadow-sm"
-                >
-                  <option value="">Toutes les années</option>
-                  <option value={2024}>2024</option>
-                  <option value={2025}>2025</option>
-                  <option value={2026}>2026</option>
-                </select>
+            >
+              <option value="">Toutes les années</option>
+              <option value={2024}>2024</option>
+              <option value={2025}>2025</option>
+              <option value={2026}>2026</option>
+            </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <Calendar className="h-4 w-4 text-blue-500" />
                 </div>
               </div>
               
               <div className="relative">
-                <select 
-                  value={filters.mois || ''} 
-                  onChange={(e) => handleFilterChange('mois', e.target.value || null)}
+            <select 
+              value={filters.mois || ''} 
+              onChange={(e) => handleFilterChange('mois', e.target.value || null)}
                   className="appearance-none bg-white/80 backdrop-blur-sm border border-blue-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/90 shadow-sm"
-                >
-                  <option value="">Tous les mois</option>
-                  <option value={1}>Janvier</option>
-                  <option value={2}>Février</option>
-                  <option value={3}>Mars</option>
-                  <option value={4}>Avril</option>
-                  <option value={5}>Mai</option>
-                  <option value={6}>Juin</option>
-                  <option value={7}>Juillet</option>
-                  <option value={8}>Août</option>
-                  <option value={9}>Septembre</option>
-                  <option value={10}>Octobre</option>
-                  <option value={11}>Novembre</option>
-                  <option value={12}>Décembre</option>
-                </select>
+            >
+              <option value="">Tous les mois</option>
+              <option value={1}>Janvier</option>
+              <option value={2}>Février</option>
+              <option value={3}>Mars</option>
+              <option value={4}>Avril</option>
+              <option value={5}>Mai</option>
+              <option value={6}>Juin</option>
+              <option value={7}>Juillet</option>
+              <option value={8}>Août</option>
+              <option value={9}>Septembre</option>
+              <option value={10}>Octobre</option>
+              <option value={11}>Novembre</option>
+              <option value={12}>Décembre</option>
+            </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <Calendar className="h-4 w-4 text-blue-500" />
                 </div>
@@ -289,8 +289,8 @@ function Objectives() {
               >
                 <CheckCircle className="h-4 w-4" />
                 <span className="text-sm font-semibold">
-                  {objectives.filter(obj => isDateInObjectiveRange(obj)).length} actif(s)
-                </span>
+                {objectives.filter(obj => isDateInObjectiveRange(obj)).length} actif(s)
+              </span>
               </motion.div>
             )}
           </div>
@@ -422,7 +422,7 @@ function Objectives() {
               <div>
                 <h3 className="text-xl font-bold text-gray-800">
                   Toutes les Agences
-                </h3>
+          </h3>
                 <p className="text-sm text-gray-600">
                   {agences.length} agence{agences.length > 1 ? 's' : ''} au total
                 </p>
@@ -438,7 +438,7 @@ function Objectives() {
               
               return (
                 <motion.div
-                  key={agence.AgenceId}
+                  key={agence.AgenceId} 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -503,9 +503,9 @@ function Objectives() {
                           </>
                         )}
                       </motion.div>
-                    </div>
-                    
-                    {hasObjectives && (
+                  </div>
+                  
+                  {hasObjectives && (
                       <motion.div 
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
@@ -521,30 +521,30 @@ function Objectives() {
                         
                         <div className="space-y-3">
                           {agencyObjectives.map((obj, objIndex) => {
-                            const isInRange = isDateInObjectiveRange(obj);
-                            return (
+                          const isInRange = isDateInObjectiveRange(obj);
+                          return (
                               <motion.div
                                 key={obj.ObjectifId}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: objIndex * 0.1 }}
                                 className={`relative overflow-hidden rounded-xl border-2 transition-all duration-300 hover:shadow-md ${
-                                  isInRange 
+                              isInRange 
                                     ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-sm' 
                                     : 'bg-white border-gray-200'
                                 }`}
                               >
                                 <div className="p-4">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
                                       <h5 className="font-bold text-gray-800 mb-2">{obj.Titre}</h5>
                                       <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
-                                        <Calendar className="h-3 w-3" />
+                                    <Calendar className="h-3 w-3" />
                                         <span>
-                                          {new Date(obj.DateDebut).toLocaleDateString('fr-FR')} - {new Date(obj.DateFin).toLocaleDateString('fr-FR')}
+                                    {new Date(obj.DateDebut).toLocaleDateString('fr-FR')} - {new Date(obj.DateFin).toLocaleDateString('fr-FR')}
                                         </span>
-                                      </div>
-                                      {isInRange && (
+                                  </div>
+                                  {isInRange && (
                                         <motion.div
                                           initial={{ scale: 0 }}
                                           animate={{ scale: 1 }}
@@ -570,7 +570,7 @@ function Objectives() {
                                         <motion.button
                                           whileHover={{ scale: 1.1 }}
                                           whileTap={{ scale: 0.9 }}
-                                          onClick={() => openEdit(obj)}
+                                    onClick={() => openEdit(obj)}
                                           className={`p-2 rounded-lg transition-colors duration-200 ${
                                             isObjectiveTooOld(obj.DateDebut)
                                               ? 'text-orange-600 hover:bg-orange-50'
@@ -584,23 +584,23 @@ function Objectives() {
                                       <motion.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
-                                        onClick={() => handleDelete(obj.ObjectifId)}
+                                    onClick={() => handleDelete(obj.ObjectifId)}
                                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                                        title="Supprimer"
-                                      >
+                                    title="Supprimer"
+                                  >
                                         <Trash2 className="h-4 w-4" />
                                       </motion.button>
-                                    </div>
-                                  </div>
                                 </div>
+                              </div>
+                            </div>
                               </motion.div>
-                            );
-                          })}
-                        </div>
+                          );
+                        })}
+                      </div>
                       </motion.div>
-                    )}
-                    
-                    {!hasObjectives && (
+                  )}
+                  
+                  {!hasObjectives && (
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -616,19 +616,19 @@ function Objectives() {
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            setEditing({ FK_Agence: agence.AgenceId });
-                            setModalOpen(true);
-                          }}
+                        onClick={() => {
+                          setEditing({ FK_Agence: agence.AgenceId });
+                          setModalOpen(true);
+                        }}
                           className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
-                          title="Ajouter un objectif"
-                        >
+                        title="Ajouter un objectif"
+                      >
                           <Plus className="h-4 w-4" />
                           Ajouter un objectif
                         </motion.button>
                       </motion.div>
                     )}
-                  </div>
+                </div>
                 </motion.div>
               );
             })}

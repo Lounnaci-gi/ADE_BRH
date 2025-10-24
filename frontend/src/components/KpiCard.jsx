@@ -167,7 +167,7 @@ const KpiCard = ({
           <div className="mt-3 space-y-1">
             <div className="flex justify-between text-xs">
               <span className={colors.text}>Progression</span>
-              <span className={`${colors.text} font-medium`}>{percentage}%</span>
+              <span className={`${colors.text} font-medium`}>{typeof percentage === 'number' ? percentage.toFixed(2).replace('.', ',') : percentage}%</span>
             </div>
             <div className="w-full bg-white/50 rounded-full h-1.5 overflow-hidden">
               <motion.div

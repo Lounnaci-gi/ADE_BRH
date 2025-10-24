@@ -453,7 +453,9 @@ router.get('/summary', async (req, res) => {
     const year1 = parseInt(dateKey.toString().substring(0, 4));
     const month1 = parseInt(dateKey.toString().substring(4, 6));
     const day1 = parseInt(dateKey.toString().substring(6, 8));
-    const dateValue = new Date(year1, month1 - 1, day1);
+    
+    // Créer une date locale sans décalage de fuseau horaire
+    const dateValue = new Date(year1, month1 - 1, day1, 12, 0, 0, 0);
     
     const dailyParams = [
       { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },

@@ -16,6 +16,7 @@ import Settings from './pages/Settings';
 import Categories from './pages/Categories';
 import KPI from './pages/KPI';
 import Objectives from './pages/Objectives';
+import BilansDetailles from './pages/BilansDetailles';
 import Centres from './pages/Centres';
 import Communes from './pages/Communes';
 
@@ -106,6 +107,16 @@ function App() {
           element={
             <PrivateRoute>
               <KPI />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 📋 Bilans détaillés */}
+        <Route
+          path="/bilans-detailles"
+          element={
+            <PrivateRoute>
+              <BilansDetailles />
             </PrivateRoute>
           }
         />
