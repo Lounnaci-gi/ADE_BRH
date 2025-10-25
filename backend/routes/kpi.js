@@ -581,4 +581,171 @@ router.get('/categories', async (req, res) => {
   }
 });
 
+// GET /api/kpi/global-summary - récupérer le résumé global avec les taux pour toutes les agences
+router.get('/global-summary', async (req, res) => {
+  try {
+    const { dateKey } = req.query;
+    
+    if (!dateKey) {
+      return res.status(400).json({ message: 'dateKey est requis' });
+    }
+
+    // Validation du format de dateKey
+    if (!isValidDateKey(parseInt(dateKey))) {
+      return res.status(400).json({ 
+        message: 'Format de dateKey invalide. Attendu: YYYYMMDD',
+        details: { dateKey }
+      });
+    }
+
+    // Convertir dateKey (YYYYMMDD) en format DATE
+    const dateValue = convertDateKeyToSQLServer(parseInt(dateKey));
+
+    // Récupérer les totaux globaux avec les objectifs
+    // NOUVELLE LOGIQUE : Séparer les réalisations (données journalières) et les objectifs (toutes agences)
+    const globalQuery = `
+      WITH Realisations AS (
+        -- Réalisations : seulement les agences avec données journalières
+        SELECT 
+          SUM(k.Nb_RelancesEnvoyees) as Total_RelancesEnvoyees,
+          SUM(k.Mt_RelancesEnvoyees) as Total_Mt_RelancesEnvoyees,
+          SUM(k.Nb_RelancesReglees) as Total_RelancesReglees,
+          SUM(k.Mt_RelancesReglees) as Total_Mt_RelancesReglees,
+          SUM(k.Nb_MisesEnDemeure_Envoyees) as Total_MisesEnDemeureEnvoyees,
+          SUM(k.Mt_MisesEnDemeure_Envoyees) as Total_Mt_MisesEnDemeureEnvoyees,
+          SUM(k.Nb_MisesEnDemeure_Reglees) as Total_MisesEnDemeureReglees,
+          SUM(k.Mt_MisesEnDemeure_Reglees) as Total_Mt_MisesEnDemeureReglees,
+          SUM(k.Nb_Dossiers_Juridiques) as Total_DossiersJuridiques,
+          SUM(k.Mt_Dossiers_Juridiques) as Total_Mt_DossiersJuridiques,
+          SUM(k.Nb_Coupures) as Total_Coupures,
+          SUM(k.Mt_Coupures) as Total_Mt_Coupures,
+          SUM(k.Nb_Retablissements) as Total_Retablissements,
+          SUM(k.Mt_Retablissements) as Total_Mt_Retablissements,
+          SUM(k.Nb_Controles) as Total_Controles,
+          SUM(k.Nb_Compteurs_Remplaces) as Total_CompteursRemplaces,
+          SUM(k.Encaissement_Journalier_Global) as Total_EncaissementGlobal,
+          COUNT(DISTINCT k.AgenceId) as Agences_Avec_Donnees
+        FROM dbo.FAIT_KPI_ADE k
+        WHERE k.DateKPI = @dateKey
+      ),
+      Objectifs AS (
+        -- Objectifs : TOUTES les agences avec objectifs actifs
+        SELECT 
+          SUM(o.Obj_Relances) as Total_Obj_Relances,
+          SUM(o.Obj_MisesEnDemeure) as Total_Obj_MisesEnDemeure,
+          SUM(o.Obj_Dossiers_Juridiques) as Total_Obj_DossiersJuridiques,
+          SUM(o.Obj_Coupures) as Total_Obj_Coupures,
+          SUM(o.Obj_Controles) as Total_Obj_Controles,
+          SUM(o.Obj_Compteurs_Remplaces) as Total_Obj_CompteursRemplaces,
+          SUM(o.Obj_Encaissement) as Total_Obj_Encaissement,
+          COUNT(DISTINCT o.FK_Agence) as Total_Agences
+        FROM dbo.DIM_OBJECTIF o
+        WHERE o.DateDebut <= @dateKey 
+          AND o.DateFin >= @dateKey 
+          AND o.IsActive = 1
+      )
+      SELECT 
+        -- Réalisations (agences avec données journalières)
+        r.Total_RelancesEnvoyees,
+        r.Total_Mt_RelancesEnvoyees,
+        r.Total_RelancesReglees,
+        r.Total_Mt_RelancesReglees,
+        r.Total_MisesEnDemeureEnvoyees,
+        r.Total_Mt_MisesEnDemeureEnvoyees,
+        r.Total_MisesEnDemeureReglees,
+        r.Total_Mt_MisesEnDemeureReglees,
+        r.Total_DossiersJuridiques,
+        r.Total_Mt_DossiersJuridiques,
+        r.Total_Coupures,
+        r.Total_Mt_Coupures,
+        r.Total_Retablissements,
+        r.Total_Mt_Retablissements,
+        r.Total_Controles,
+        r.Total_CompteursRemplaces,
+        r.Total_EncaissementGlobal,
+        
+        -- Objectifs (TOUTES les agences)
+        o.Total_Obj_Relances,
+        o.Total_Obj_MisesEnDemeure,
+        o.Total_Obj_DossiersJuridiques,
+        o.Total_Obj_Coupures,
+        o.Total_Obj_Controles,
+        o.Total_Obj_CompteursRemplaces,
+        o.Total_Obj_Encaissement,
+        
+        -- Calcul des taux basés sur les objectifs de TOUTES les agences
+        CASE 
+          WHEN o.Total_Obj_Relances > 0 
+          THEN ROUND((r.Total_RelancesEnvoyees * 100.0) / o.Total_Obj_Relances, 2)
+          ELSE 0 
+        END as Taux_Relances,
+        
+        CASE 
+          WHEN o.Total_Obj_MisesEnDemeure > 0 
+          THEN ROUND((r.Total_MisesEnDemeureEnvoyees * 100.0) / o.Total_Obj_MisesEnDemeure, 2)
+          ELSE 0 
+        END as Taux_MisesEnDemeure,
+        
+        CASE 
+          WHEN o.Total_Obj_DossiersJuridiques > 0 
+          THEN ROUND((r.Total_DossiersJuridiques * 100.0) / o.Total_Obj_DossiersJuridiques, 2)
+          ELSE 0 
+        END as Taux_DossiersJuridiques,
+        
+        CASE 
+          WHEN o.Total_Obj_Coupures > 0 
+          THEN ROUND((r.Total_Coupures * 100.0) / o.Total_Obj_Coupures, 2)
+          ELSE 0 
+        END as Taux_Coupures,
+        
+        CASE 
+          WHEN o.Total_Obj_Controles > 0 
+          THEN ROUND((r.Total_Controles * 100.0) / o.Total_Obj_Controles, 2)
+          ELSE 0 
+        END as Taux_Controles,
+        
+        CASE 
+          WHEN o.Total_Obj_CompteursRemplaces > 0 
+          THEN ROUND((r.Total_CompteursRemplaces * 100.0) / o.Total_Obj_CompteursRemplaces, 2)
+          ELSE 0 
+        END as Taux_CompteursRemplaces,
+        
+        CASE 
+          WHEN o.Total_Obj_Encaissement > 0 
+          THEN ROUND((r.Total_EncaissementGlobal * 100.0) / o.Total_Obj_Encaissement, 2)
+          ELSE 0 
+        END as Taux_Encaissement,
+        
+        o.Total_Agences,
+        r.Agences_Avec_Donnees
+        
+      FROM Realisations r
+      CROSS JOIN Objectifs o
+    `;
+
+    const params = [
+      { name: 'dateKey', type: TYPES.Date, value: dateValue }
+    ];
+
+    console.log('🔍 DEBUG /kpi/global-summary - Paramètres:', { dateKey, dateValue });
+
+    const results = await db.query(globalQuery, params);
+    
+    console.log('🔍 DEBUG /kpi/global-summary - Résultats:', results);
+
+    const response = {
+      global: results[0] || null,
+      dateKey: parseInt(dateKey),
+      dateValue: dateValue
+    };
+
+    console.log('🔍 DEBUG /kpi/global-summary - Réponse finale:', response);
+    res.json(response);
+  } catch (err) {
+    console.error('Erreur GET /kpi/global-summary:', err);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ message: 'Erreur lors de la récupération du résumé global', error: err.message });
+  }
+});
+
 module.exports = router;

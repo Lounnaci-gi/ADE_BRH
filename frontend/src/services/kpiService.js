@@ -39,6 +39,11 @@ const kpiService = {
   async getAllObjectives(agenceId) {
     const res = await api.get(`/kpi/objectives?agenceId=${agenceId}`);
     return res.data || [];
+  },
+
+  async getGlobalSummary(dateKey) {
+    const res = await api.get(`/kpi/global-summary?dateKey=${dateKey}`);
+    return res.data;
   }
 };
 

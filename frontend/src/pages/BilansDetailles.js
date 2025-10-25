@@ -9,22 +9,21 @@ function BilansDetailles() {
   const [filteredAgences, setFilteredAgences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [summaryTotals, setSummaryTotals] = useState(null);
   const [filters, setFilters] = useState({
-    date: new Date().toISOString().split('T')[0],
-    mois: new Date().getMonth() + 1,
-    annee: new Date().getFullYear()
+    date: new Date().toISOString().split('T')[0]
   });
 
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
 
-  // Fonction pour obtenir le nom du mois
-  const getMonthName = (month) => {
-    const months = [
-      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-    ];
-    return months[month - 1] || '';
+  // Fonction pour formater la monnaie
+  const formatCurrency = (value) => {
+    if (!value) return '0,00 DA';
+    return new Intl.NumberFormat('fr-DZ', {
+      style: 'currency',
+      currency: 'DZD'
+    }).format(value);
   };
 
   // Charger les données des agences
@@ -44,23 +43,69 @@ function BilansDetailles() {
     }
   };
 
-  // Charger les données détaillées pour une agence
-  const loadAgencyDetails = async (agenceId) => {
-    try {
-      const dateStr = filters.date;
-      const summaryData = await kpiService.getSummary(agenceId, dateStr);
-      return summaryData;
-    } catch (err) {
-      console.error('Erreur lors du chargement des détails:', err);
-      return null;
-    }
-  };
-
   // Filtrer les agences
   const filterAgences = () => {
     // Pour l'instant, on retourne toutes les agences
-    // Plus tard, on pourra ajouter des filtres par date/mois/année
+    // Plus tard, on pourra ajouter des filtres par date
     setFilteredAgences(agences);
+  };
+
+  // Calculer les totaux pour le résumé
+  const calculateSummaryTotals = async () => {
+    try {
+      const dateStr = filters.date;
+      const dateKey = parseInt(
+        dateStr.replace(/-/g, '')
+      );
+      
+      // Utiliser le nouvel endpoint global-summary
+      const globalData = await kpiService.getGlobalSummary(dateKey);
+      
+      if (globalData && globalData.global) {
+        const global = globalData.global;
+        setSummaryTotals({
+          totalRelancesEnvoyees: global.Total_RelancesEnvoyees || 0,
+          totalMtRelancesEnvoyees: global.Total_Mt_RelancesEnvoyees || 0,
+          totalRelancesReglees: global.Total_RelancesReglees || 0,
+          totalMtRelancesReglees: global.Total_Mt_RelancesReglees || 0,
+          totalMisesEnDemeureEnvoyees: global.Total_MisesEnDemeureEnvoyees || 0,
+          totalMtMisesEnDemeureEnvoyees: global.Total_Mt_MisesEnDemeureEnvoyees || 0,
+          totalMisesEnDemeureReglees: global.Total_MisesEnDemeureReglees || 0,
+          totalMtMisesEnDemeureReglees: global.Total_Mt_MisesEnDemeureReglees || 0,
+          totalDossiersJuridiques: global.Total_DossiersJuridiques || 0,
+          totalMtDossiersJuridiques: global.Total_Mt_DossiersJuridiques || 0,
+          totalCoupures: global.Total_Coupures || 0,
+          totalMtCoupures: global.Total_Mt_Coupures || 0,
+          totalRetablissements: global.Total_Retablissements || 0,
+          totalMtRetablissements: global.Total_Mt_Retablissements || 0,
+          totalCompteursRemplaces: global.Total_CompteursRemplaces || 0,
+          totalEncaissementGlobal: global.Total_EncaissementGlobal || 0,
+          totalAgences: global.Total_Agences || 0,
+          agencesAvecDonnees: global.Agences_Avec_Donnees || 0,
+          // Ajouter les taux
+          tauxRelances: global.Taux_Relances || 0,
+          tauxMisesEnDemeure: global.Taux_MisesEnDemeure || 0,
+          tauxDossiersJuridiques: global.Taux_DossiersJuridiques || 0,
+          tauxCoupures: global.Taux_Coupures || 0,
+          tauxControles: global.Taux_Controles || 0,
+          tauxCompteursRemplaces: global.Taux_CompteursRemplaces || 0,
+          tauxEncaissement: global.Taux_Encaissement || 0,
+          // Ajouter les objectifs totaux
+          totalObjRelances: global.Total_Obj_Relances || 0,
+          totalObjMisesEnDemeure: global.Total_Obj_MisesEnDemeure || 0,
+          totalObjDossiersJuridiques: global.Total_Obj_DossiersJuridiques || 0,
+          totalObjCoupures: global.Total_Obj_Coupures || 0,
+          totalObjControles: global.Total_Obj_Controles || 0,
+          totalObjCompteursRemplaces: global.Total_Obj_CompteursRemplaces || 0,
+          totalObjEncaissement: global.Total_Obj_Encaissement || 0
+        });
+      } else {
+        setSummaryTotals(null);
+      }
+    } catch (err) {
+      console.error('Erreur lors du calcul des totaux:', err);
+      setSummaryTotals(null);
+    }
   };
 
   // Gestion des changements de filtre
@@ -82,6 +127,13 @@ function BilansDetailles() {
   useEffect(() => {
     filterAgences();
   }, [filters, agences]);
+
+  // Calculer les totaux quand les agences filtrées changent
+  useEffect(() => {
+    if (filteredAgences.length > 0) {
+      calculateSummaryTotals();
+    }
+  }, [filteredAgences, filters.date]);
 
   if (!isAdmin) {
     return (
@@ -153,47 +205,19 @@ function BilansDetailles() {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-blue-500" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Calendar className="h-5 w-5 text-blue-500" />
+                </div>
                 <input
                   type="date"
                   value={filters.date}
                   onChange={(e) => handleFilterChange('date', e.target.value)}
-                  className="px-3 py-2 text-sm border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
+                  className="pl-10 pr-4 py-3 text-sm border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all duration-300 bg-white shadow-sm hover:shadow-md font-medium text-gray-700 min-w-[180px]"
                 />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <select
-                  value={filters.mois}
-                  onChange={(e) => handleFilterChange('mois', parseInt(e.target.value))}
-                  className="px-3 py-2 text-sm border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
-                >
-                  <option value={1}>Janvier</option>
-                  <option value={2}>Février</option>
-                  <option value={3}>Mars</option>
-                  <option value={4}>Avril</option>
-                  <option value={5}>Mai</option>
-                  <option value={6}>Juin</option>
-                  <option value={7}>Juillet</option>
-                  <option value={8}>Août</option>
-                  <option value={9}>Septembre</option>
-                  <option value={10}>Octobre</option>
-                  <option value={11}>Novembre</option>
-                  <option value={12}>Décembre</option>
-                </select>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <select
-                  value={filters.annee}
-                  onChange={(e) => handleFilterChange('annee', parseInt(e.target.value))}
-                  className="px-3 py-2 text-sm border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200"
-                >
-                  <option value={2024}>2024</option>
-                  <option value={2025}>2025</option>
-                  <option value={2026}>2026</option>
-                </select>
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -241,6 +265,255 @@ function BilansDetailles() {
           </div>
         )}
       </motion.div>
+
+      {/* Section Résumé */}
+      {summaryTotals && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mt-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50 shadow-xl overflow-hidden"
+        >
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-8 py-6">
+            <motion.h2 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="text-2xl font-bold text-white flex items-center gap-3"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              >
+                <TrendingUp className="h-6 w-6" />
+              </motion.div>
+              Résumé Global - {filters.date}
+              <span className="text-blue-200 ml-2">
+                ({summaryTotals.agencesAvecDonnees}/{summaryTotals.totalAgences} agences avec données)
+              </span>
+            </motion.h2>
+          </div>
+          
+          <div className="p-8">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            >
+              {/* Relances Envoyées */}
+              <div className="bg-white rounded-xl border border-cyan-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-cyan-100 rounded-xl">
+                    <AlertCircle className="h-6 w-6 text-cyan-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-cyan-700">{summaryTotals.totalRelancesEnvoyees}</div>
+                    <div className="text-sm text-cyan-600">Relances Envoyées</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs text-gray-500">
+                    Montant: {formatCurrency(summaryTotals.totalMtRelancesEnvoyees)}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Taux:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-bold text-cyan-700">{summaryTotals.tauxRelances}%</span>
+                      <div className={`w-2 h-2 rounded-full ${summaryTotals.tauxRelances >= 100 ? 'bg-green-500' : summaryTotals.tauxRelances >= 80 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Objectif: {summaryTotals.totalObjRelances}
+                  </div>
+                </div>
+              </div>
+
+              {/* Relances Encaissées */}
+              <div className="bg-white rounded-xl border border-green-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-green-100 rounded-xl">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-green-700">{summaryTotals.totalRelancesReglees}</div>
+                    <div className="text-sm text-green-600">Relances Encaissées</div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Montant: {formatCurrency(summaryTotals.totalMtRelancesReglees)}
+                </div>
+              </div>
+
+              {/* Mises en Demeure */}
+              <div className="bg-white rounded-xl border border-yellow-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-yellow-100 rounded-xl">
+                    <Shield className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-yellow-700">{summaryTotals.totalMisesEnDemeureEnvoyees}</div>
+                    <div className="text-sm text-yellow-600">Mises en Demeure</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs text-gray-500">
+                    Montant: {formatCurrency(summaryTotals.totalMtMisesEnDemeureEnvoyees)}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Taux:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-bold text-yellow-700">{summaryTotals.tauxMisesEnDemeure}%</span>
+                      <div className={`w-2 h-2 rounded-full ${summaryTotals.tauxMisesEnDemeure >= 100 ? 'bg-green-500' : summaryTotals.tauxMisesEnDemeure >= 80 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Objectif: {summaryTotals.totalObjMisesEnDemeure}
+                  </div>
+                </div>
+              </div>
+
+              {/* Mises en Demeure Encaissées */}
+              <div className="bg-white rounded-xl border border-orange-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-orange-100 rounded-xl">
+                    <CheckCircle className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-orange-700">{summaryTotals.totalMisesEnDemeureReglees}</div>
+                    <div className="text-sm text-orange-600">Mises en Demeure Encaissées</div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Montant: {formatCurrency(summaryTotals.totalMtMisesEnDemeureReglees)}
+                </div>
+              </div>
+
+              {/* Dossiers Juridiques */}
+              <div className="bg-white rounded-xl border border-orange-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-orange-100 rounded-xl">
+                    <Users className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-orange-700">{summaryTotals.totalDossiersJuridiques}</div>
+                    <div className="text-sm text-orange-600">Dossiers Juridiques</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs text-gray-500">
+                    Montant: {formatCurrency(summaryTotals.totalMtDossiersJuridiques)}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Taux:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-bold text-orange-700">{summaryTotals.tauxDossiersJuridiques}%</span>
+                      <div className={`w-2 h-2 rounded-full ${summaryTotals.tauxDossiersJuridiques >= 100 ? 'bg-green-500' : summaryTotals.tauxDossiersJuridiques >= 80 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Objectif: {summaryTotals.totalObjDossiersJuridiques}
+                  </div>
+                </div>
+              </div>
+
+              {/* Coupures */}
+              <div className="bg-white rounded-xl border border-red-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-red-100 rounded-xl">
+                    <Zap className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-red-700">{summaryTotals.totalCoupures}</div>
+                    <div className="text-sm text-red-600">Coupures</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs text-gray-500">
+                    Montant: {formatCurrency(summaryTotals.totalMtCoupures)}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Taux:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-bold text-red-700">{summaryTotals.tauxCoupures}%</span>
+                      <div className={`w-2 h-2 rounded-full ${summaryTotals.tauxCoupures >= 100 ? 'bg-green-500' : summaryTotals.tauxCoupures >= 80 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Objectif: {summaryTotals.totalObjCoupures}
+                  </div>
+                </div>
+              </div>
+
+              {/* Rétablissements */}
+              <div className="bg-white rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-emerald-100 rounded-xl">
+                    <CheckCircle className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-emerald-700">{summaryTotals.totalRetablissements}</div>
+                    <div className="text-sm text-emerald-600">Rétablissements</div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Montant: {formatCurrency(summaryTotals.totalMtRetablissements)}
+                </div>
+              </div>
+
+              {/* Compteurs Remplacés */}
+              <div className="bg-white rounded-xl border border-purple-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-purple-100 rounded-xl">
+                    <Wrench className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-purple-700">{summaryTotals.totalCompteursRemplaces}</div>
+                    <div className="text-sm text-purple-600">Compteurs Remplacés</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Taux:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-bold text-purple-700">{summaryTotals.tauxCompteursRemplaces}%</span>
+                      <div className={`w-2 h-2 rounded-full ${summaryTotals.tauxCompteursRemplaces >= 100 ? 'bg-green-500' : summaryTotals.tauxCompteursRemplaces >= 80 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Objectif: {summaryTotals.totalObjCompteursRemplaces}
+                  </div>
+                </div>
+              </div>
+
+              {/* Encaissement Global */}
+              <div className="bg-white rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-emerald-100 rounded-xl">
+                    <DollarSign className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-emerald-700">{formatCurrency(summaryTotals.totalEncaissementGlobal)}</div>
+                    <div className="text-sm text-emerald-600">Encaissement Global</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Taux:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-bold text-emerald-700">{summaryTotals.tauxEncaissement}%</span>
+                      <div className={`w-2 h-2 rounded-full ${summaryTotals.tauxEncaissement >= 100 ? 'bg-green-500' : summaryTotals.tauxEncaissement >= 80 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Objectif: {formatCurrency(summaryTotals.totalObjEncaissement)}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
