@@ -85,6 +85,58 @@ const formatDateKeyForDisplay = (dateKey) => {
 };
 
 /**
+ * Convertit une date string "YYYY-MM-DD" en Date JavaScript sans décalage de fuseau horaire
+ * Cette fonction garantit que la date enregistrée = date choisie dans le frontend
+ * @param {string} dateString - Date au format "YYYY-MM-DD" (ex: "2025-10-25")
+ * @returns {Date} Date JavaScript correctement formatée pour SQL Server
+ */
+const parseDateStringForSQLServer = (dateString) => {
+  console.log('🔍 DEBUG parseDateStringForSQLServer - DateString d\'entrée:', dateString);
+  
+  if (!dateString || typeof dateString !== 'string') {
+    throw new Error('dateString doit être une chaîne au format "YYYY-MM-DD"');
+  }
+  
+  // Vérifier le format YYYY-MM-DD
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(dateString)) {
+    throw new Error('dateString doit être au format "YYYY-MM-DD"');
+  }
+  
+  const parts = dateString.split('-');
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const day = parseInt(parts[2], 10);
+  
+  // Validation basique
+  if (year < 1900 || year > 2100) {
+    throw new Error('Année invalide (doit être entre 1900 et 2100)');
+  }
+  if (month < 1 || month > 12) {
+    throw new Error('Mois invalide (doit être entre 1 et 12)');
+  }
+  if (day < 1 || day > 31) {
+    throw new Error('Jour invalide (doit être entre 1 et 31)');
+  }
+  
+  // ✅ CRÉER UNE DATE UTC À MINUIT POUR ÉVITER LES DÉCALAGES
+  // Utiliser Date.UTC() pour créer une date UTC pure qui ne subira pas de décalage
+  const result = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  
+  console.log('🔍 DEBUG parseDateStringForSQLServer - Conversion UTC:', { 
+    dateString, 
+    year, 
+    month, 
+    day, 
+    result,
+    resultISO: result.toISOString(),
+    resultLocal: result.toLocaleDateString('fr-FR')
+  });
+  
+  return result;
+};
+
+/**
  * Arrondit un montant à 2 décimales maximum
  * @param {number|string} amount - Montant à arrondir
  * @returns {number} Montant arrondi à 2 décimales
@@ -103,5 +155,6 @@ module.exports = {
   convertDateKeyToSQLServer,
   isValidDateKey,
   formatDateKeyForDisplay,
+  parseDateStringForSQLServer,
   roundAmount
 };

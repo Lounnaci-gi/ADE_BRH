@@ -122,9 +122,10 @@ function KPI() {
     }
     
     try {
-      // Convertir la date en format YYYYMMDD sans décalage de fuseau horaire
-      const dateKeyInt = convertDateToYYYYMMDD(dateKey);
-      console.log('🔍 DEBUG loadSummary - dateKey converti:', { dateKey, dateKeyInt });
+      // Si dateKey est déjà un nombre (YYYYMMDD), l'utiliser directement
+      // Sinon, le convertir en format YYYYMMDD
+      const dateKeyInt = typeof dateKey === 'number' ? dateKey : convertDateToYYYYMMDD(dateKey);
+      console.log('🔍 DEBUG loadSummary - dateKey final:', { dateKey, dateKeyInt });
       
       console.log('🔍 DEBUG loadSummary - Appel API avec:', { agenceId, dateKeyInt });
       const summaryData = await kpiService.getSummary(agenceId, dateKeyInt);

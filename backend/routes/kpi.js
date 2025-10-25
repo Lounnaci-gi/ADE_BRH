@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../utils/db');
 const { TYPES } = db;
-const { convertDateKeyToSQLServer, isValidDateKey, roundAmount } = require('../utils/dateUtils');
+const { convertDateKeyToSQLServer, isValidDateKey, roundAmount, parseDateStringForSQLServer } = require('../utils/dateUtils');
 
 const router = express.Router();
 
@@ -78,11 +78,11 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'DateKey doit être au format YYYYMMDD (8 chiffres)' });
     }
 
-    // Convertir dateKey (YYYYMMDD) en format DATE
+    // Convertir dateKey (YYYYMMDD) en format DATE sans décalage de fuseau horaire
     const year1 = parseInt(dateKey.toString().substring(0, 4));
     const month1 = parseInt(dateKey.toString().substring(4, 6));
     const day1 = parseInt(dateKey.toString().substring(6, 8));
-    const dateValue = new Date(year1, month1 - 1, day1);
+    const dateValue = parseDateStringForSQLServer(`${year1}-${month1.toString().padStart(2, '0')}-${day1.toString().padStart(2, '0')}`);
 
     // D'abord vérifier si l'enregistrement existe
     const checkQuery = `
@@ -274,11 +274,11 @@ router.get('/existing', async (req, res) => {
 
     // D'abord vérifier si la table existe et a des données
     const countQuery = `SELECT COUNT(*) as count FROM dbo.FAIT_KPI_ADE WHERE DateKPI = @dateKey AND AgenceId = @agenceId`;
-    // Convertir dateKey (YYYYMMDD) en format DATE
+    // Convertir dateKey (YYYYMMDD) en format DATE sans décalage de fuseau horaire
     const year1 = parseInt(dateKey.toString().substring(0, 4));
     const month1 = parseInt(dateKey.toString().substring(4, 6));
     const day1 = parseInt(dateKey.toString().substring(6, 8));
-    const dateValue = new Date(year1, month1 - 1, day1);
+    const dateValue = parseDateStringForSQLServer(`${year1}-${month1.toString().padStart(2, '0')}-${day1.toString().padStart(2, '0')}`);
     
     const countParams = [
       { name: 'dateKey', type: TYPES.Date, value: dateValue },

@@ -1,6 +1,7 @@
 const express = require('express');
 const { TYPES } = require('tedious');
 const db = require('../utils/db');
+const { parseDateStringForSQLServer } = require('../utils/dateUtils');
 const router = express.Router();
 
 const getConfig = () => ({
@@ -254,7 +255,7 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ message: 'Agence, dates de début/fin et titre sont requis' });
   }
 
-  if (new Date(dateFin) < new Date(dateDebut)) {
+  if (parseDateStringForSQLServer(dateFin) < parseDateStringForSQLServer(dateDebut)) {
     return res.status(400).json({ message: 'La date de fin doit être postérieure à la date de début' });
   }
 
@@ -284,8 +285,8 @@ router.post('/', async (req, res) => {
     `;
     const existsParams = [
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
-      { name: 'dateDebut', type: TYPES.Date, value: new Date(dateDebut) },
-      { name: 'dateFin', type: TYPES.Date, value: new Date(dateFin) }
+      { name: 'dateDebut', type: TYPES.Date, value: parseDateStringForSQLServer(dateDebut) },
+      { name: 'dateFin', type: TYPES.Date, value: parseDateStringForSQLServer(dateFin) }
     ];
     const existsRows = await db.query(existsQuery, existsParams);
     if (existsRows?.[0]?.count > 0) {
@@ -314,8 +315,8 @@ router.post('/', async (req, res) => {
     
     const params = [
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
-      { name: 'dateDebut', type: TYPES.Date, value: new Date(dateDebut) },
-      { name: 'dateFin', type: TYPES.Date, value: new Date(dateFin) },
+      { name: 'dateDebut', type: TYPES.Date, value: parseDateStringForSQLServer(dateDebut) },
+      { name: 'dateFin', type: TYPES.Date, value: parseDateStringForSQLServer(dateFin) },
       { name: 'titre', type: TYPES.NVarChar, value: titre },
       { name: 'description', type: TYPES.NVarChar, value: description || null },
       { name: 'obj_Encaissement', type: TYPES.Money, value: obj_Encaissement || null },
@@ -372,7 +373,7 @@ router.put('/', async (req, res) => {
     return res.status(400).json({ message: 'Agence, dates de début/fin et titre sont requis' });
   }
 
-  if (new Date(dateFin) < new Date(dateDebut)) {
+  if (parseDateStringForSQLServer(dateFin) < parseDateStringForSQLServer(dateDebut)) {
     return res.status(400).json({ message: 'La date de fin doit être postérieure à la date de début' });
   }
 
@@ -419,8 +420,8 @@ router.put('/', async (req, res) => {
     await db.query(updateSql, [
       { name: 'objectifId', type: TYPES.Int, value: objectifId },
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
-      { name: 'dateDebut', type: TYPES.Date, value: new Date(dateDebut) },
-      { name: 'dateFin', type: TYPES.Date, value: new Date(dateFin) },
+      { name: 'dateDebut', type: TYPES.Date, value: parseDateStringForSQLServer(dateDebut) },
+      { name: 'dateFin', type: TYPES.Date, value: parseDateStringForSQLServer(dateFin) },
       { name: 'titre', type: TYPES.NVarChar, value: titre },
       { name: 'description', type: TYPES.NVarChar, value: description || null },
       { name: 'obj_Encaissement', type: TYPES.Money, value: obj_Encaissement || null },
