@@ -64,7 +64,15 @@ router.get('/agencies-status', async (req, res) => {
           a.AgenceId,
           a.Nom_Agence,
           a.FK_Centre,
+          a.Adresse,
+          a.Telephone,
+          a.Email,
+          a.Fax,
           c.Nom_Centre,
+          c.Adresse as Centre_Adresse,
+          c.Telephone as Centre_Telephone,
+          c.Email as Centre_Email,
+          c.Fax as Centre_Fax,
           CASE 
             WHEN k.AgenceId IS NOT NULL THEN 1 
             ELSE 0 
@@ -85,7 +93,15 @@ router.get('/agencies-status', async (req, res) => {
           a.AgenceId,
           a.Nom_Agence,
           a.FK_Centre,
+          a.Adresse,
+          a.Telephone,
+          a.Email,
+          a.Fax,
           c.Nom_Centre,
+          c.Adresse as Centre_Adresse,
+          c.Telephone as Centre_Telephone,
+          c.Email as Centre_Email,
+          c.Fax as Centre_Fax,
           CASE 
             WHEN k.AgenceId IS NOT NULL THEN 1 
             ELSE 0 
@@ -110,6 +126,14 @@ router.get('/agencies-status', async (req, res) => {
       agenceId: agency.AgenceId,
       nomAgence: agency.Nom_Agence,
       nomCentre: agency.Nom_Centre,
+      adresse: agency.Adresse,
+      telephone: agency.Telephone,
+      email: agency.Email,
+      fax: agency.Fax,
+      centreAdresse: agency.Centre_Adresse,
+      centreTelephone: agency.Centre_Telephone,
+      centreEmail: agency.Centre_Email,
+      centreFax: agency.Centre_Fax,
       hasDataToday: Boolean(agency.hasDataToday),
       status: agency.hasDataToday ? 'completed' : 'pending'
     }));

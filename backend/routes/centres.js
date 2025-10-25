@@ -39,13 +39,19 @@ router.get('/', async (req, res) => {
         c.Nom_Centre,
         c.Adresse,
         c.Telephone,
+        c.Telephone2,
         c.Email,
         c.Fax,
+        c.Nom_Banque,
+        c.Compte_Bancaire,
+        c.NIF,
+        c.NIS,
+        c.RC,
         c.CreatedAt,
         ISNULL(COUNT(a.AgenceId), 0) as Nombre_Agences
       FROM dbo.DIM_CENTRE c
       LEFT JOIN dbo.DIM_AGENCE a ON c.CentreId = a.FK_Centre
-      GROUP BY c.CentreId, c.Nom_Centre, c.Adresse, c.Telephone, c.Email, c.Fax, c.CreatedAt
+      GROUP BY c.CentreId, c.Nom_Centre, c.Adresse, c.Telephone, c.Telephone2, c.Email, c.Fax, c.Nom_Banque, c.Compte_Bancaire, c.NIF, c.NIS, c.RC, c.CreatedAt
       ORDER BY c.Nom_Centre
     `;
 
@@ -65,7 +71,7 @@ router.post('/', async (req, res) => {
     return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent créer des centres.' });
   }
 
-  const { nom_centre, adresse, telephone, email, fax } = req.body;
+  const { nom_centre, adresse, telephone, telephone2, email, fax, nom_banque, compte_bancaire, nif, nis, rc } = req.body;
 
   if (!nom_centre || !adresse || !telephone) {
     return res.status(400).json({ message: 'Nom du centre, adresse et téléphone sont obligatoires' });
@@ -82,17 +88,23 @@ router.post('/', async (req, res) => {
 
     const insertSql = `
       DECLARE @t TABLE(CentreId INT);
-      INSERT INTO dbo.DIM_CENTRE (Nom_Centre, Adresse, Telephone, Email, Fax, CreatedAt)
+      INSERT INTO dbo.DIM_CENTRE (Nom_Centre, Adresse, Telephone, Telephone2, Email, Fax, Nom_Banque, Compte_Bancaire, NIF, NIS, RC, CreatedAt)
       OUTPUT INSERTED.CentreId INTO @t
-      VALUES (@nom_centre, @adresse, @telephone, @email, @fax, SYSUTCDATETIME());
+      VALUES (@nom_centre, @adresse, @telephone, @telephone2, @email, @fax, @nom_banque, @compte_bancaire, @nif, @nis, @rc, SYSUTCDATETIME());
       SELECT CentreId FROM @t;`;
 
     const rows = await db.query(insertSql, [
       { name: 'nom_centre', type: TYPES.NVarChar, value: nom_centre },
       { name: 'adresse', type: TYPES.NVarChar, value: adresse },
       { name: 'telephone', type: TYPES.NVarChar, value: telephone },
+      { name: 'telephone2', type: TYPES.NVarChar, value: telephone2 || null },
       { name: 'email', type: TYPES.NVarChar, value: email || null },
-      { name: 'fax', type: TYPES.NVarChar, value: fax || null }
+      { name: 'fax', type: TYPES.NVarChar, value: fax || null },
+      { name: 'nom_banque', type: TYPES.NVarChar, value: nom_banque || null },
+      { name: 'compte_bancaire', type: TYPES.NVarChar, value: compte_bancaire || null },
+      { name: 'nif', type: TYPES.NVarChar, value: nif || null },
+      { name: 'nis', type: TYPES.NVarChar, value: nis || null },
+      { name: 'rc', type: TYPES.NVarChar, value: rc || null }
     ]);
 
     return res.status(201).json({ message: 'Centre créé avec succès', CentreId: rows[0]?.CentreId });
@@ -111,7 +123,7 @@ router.put('/:id', async (req, res) => {
   }
 
   const { id } = req.params;
-  const { nom_centre, adresse, telephone, email, fax } = req.body;
+  const { nom_centre, adresse, telephone, telephone2, email, fax, nom_banque, compte_bancaire, nif, nis, rc } = req.body;
 
   if (!nom_centre || !adresse || !telephone) {
     return res.status(400).json({ message: 'Nom du centre, adresse et téléphone sont obligatoires' });
@@ -135,9 +147,14 @@ router.put('/:id', async (req, res) => {
         Nom_Centre = @nom_centre,
         Adresse = @adresse,
         Telephone = @telephone,
+        Telephone2 = @telephone2,
         Email = @email,
         Fax = @fax,
-        CreatedAt = SYSUTCDATETIME()
+        Nom_Banque = @nom_banque,
+        Compte_Bancaire = @compte_bancaire,
+        NIF = @nif,
+        NIS = @nis,
+        RC = @rc
       WHERE CentreId = @id`;
 
     await db.query(updateSql, [
@@ -145,8 +162,14 @@ router.put('/:id', async (req, res) => {
       { name: 'nom_centre', type: TYPES.NVarChar, value: nom_centre },
       { name: 'adresse', type: TYPES.NVarChar, value: adresse },
       { name: 'telephone', type: TYPES.NVarChar, value: telephone },
+      { name: 'telephone2', type: TYPES.NVarChar, value: telephone2 || null },
       { name: 'email', type: TYPES.NVarChar, value: email || null },
-      { name: 'fax', type: TYPES.NVarChar, value: fax || null }
+      { name: 'fax', type: TYPES.NVarChar, value: fax || null },
+      { name: 'nom_banque', type: TYPES.NVarChar, value: nom_banque || null },
+      { name: 'compte_bancaire', type: TYPES.NVarChar, value: compte_bancaire || null },
+      { name: 'nif', type: TYPES.NVarChar, value: nif || null },
+      { name: 'nis', type: TYPES.NVarChar, value: nis || null },
+      { name: 'rc', type: TYPES.NVarChar, value: rc || null }
     ]);
 
     return res.json({ message: 'Centre modifié avec succès' });

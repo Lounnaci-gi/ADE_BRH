@@ -52,14 +52,14 @@ router.get('/', async (req, res) => {
                 a.Telephone,
                 a.Email,
                 a.Fax,
-                a.Nom_Banque,
-                a.Compte_Bancaire,
-                a.NIF,
-                a.NCI,
                 a.CreatedAt,
-                c.Nom_Centre
-            FROM DIM_AGENCE a
-            LEFT JOIN DIM_CENTRE c ON a.FK_Centre = c.CentreId
+                c.Nom_Centre,
+                c.Adresse as Centre_Adresse,
+                c.Telephone as Centre_Telephone,
+                c.Email as Centre_Email,
+                c.Fax as Centre_Fax
+            FROM dbo.DIM_AGENCE a
+            LEFT JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
             ORDER BY a.AgenceId
         `;
 
@@ -86,11 +86,7 @@ router.post('/', async (req, res) => {
         Adresse, 
         Telephone, 
         Email, 
-        Fax, 
-        Nom_Banque, 
-        Compte_Bancaire, 
-        NIF, 
-        NCI 
+        Fax
     } = req.body;
 
     // Validation
@@ -112,9 +108,9 @@ router.post('/', async (req, res) => {
         const insertSql = `
             DECLARE @t TABLE(AgenceId INT);
             INSERT INTO dbo.DIM_AGENCE 
-            (FK_Centre, Nom_Agence, Adresse, Telephone, Email, Fax, Nom_Banque, Compte_Bancaire, NIF, NCI, CreatedAt)
+            (FK_Centre, Nom_Agence, Adresse, Telephone, Email, Fax, CreatedAt)
             OUTPUT INSERTED.AgenceId INTO @t
-            VALUES (@FK_Centre, @Nom_Agence, @Adresse, @Telephone, @Email, @Fax, @Nom_Banque, @Compte_Bancaire, @NIF, @NCI, SYSUTCDATETIME());
+            VALUES (@FK_Centre, @Nom_Agence, @Adresse, @Telephone, @Email, @Fax, SYSUTCDATETIME());
             SELECT AgenceId FROM @t;`;
 
         const rows = await db.query(insertSql, [
@@ -123,11 +119,7 @@ router.post('/', async (req, res) => {
             { name: 'Adresse', type: TYPES.NVarChar, value: Adresse },
             { name: 'Telephone', type: TYPES.NVarChar, value: Telephone },
             { name: 'Email', type: TYPES.NVarChar, value: Email || null },
-            { name: 'Fax', type: TYPES.NVarChar, value: Fax || null },
-            { name: 'Nom_Banque', type: TYPES.NVarChar, value: Nom_Banque || null },
-            { name: 'Compte_Bancaire', type: TYPES.NVarChar, value: Compte_Bancaire || null },
-            { name: 'NIF', type: TYPES.NVarChar, value: NIF || null },
-            { name: 'NCI', type: TYPES.NVarChar, value: NCI || null }
+            { name: 'Fax', type: TYPES.NVarChar, value: Fax || null }
         ]);
 
         return res.status(201).json({ message: 'Agence ajoutée avec succès', id: rows[0]?.AgenceId });
@@ -150,11 +142,7 @@ router.put('/:id', (req, res) => {
         Adresse, 
         Telephone, 
         Email, 
-        Fax, 
-        Nom_Banque, 
-        Compte_Bancaire, 
-        NIF, 
-        NCI 
+        Fax
     } = req.body;
 
     // Validation
@@ -181,11 +169,7 @@ router.put('/:id', (req, res) => {
                 Adresse = @Adresse, 
                 Telephone = @Telephone, 
                 Email = @Email, 
-                Fax = @Fax,
-                Nom_Banque = @Nom_Banque, 
-                Compte_Bancaire = @Compte_Bancaire, 
-                NIF = @NIF, 
-                NCI = @NCI
+                Fax = @Fax
             WHERE AgenceId = @AgenceId
         `;
 
@@ -217,10 +201,6 @@ router.put('/:id', (req, res) => {
         request.addParameter('Telephone', TYPES.NVarChar, Telephone);
         request.addParameter('Email', TYPES.NVarChar, Email || null);
         request.addParameter('Fax', TYPES.NVarChar, Fax || null);
-        request.addParameter('Nom_Banque', TYPES.NVarChar, Nom_Banque || null);
-        request.addParameter('Compte_Bancaire', TYPES.NVarChar, Compte_Bancaire || null);
-        request.addParameter('NIF', TYPES.NVarChar, NIF || null);
-        request.addParameter('NCI', TYPES.NVarChar, NCI || null);
 
         connection.execSql(request);
     });
@@ -231,7 +211,17 @@ router.put('/:id', (req, res) => {
 // ✅ Récupérer la liste des centres pour le formulaire
 router.get('/centres', async (req, res) => {
     try {
-        const query = 'SELECT CentreId, Nom_Centre FROM DIM_CENTRE ORDER BY Nom_Centre';
+        const query = `
+            SELECT 
+                CentreId, 
+                Nom_Centre,
+                Adresse,
+                Telephone,
+                Email,
+                Fax
+            FROM dbo.DIM_CENTRE 
+            ORDER BY Nom_Centre
+        `;
         const centres = await db.query(query);
         res.json(centres);
     } catch (err) {
@@ -243,41 +233,96 @@ router.get('/centres', async (req, res) => {
     }
 });
 
-// ✅ Supprimer une agence (admin uniquement)
-router.delete('/:id', (req, res) => {
+// ✅ Supprimer une agence (admin uniquement) avec vérification des dépendances
+router.delete('/:id', async (req, res) => {
     const roleHeader = (req.headers['x-role'] || '').toString();
     if (roleHeader !== 'Administrateur') {
         return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
     }
     const { id } = req.params;
 
-    const connection = new Connection(getConfig());
+    try {
+        // Vérifier si l'agence existe
+        const agenceExists = await db.query(
+            'SELECT AgenceId, Nom_Agence FROM dbo.DIM_AGENCE WHERE AgenceId = @AgenceId',
+            [{ name: 'AgenceId', type: TYPES.Int, value: parseInt(id, 10) }]
+        );
 
-    connection.on('connect', (err) => {
-        if (err) {
-            return res.status(500).json({ 
-                message: 'Erreur de connexion à la base de données', 
-                error: err.message 
+        if (agenceExists.length === 0) {
+            return res.status(404).json({ message: 'Agence non trouvée' });
+        }
+
+        const agenceName = agenceExists[0].Nom_Agence;
+
+        // Vérifier les dépendances
+        const dependencies = [];
+
+        // 1. Vérifier les utilisateurs liés à cette agence
+        const usersCount = await db.query(
+            'SELECT COUNT(*) as count FROM dbo.DIM_UTILISATEUR WHERE FK_Agence = @AgenceId',
+            [{ name: 'AgenceId', type: TYPES.Int, value: parseInt(id, 10) }]
+        );
+        if (usersCount[0].count > 0) {
+            dependencies.push(`${usersCount[0].count} utilisateur(s) lié(s) à cette agence`);
+        }
+
+        // 2. Vérifier les KPIs liés à cette agence
+        const kpisCount = await db.query(
+            'SELECT COUNT(*) as count FROM dbo.FAIT_KPI_ADE WHERE AgenceId = @AgenceId',
+            [{ name: 'AgenceId', type: TYPES.Int, value: parseInt(id, 10) }]
+        );
+        if (kpisCount[0].count > 0) {
+            dependencies.push(`${kpisCount[0].count} enregistrement(s) KPI lié(s) à cette agence`);
+        }
+
+        // 3. Vérifier les objectifs liés à cette agence
+        const objectivesCount = await db.query(
+            'SELECT COUNT(*) as count FROM dbo.DIM_OBJECTIF WHERE FK_Agence = @AgenceId',
+            [{ name: 'AgenceId', type: TYPES.Int, value: parseInt(id, 10) }]
+        );
+        if (objectivesCount[0].count > 0) {
+            dependencies.push(`${objectivesCount[0].count} objectif(s) lié(s) à cette agence`);
+        }
+
+        // 4. Vérifier les communes liées à cette agence
+        const communesCount = await db.query(
+            'SELECT COUNT(*) as count FROM dbo.DIM_COMMUNE WHERE FK_Agence = @AgenceId',
+            [{ name: 'AgenceId', type: TYPES.Int, value: parseInt(id, 10) }]
+        );
+        if (communesCount[0].count > 0) {
+            dependencies.push(`${communesCount[0].count} commune(s) liée(s) à cette agence`);
+        }
+
+        // Si des dépendances existent, empêcher la suppression
+        if (dependencies.length > 0) {
+            const message = `Impossible de supprimer l'agence "${agenceName}". ` +
+                `Les éléments suivants sont liés à cette agence : ${dependencies.join(', ')}. ` +
+                `Veuillez d'abord supprimer ou réassigner ces éléments.`;
+            return res.status(409).json({ 
+                message: message,
+                dependencies: dependencies,
+                canDelete: false
             });
         }
 
-        const request = new Request('DELETE FROM DIM_AGENCE WHERE AgenceId = @AgenceId', (err, rowCount) => {
-            connection.close();
-            if (err) {
-                return res.status(500).json({ message: 'Erreur lors de la suppression de l\'agence', error: err.message });
-            }
-            if (rowCount === 0) {
-                return res.status(404).json({ message: 'Agence non trouvée' });
-            }
-            res.json({ message: 'Agence supprimée avec succès' });
+        // Aucune dépendance, procéder à la suppression
+        const deleteResult = await db.query(
+            'DELETE FROM dbo.DIM_AGENCE WHERE AgenceId = @AgenceId',
+            [{ name: 'AgenceId', type: TYPES.Int, value: parseInt(id, 10) }]
+        );
+
+        res.json({ 
+            message: `Agence "${agenceName}" supprimée avec succès`,
+            canDelete: true
         });
 
-        request.addParameter('AgenceId', TYPES.Int, parseInt(id, 10));
-
-        connection.execSql(request);
-    });
-
-    connection.connect();
+    } catch (err) {
+        console.error('Erreur DELETE /agences/:id:', err);
+        return res.status(500).json({ 
+            message: 'Erreur lors de la suppression de l\'agence', 
+            error: err.message 
+        });
+    }
 });
 
 // GET /api/agences/centres - Récupérer la liste des centres

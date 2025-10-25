@@ -127,7 +127,15 @@ router.get('/agences', async (req, res) => {
         a.AgenceId, 
         a.Nom_Agence,
         a.FK_Centre,
-        c.Nom_Centre
+        a.Adresse,
+        a.Telephone,
+        a.Email,
+        a.Fax,
+        c.Nom_Centre,
+        c.Adresse as Centre_Adresse,
+        c.Telephone as Centre_Telephone,
+        c.Email as Centre_Email,
+        c.Fax as Centre_Fax
       FROM dbo.DIM_AGENCE a
       LEFT JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
       ORDER BY a.Nom_Agence

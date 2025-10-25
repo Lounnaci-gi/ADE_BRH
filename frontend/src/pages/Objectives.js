@@ -481,12 +481,12 @@ function Objectives() {
                             </div>
                           </div>
                         </div>
-                      </div>
+                    </div>
                       
                       <motion.div
                         whileHover={{ scale: 1.05 }}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
-                          hasObjectives 
+                      hasObjectives 
                             ? 'bg-green-100 text-green-800 border border-green-200' 
                             : 'bg-gray-100 text-gray-600 border border-gray-200'
                         }`}

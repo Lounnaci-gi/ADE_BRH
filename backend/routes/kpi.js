@@ -1,21 +1,18 @@
 const express = require('express');
 const db = require('../utils/db');
 const { TYPES } = db;
+const { convertDateKeyToSQLServer, isValidDateKey, roundAmount } = require('../utils/dateUtils');
 
 const router = express.Router();
 
 // GET /api/kpi - liste des KPIs avec jointures (refactor db.query)
 router.get('/', async (req, res) => {
   try {
-    console.log('GET /kpi - Début de la requête');
-    
     // D'abord vérifier si la table existe et a des données
     const countQuery = `SELECT COUNT(*) as count FROM dbo.FAIT_KPI_ADE`;
     const countResult = await db.query(countQuery, []);
-    console.log('Nombre d\'enregistrements dans FAIT_KPI_ADE:', countResult[0]?.count || 0);
     
     if (countResult[0]?.count === 0) {
-      console.log('Table FAIT_KPI_ADE vide, retour d\'un tableau vide');
       return res.json([]);
     }
     
@@ -32,9 +29,7 @@ router.get('/', async (req, res) => {
       LEFT JOIN dbo.DIM_CATEGORIE AS c ON k.CategorieId = c.CategorieId
       ORDER BY k.DateKPI DESC, a.Nom_Agence, c.Libelle`;
 
-    console.log('Exécution de la requête principale');
     const rows = await db.query(query, []);
-    console.log('Résultats obtenus:', rows.length, 'lignes');
     res.json(rows || []);
   } catch (err) {
     console.error('Erreur GET /kpi:', err);
@@ -66,6 +61,23 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'DateKey, AgenceId et CategorieId sont requis' });
     }
 
+    // Validation des types de données
+    const agenceIdInt = parseInt(agenceId, 10);
+    const categorieIdInt = parseInt(categorieId, 10);
+    
+    if (isNaN(agenceIdInt) || agenceIdInt <= 0) {
+      return res.status(400).json({ message: 'AgenceId doit être un nombre entier positif' });
+    }
+    
+    if (isNaN(categorieIdInt) || categorieIdInt <= 0) {
+      return res.status(400).json({ message: 'CategorieId doit être un nombre entier positif' });
+    }
+
+    // Validation du format de dateKey (YYYYMMDD)
+    if (!/^\d{8}$/.test(dateKey.toString())) {
+      return res.status(400).json({ message: 'DateKey doit être au format YYYYMMDD (8 chiffres)' });
+    }
+
     // Convertir dateKey (YYYYMMDD) en format DATE
     const year1 = parseInt(dateKey.toString().substring(0, 4));
     const month1 = parseInt(dateKey.toString().substring(4, 6));
@@ -79,15 +91,13 @@ router.post('/', async (req, res) => {
       WHERE DateKPI = @dateKey AND AgenceId = @agenceId AND CategorieId = @categorieId
     `;
     
-    console.log('Checking if record exists...');
     const checkResult = await db.query(checkQuery, [
       { name: 'dateKey', type: TYPES.Date, value: dateValue },
-      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
-      { name: 'categorieId', type: TYPES.Int, value: parseInt(categorieId, 10) }
+      { name: 'agenceId', type: TYPES.Int, value: agenceIdInt },
+      { name: 'categorieId', type: TYPES.Int, value: categorieIdInt }
     ]);
     
     const exists = checkResult[0]?.count > 0;
-    console.log('Record exists:', exists);
     
     let query;
     if (exists) {
@@ -120,7 +130,7 @@ router.post('/', async (req, res) => {
       // INSERT
       query = `
       INSERT INTO dbo.FAIT_KPI_ADE (
-          DateKPI, AgenceId, CategorieId,
+          AgenceId, DateKPI, CategorieId,
         Nb_RelancesEnvoyees, Mt_RelancesEnvoyees,
         Nb_RelancesReglees, Mt_RelancesReglees,
         Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees,
@@ -133,7 +143,7 @@ router.post('/', async (req, res) => {
           Nb_Controles,
           Encaissement_Journalier_Global, Observation
       ) VALUES (
-        @dateKey, @agenceId, @categorieId,
+        @agenceId, @dateKey, @categorieId,
         @nbRelancesEnvoyees, @mtRelancesEnvoyees,
         @nbRelancesReglees, @mtRelancesReglees,
         @nbMisesEnDemeureEnvoyees, @mtMisesEnDemeureEnvoyees,
@@ -151,53 +161,105 @@ router.post('/', async (req, res) => {
 
     const params = [
       { name: 'dateKey', type: TYPES.Date, value: dateValue },
-      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
-      { name: 'categorieId', type: TYPES.Int, value: parseInt(categorieId, 10) },
+      { name: 'agenceId', type: TYPES.Int, value: agenceIdInt },
+      { name: 'categorieId', type: TYPES.Int, value: categorieIdInt },
       { name: 'nbRelancesEnvoyees', type: TYPES.Int, value: parseInt(nbRelancesEnvoyees || 0, 10) },
-      { name: 'mtRelancesEnvoyees', type: TYPES.Money, value: parseFloat(mtRelancesEnvoyees || 0) },
+      { name: 'mtRelancesEnvoyees', type: TYPES.Money, value: roundAmount(mtRelancesEnvoyees) },
       { name: 'nbRelancesReglees', type: TYPES.Int, value: parseInt(nbRelancesReglees || 0, 10) },
-      { name: 'mtRelancesReglees', type: TYPES.Money, value: parseFloat(mtRelancesReglees || 0) },
+      { name: 'mtRelancesReglees', type: TYPES.Money, value: roundAmount(mtRelancesReglees) },
       { name: 'nbMisesEnDemeureEnvoyees', type: TYPES.Int, value: parseInt(nbMisesEnDemeureEnvoyees || 0, 10) },
-      { name: 'mtMisesEnDemeureEnvoyees', type: TYPES.Money, value: parseFloat(mtMisesEnDemeureEnvoyees || 0) },
+      { name: 'mtMisesEnDemeureEnvoyees', type: TYPES.Money, value: roundAmount(mtMisesEnDemeureEnvoyees) },
       { name: 'nbMisesEnDemeureReglees', type: TYPES.Int, value: parseInt(nbMisesEnDemeureReglees || 0, 10) },
-      { name: 'mtMisesEnDemeureReglees', type: TYPES.Money, value: parseFloat(mtMisesEnDemeureReglees || 0) },
+      { name: 'mtMisesEnDemeureReglees', type: TYPES.Money, value: roundAmount(mtMisesEnDemeureReglees) },
       { name: 'nbDossiersJuridiques', type: TYPES.Int, value: parseInt(nbDossiersJuridiques || 0, 10) },
-      { name: 'mtDossiersJuridiques', type: TYPES.Money, value: parseFloat(mtDossiersJuridiques || 0) },
+      { name: 'mtDossiersJuridiques', type: TYPES.Money, value: roundAmount(mtDossiersJuridiques) },
       { name: 'nbCoupures', type: TYPES.Int, value: parseInt(nbCoupures || 0, 10) },
-      { name: 'mtCoupures', type: TYPES.Money, value: parseFloat(mtCoupures || 0) },
+      { name: 'mtCoupures', type: TYPES.Money, value: roundAmount(mtCoupures) },
       { name: 'nbRetablissements', type: TYPES.Int, value: parseInt(nbRetablissements || 0, 10) },
-      { name: 'mtRetablissements', type: TYPES.Money, value: parseFloat(mtRetablissements || 0) },
+      { name: 'mtRetablissements', type: TYPES.Money, value: roundAmount(mtRetablissements) },
       { name: 'nbBranchements', type: TYPES.Int, value: parseInt(nbBranchements || 0, 10) },
       { name: 'nbCompteursRemplaces', type: TYPES.Int, value: parseInt(nbCompteursRemplaces || 0, 10) },
       { name: 'nbControles', type: TYPES.Int, value: parseInt(nbControles || 0, 10) },
-      { name: 'encaissementJournalierGlobal', type: TYPES.Money, value: parseFloat(encaissementJournalierGlobal || 0) },
+      { name: 'encaissementJournalierGlobal', type: TYPES.Money, value: roundAmount(encaissementJournalierGlobal) },
       { name: 'observation', type: TYPES.NVarChar, value: observation || '' }
     ];
 
-    console.log('Attempting to upsert KPI with fields:', { 
-      dateKey, agenceId, categorieId,
-      nbRelancesEnvoyees, mtRelancesEnvoyees,
-      nbRelancesReglees, mtRelancesReglees,
-      nbMisesEnDemeureEnvoyees, mtMisesEnDemeureEnvoyees,
-      nbMisesEnDemeureReglees, mtMisesEnDemeureReglees,
-      nbDossiersJuridiques, mtDossiersJuridiques,
-      nbCoupures, mtCoupures,
-      nbRetablissements, mtRetablissements,
-      nbBranchements,
-      nbCompteursRemplaces, mtCompteursRemplaces,
-      nbControles,
-      encaissementJournalierGlobal, observation
+    const result = await db.query(query, params);
+    
+    // ✅ VÉRIFIER CE QUI EST RÉELLEMENT STOCKÉ DANS LA BDD
+    const verifyQuery = `
+      SELECT TOP 1 DateKPI, AgenceId, CategorieId, CreatedAt 
+      FROM dbo.FAIT_KPI_ADE 
+      WHERE AgenceId = @agenceId AND CategorieId = @categorieId 
+      ORDER BY CreatedAt DESC
+    `;
+    
+    const verifyParams = [
+      { name: 'agenceId', type: TYPES.Int, value: agenceIdInt },
+      { name: 'categorieId', type: TYPES.Int, value: categorieIdInt }
+    ];
+    
+    const verifyResult = await db.query(verifyQuery, verifyParams);
+    
+    console.log('✅ KPI sauvegardé avec succès:', {
+      dateKey: dateValue,
+      dateKeyISO: dateValue.toISOString(),
+      dateKeyLocal: dateValue.toLocaleDateString('fr-FR'),
+      agenceId: agenceIdInt,
+      categorieId: categorieIdInt,
+      operation: exists ? 'UPDATE' : 'INSERT'
     });
     
-    console.log('Executing', exists ? 'UPDATE' : 'INSERT', 'query with params:', params.length, 'parameters');
-    const result = await db.query(query, params);
-    console.log('Query result:', result);
+    if (verifyResult && verifyResult.length > 0) {
+      console.log('🔍 VÉRIFICATION BDD - Date réellement stockée:', {
+        DateKPI: verifyResult[0].DateKPI,
+        AgenceId: verifyResult[0].AgenceId,
+        CategorieId: verifyResult[0].CategorieId,
+        CreatedAt: verifyResult[0].CreatedAt
+      });
+    }
     
-    res.status(200).json({ message: 'KPI sauvegardé avec succès' });
+    res.status(200).json({ 
+      message: 'KPI sauvegardé avec succès',
+      operation: exists ? 'updated' : 'created',
+      dateKey: dateValue,
+      agenceId: agenceIdInt,
+      categorieId: categorieIdInt
+    });
   } catch (err) {
-    console.error('Erreur POST /kpi:', err);
-    console.error('Error details:', err.message);
-    res.status(500).json({ message: 'Erreur lors de la sauvegarde du KPI', error: err.message });
+    console.error('❌ Erreur POST /kpi:', err);
+    console.error('📊 Détails de la requête:', {
+      dateKey: dateValue || 'undefined',
+      agenceId: agenceIdInt,
+      categorieId: categorieIdInt,
+      body: req.body
+    });
+    console.error('🔍 Stack trace:', err.stack);
+    
+    // Gestion d'erreur spécifique selon le type
+    let errorMessage = 'Erreur lors de la sauvegarde du KPI';
+    let statusCode = 500;
+    
+    if (err.message && err.message.includes('constraint')) {
+      errorMessage = 'Violation de contrainte de base de données. Vérifiez que tous les champs requis sont remplis.';
+      statusCode = 400;
+    } else if (err.message && err.message.includes('foreign key')) {
+      errorMessage = 'Référence invalide. Vérifiez que l\'agence et la catégorie existent.';
+      statusCode = 400;
+    } else if (err.message && err.message.includes('conversion')) {
+      errorMessage = 'Erreur de conversion de données. Vérifiez le format des valeurs numériques.';
+      statusCode = 400;
+    }
+    
+    res.status(statusCode).json({ 
+      message: errorMessage, 
+      error: err.message,
+      details: {
+        dateKey: dateValue,
+        agenceId: agenceIdInt,
+        categorieId: categorieIdInt
+      }
+    });
   }
 });
 
@@ -205,8 +267,6 @@ router.post('/', async (req, res) => {
 router.get('/existing', async (req, res) => {
   try {
     const { dateKey, agenceId } = req.query;
-    
-    console.log('GET /kpi/existing - Paramètres:', { dateKey, agenceId });
     
     if (!dateKey || !agenceId) {
       return res.status(400).json({ message: 'DateKey et AgenceId sont requis' });
@@ -225,12 +285,9 @@ router.get('/existing', async (req, res) => {
       { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) }
     ];
     
-    console.log('Vérification du nombre d\'enregistrements...');
     const countResult = await db.query(countQuery, countParams);
-    console.log('Nombre d\'enregistrements trouvés:', countResult[0]?.count || 0);
     
     if (countResult[0]?.count === 0) {
-      console.log('Aucun enregistrement trouvé, retour d\'un tableau vide');
       return res.json([]);
     }
 
@@ -261,9 +318,7 @@ router.get('/existing', async (req, res) => {
       { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) }
     ];
 
-    console.log('Exécution de la requête principale...');
     const results = await db.query(query, params);
-    console.log('Résultats obtenus:', results.length, 'lignes');
     res.json(results);
   } catch (err) {
     console.error('Erreur GET /kpi/existing:', err);
@@ -401,6 +456,14 @@ router.get('/summary', async (req, res) => {
       return res.status(400).json({ message: 'AgenceId et dateKey sont requis' });
     }
 
+    // Validation du format de dateKey
+    if (!isValidDateKey(parseInt(dateKey))) {
+      return res.status(400).json({ 
+        message: 'Format de dateKey invalide. Attendu: YYYYMMDD',
+        details: { dateKey }
+      });
+    }
+
     // Récupérer les données du jour
     const dailyQuery = `
       SELECT 
@@ -449,13 +512,8 @@ router.get('/summary', async (req, res) => {
         AND o.IsActive = 1
     `;
 
-    // Convertir dateKey (YYYYMMDD) en format DATE
-    const year1 = parseInt(dateKey.toString().substring(0, 4));
-    const month1 = parseInt(dateKey.toString().substring(4, 6));
-    const day1 = parseInt(dateKey.toString().substring(6, 8));
-    
-    // Créer une date locale sans décalage de fuseau horaire
-    const dateValue = new Date(year1, month1 - 1, day1, 12, 0, 0, 0);
+    // Convertir dateKey (YYYYMMDD) en format DATE sans décalage de fuseau horaire
+    const dateValue = convertDateKeyToSQLServer(parseInt(dateKey));
     
     const dailyParams = [
       { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
@@ -467,15 +525,25 @@ router.get('/summary', async (req, res) => {
       { name: 'dateValue', type: TYPES.Date, value: dateValue }
     ];
 
+    console.log('🔍 DEBUG /kpi/summary - Paramètres:', { agenceId, dateKey, dateValue });
+    console.log('🔍 DEBUG /kpi/summary - Daily params:', dailyParams);
+    console.log('🔍 DEBUG /kpi/summary - Objectives params:', objectivesParams);
+
     const [dailyResults, objectivesResults] = await Promise.all([
       db.query(dailyQuery, dailyParams),
       db.query(objectivesQuery, objectivesParams)
     ]);
 
-    res.json({
+    console.log('🔍 DEBUG /kpi/summary - Daily results:', dailyResults);
+    console.log('🔍 DEBUG /kpi/summary - Objectives results:', objectivesResults);
+
+    const response = {
       daily: dailyResults[0] || null,
       objectives: objectivesResults[0] || null
-    });
+    };
+
+    console.log('🔍 DEBUG /kpi/summary - Final response:', response);
+    res.json(response);
   } catch (err) {
     console.error('Erreur GET /kpi/summary:', err);
     res.status(500).json({ message: 'Erreur lors de la récupération du résumé' });

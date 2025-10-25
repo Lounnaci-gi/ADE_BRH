@@ -30,9 +30,11 @@ const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une da
       days.push(null);
     }
     
-    // Ajouter les jours du mois
+    // ✅ CRÉER LES DATES AVEC MIDI LOCAL POUR ÉVITER LES DÉCALAGES
     for (let day = 1; day <= daysInMonth; day++) {
-      days.push(new Date(year, month, day));
+      // Créer la date à midi local pour éviter les problèmes de fuseau horaire
+      const dayDate = new Date(year, month, day, 12, 0, 0, 0);
+      days.push(dayDate);
     }
     
     return days;
@@ -40,11 +42,21 @@ const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une da
 
   const handleDateSelect = (date) => {
     setSelectedDate(date);
-    // Corriger le bug de timezone en utilisant les composants locaux de la date
+    
+    // ✅ GARANTIR LA DATE EXACTE SÉLECTIONNÉE SANS DÉCALAGE DE FUSEAU HORAIRE
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const localDateString = `${year}-${month}-${day}`;
+    
+    console.log('🔍 DEBUG ModernDatePicker - Date sélectionnée:', {
+      date,
+      year,
+      month,
+      day,
+      localDateString
+    });
+    
     onChange(localDateString);
     setIsOpen(false);
   };
@@ -64,9 +76,33 @@ const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une da
   const formatDisplayDate = (dateString) => {
     if (!dateString) return placeholder;
     try {
+      // ✅ PARSER LA DATE SANS DÉCALAGE DE FUSEAU HORAIRE
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // JavaScript months are 0-based
+        const day = parseInt(parts[2]);
+        const date = new Date(year, month, day, 12, 0, 0, 0);
+        const formatted = date.toLocaleDateString('fr-FR');
+        
+        console.log('🔍 DEBUG formatDisplayDate:', {
+          dateString,
+          parts,
+          year,
+          month: month + 1,
+          day,
+          date,
+          formatted
+        });
+        
+        return formatted;
+      }
+      
+      // Fallback pour les autres formats
       const date = new Date(dateString);
       return date.toLocaleDateString('fr-FR');
-    } catch {
+    } catch (error) {
+      console.error('❌ Erreur formatDisplayDate:', error);
       return placeholder;
     }
   };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building2, MapPin, Phone, Mail, FileText, CreditCard, Hash } from 'lucide-react';
+import { X, Building2, MapPin, Phone, Mail, FileText } from 'lucide-react';
 import agenceService from '../services/agenceService';
 
 export default function AddAgencyModal({ open, onClose, onSubmit, initialValues }) {
@@ -9,11 +9,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
     Adresse: '',
     Telephone: '',
     Email: '',
-    Fax: '',
-    Nom_Banque: '',
-    Compte_Bancaire: '',
-    NIF: '',
-    NCI: ''
+    Fax: ''
   });
   const [centres, setCentres] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -27,11 +23,7 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
         Adresse: initialValues?.Adresse || '',
         Telephone: initialValues?.Telephone || '',
         Email: initialValues?.Email || '',
-        Fax: initialValues?.Fax || '',
-        Nom_Banque: initialValues?.Nom_Banque || '',
-        Compte_Bancaire: initialValues?.Compte_Bancaire || '',
-        NIF: initialValues?.NIF || '',
-        NCI: initialValues?.NCI || ''
+        Fax: initialValues?.Fax || ''
       });
       setErrors({});
       loadCentres();
@@ -101,22 +93,6 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
 
     if (formData.Fax && formData.Fax.length > 50) {
       newErrors.Fax = 'Le fax ne peut pas dépasser 50 caractères';
-    }
-
-    if (formData.Nom_Banque && formData.Nom_Banque.length > 200) {
-      newErrors.Nom_Banque = 'Le nom de la banque ne peut pas dépasser 200 caractères';
-    }
-
-    if (formData.Compte_Bancaire && formData.Compte_Bancaire.length > 50) {
-      newErrors.Compte_Bancaire = 'Le compte bancaire ne peut pas dépasser 50 caractères';
-    }
-
-    if (formData.NIF && formData.NIF.length > 50) {
-      newErrors.NIF = 'Le NIF ne peut pas dépasser 50 caractères';
-    }
-
-    if (formData.NCI && formData.NCI.length > 50) {
-      newErrors.NCI = 'Le NCI ne peut pas dépasser 50 caractères';
     }
 
     setErrors(newErrors);
@@ -323,121 +299,13 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
                   : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
               }`}
               placeholder="Entrez le numéro de fax (optionnel)"
-              maxLength={10}
+              maxLength={50}
             />
             {errors.Fax && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Fax}</p>
             )}
             <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Fax.length}/10 caractères
-            </p>
-          </div>
-
-          {/* Nom de la Banque */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <CreditCard className="inline h-4 w-4 mr-2" />
-              Nom de la Banque
-            </label>
-            <input
-              type="text"
-              name="Nom_Banque"
-              value={formData.Nom_Banque}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                errors.Nom_Banque
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-              placeholder="Entrez le nom de la banque (optionnel)"
-              maxLength={200}
-            />
-            {errors.Nom_Banque && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Nom_Banque}</p>
-            )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Nom_Banque.length}/200 caractères
-            </p>
-          </div>
-
-          {/* Compte Bancaire */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <Hash className="inline h-4 w-4 mr-2" />
-              Compte Bancaire
-            </label>
-            <input
-              type="text"
-              name="Compte_Bancaire"
-              value={formData.Compte_Bancaire}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                errors.Compte_Bancaire
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-              placeholder="Entrez le numéro de compte bancaire (optionnel)"
-              maxLength={50}
-            />
-            {errors.Compte_Bancaire && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Compte_Bancaire}</p>
-            )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Compte_Bancaire.length}/50 caractères
-            </p>
-          </div>
-
-          {/* NIF */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <Hash className="inline h-4 w-4 mr-2" />
-              NIF
-            </label>
-            <input
-              type="text"
-              name="NIF"
-              value={formData.NIF}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                errors.NIF
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-              placeholder="Entrez le NIF (optionnel)"
-              maxLength={50}
-            />
-            {errors.NIF && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.NIF}</p>
-            )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.NIF.length}/50 caractères
-            </p>
-          </div>
-
-          {/* NCI */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <Hash className="inline h-4 w-4 mr-2" />
-              NCI
-            </label>
-            <input
-              type="text"
-              name="NCI"
-              value={formData.NCI}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                errors.NCI
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-              placeholder="Entrez le NCI (optionnel)"
-              maxLength={50}
-            />
-            {errors.NCI && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.NCI}</p>
-            )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.NCI.length}/50 caractères
+              {formData.Fax.length}/50 caractères
             </p>
           </div>
 

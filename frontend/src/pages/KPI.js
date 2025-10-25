@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
 import { swalSuccess, swalError } from '../utils/swal';
+import { convertDateToYYYYMMDD, convertDateToSQLServer, formatDateForDisplay } from '../utils/dateUtils';
 import ModernDatePicker from '../components/ModernDatePicker';
 import KpiCard from '../components/KpiCard';
 
@@ -18,6 +19,7 @@ function KPI() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [hasExistingData, setHasExistingData] = useState(false);
+  const [isReset, setIsReset] = useState(false);
   
   const [formData, setFormData] = useState({
     dateKey: '',
@@ -35,6 +37,7 @@ function KPI() {
       return indexA - indexB;
     });
   };
+
 
   const loadData = async () => {
     try {
@@ -106,25 +109,29 @@ function KPI() {
     }
   };
 
-  // Charger le résumé des données
+  // ❌ SUPPRIMÉ: calculateSummaryFromFormData - Le résumé doit charger depuis la BDD uniquement
+
+  // Charger le résumé des données UNIQUEMENT depuis la base de données
   const loadSummary = async (agenceId, dateKey) => {
+    console.log('🔍 DEBUG loadSummary - Paramètres reçus:', { agenceId, dateKey, type: typeof dateKey });
+    
     if (!agenceId || !dateKey) {
+      console.log('🔍 DEBUG loadSummary - Paramètres manquants, setSummary(null)');
       setSummary(null);
       return;
     }
     
     try {
-      const date = new Date(dateKey);
-      const dateKeyInt = parseInt(
-        date.getFullYear().toString() + 
-        (date.getMonth() + 1).toString().padStart(2, '0') + 
-        date.getDate().toString().padStart(2, '0')
-      );
+      // Convertir la date en format YYYYMMDD sans décalage de fuseau horaire
+      const dateKeyInt = convertDateToYYYYMMDD(dateKey);
+      console.log('🔍 DEBUG loadSummary - dateKey converti:', { dateKey, dateKeyInt });
       
+      console.log('🔍 DEBUG loadSummary - Appel API avec:', { agenceId, dateKeyInt });
       const summaryData = await kpiService.getSummary(agenceId, dateKeyInt);
+      console.log('📊 Données de résumé chargées depuis BDD:', summaryData);
       setSummary(summaryData);
     } catch (error) {
-      console.error('Erreur lors du chargement du résumé:', error);
+      console.error('❌ Erreur lors du chargement du résumé:', error);
       setSummary(null);
     }
   };
@@ -136,13 +143,10 @@ function KPI() {
     }
     
     try {
-      const date = new Date(dateKey);
-      const dateKeyInt = parseInt(
-        date.getFullYear().toString() + 
-        (date.getMonth() + 1).toString().padStart(2, '0') + 
-        date.getDate().toString().padStart(2, '0')
-      );
+      setLoading(true); // Ajouter un indicateur de chargement
+      const dateKeyInt = convertDateToYYYYMMDD(dateKey);
       
+      console.log(`🔍 Recherche de données existantes pour l'agence ${agenceId} et la date ${dateKeyInt}`);
       const existingData = await kpiService.getExistingData(dateKeyInt, parseInt(agenceId, 10));
       
       const init = (sortedCategories || []).reduce((acc, cat) => {
@@ -191,6 +195,7 @@ function KPI() {
       
       if (existingData && existingData.length > 0) {
         setHasExistingData(true);
+        console.log(`✅ Données existantes trouvées: ${existingData.length} enregistrements chargés`);
         const encVals = existingData
           .map(r => r.Encaissement_Journalier_Global)
           .filter(v => v != null && v !== '');
@@ -200,6 +205,7 @@ function KPI() {
         }
       } else {
         setHasExistingData(false);
+        console.log(`ℹ️ Aucune donnée existante trouvée pour cette date et cette agence`);
         setFormData(prev => ({ 
           ...prev, 
           encaissementJournalierGlobal: ''
@@ -207,6 +213,9 @@ function KPI() {
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données existantes:', error);
+      setHasExistingData(false);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -233,9 +242,44 @@ function KPI() {
     if (formData.dateKey && formData.agenceId) {
       loadExistingData(formData.dateKey, formData.agenceId);
       loadObjectives(formData.agenceId);
-      loadSummary(formData.agenceId, formData.dateKey);
+      
+      // Convertir la date au format YYYYMMDD pour loadSummary
+      const dateKeyInt = convertDateToYYYYMMDD(formData.dateKey);
+      loadSummary(formData.agenceId, dateKeyInt);
     }
   }, [formData.dateKey, formData.agenceId]);
+
+  // ❌ SUPPRIMÉ: useEffect pour recalculer depuis le formulaire - Le résumé charge uniquement depuis la BDD
+
+  // Fonction de réinitialisation complète après enregistrement
+  const resetFormAndSummary = () => {
+    console.log('🔄 Réinitialisation complète du formulaire et du résumé');
+    
+    // Réinitialiser le formulaire
+    setFormData({
+      dateKey: '',
+      agenceId: '',
+      encaissementJournalierGlobal: ''
+    });
+    
+    // Réinitialiser les données par catégorie
+    setEntriesByCategory({});
+    
+    // Réinitialiser le résumé
+    setSummary(null);
+    
+    // Réinitialiser les indicateurs
+    setHasExistingData(false);
+    setLoading(false);
+    setIsReset(true);
+    
+    // Masquer l'indicateur de réinitialisation après 3 secondes
+    setTimeout(() => {
+      setIsReset(false);
+    }, 3000);
+    
+    console.log('✅ Réinitialisation terminée');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -248,12 +292,7 @@ function KPI() {
     try {
       setLoading(true);
       
-      const date = new Date(formData.dateKey);
-      const dateKey = parseInt(
-        date.getFullYear().toString() + 
-        (date.getMonth() + 1).toString().padStart(2, '0') + 
-        date.getDate().toString().padStart(2, '0')
-      );
+      const dateKey = convertDateToYYYYMMDD(formData.dateKey);
 
       const agenceIdNum = parseInt(formData.agenceId);
       let encaissementGlobalSent = false;
@@ -318,15 +357,45 @@ function KPI() {
       await Promise.all(requests);
       await swalSuccess('Données enregistrées avec succès !');
       
-      // Recharger les données
+      // ✅ RÉINITIALISATION COMPLÈTE APRÈS ENREGISTREMENT RÉUSSI
+      resetFormAndSummary();
+      
+      // Recharger les données de base
       await loadData();
-      if (formData.agenceId) {
-        await loadObjectives(formData.agenceId);
-        await loadSummary(formData.agenceId, formData.dateKey);
-      }
     } catch (e) {
-      const msg = e?.response?.data?.message || 'Une erreur est survenue';
-      await swalError(msg);
+      console.error('❌ Erreur lors de la sauvegarde KPI:', e);
+      
+      // Gestion d'erreur spécifique selon le type
+      let errorMessage = 'Une erreur est survenue lors de la sauvegarde';
+      
+      if (e?.response?.status === 400) {
+        // Erreur de validation côté serveur
+        const errorData = e.response.data;
+        errorMessage = errorData.message || 'Données invalides. Vérifiez les champs remplis.';
+        
+        // Afficher les détails si disponibles
+        if (errorData.details) {
+          console.error('📊 Détails de l\'erreur:', errorData.details);
+        }
+      } else if (e?.response?.status === 500) {
+        // Erreur serveur
+        const errorData = e.response.data;
+        errorMessage = errorData.message || 'Erreur serveur. Veuillez réessayer.';
+        
+        // Log des détails pour le debug
+        if (errorData.details) {
+          console.error('🔍 Détails de l\'erreur serveur:', errorData.details);
+        }
+      } else if (e?.response?.status === 409) {
+        // Conflit (par exemple, contrainte unique)
+        errorMessage = e.response.data.message || 'Conflit de données. Vérifiez que les données ne sont pas déjà enregistrées.';
+      } else if (e?.response?.status === 403) {
+        errorMessage = 'Accès refusé. Vérifiez vos permissions.';
+      } else if (e?.response?.status === 404) {
+        errorMessage = 'Ressource non trouvée. Vérifiez que l\'agence et la catégorie existent.';
+      }
+      
+      await swalError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -501,7 +570,15 @@ function KPI() {
         {/* Formulaire de saisie */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 rounded-t-xl border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-800">📝 Saisie des données</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-800">📝 Saisie des données</h2>
+              {hasExistingData && (
+                <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Mode édition - Données existantes chargées</span>
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="p-6">
@@ -903,15 +980,29 @@ function KPI() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
-                className="text-2xl font-bold text-white flex items-center gap-3"
+                className="text-2xl font-bold text-white flex items-center justify-between"
               >
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
-                >
-                  <BarChart3 className="h-6 w-6" />
-                </motion.div>
-                Résumé Détaillé des Données
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
+                  >
+                    <BarChart3 className="h-6 w-6" />
+                  </motion.div>
+                  Résumé Détaillé des Données
+                </div>
+                {hasExistingData && (
+                  <div className="flex items-center space-x-2 px-3 py-1 bg-white/20 text-white rounded-full text-sm font-medium">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Données chargées</span>
+                  </div>
+                )}
+                {isReset && (
+                  <div className="flex items-center space-x-2 px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm font-medium">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Formulaire réinitialisé</span>
+                  </div>
+                )}
               </motion.h2>
                       </div>
             <div className="p-8">
@@ -924,74 +1015,74 @@ function KPI() {
                 {/* Relances Envoyées */}
                 <KpiCard
                   title="Relances Envoyées"
-                  value={summary.daily?.Total_RelancesEnvoyees || 0}
-                  subtitle={formatCurrency(summary.daily?.Total_Mt_RelancesEnvoyees || 0)}
+                  value={summary?.daily?.Total_RelancesEnvoyees || 0}
+                  subtitle={formatCurrency(summary?.daily?.Total_Mt_RelancesEnvoyees || 0)}
                   icon={AlertCircle}
                   color="cyan"
-                  percentage={objectives?.Obj_Relances ? calculatePercentage(summary.daily?.Total_RelancesEnvoyees || 0, objectives.Obj_Relances) : undefined}
+                  percentage={objectives?.Obj_Relances ? calculatePercentage(summary?.daily?.Total_RelancesEnvoyees || 0, objectives.Obj_Relances) : undefined}
                   showProgress={!!objectives?.Obj_Relances}
                 />
 
                 {/* Relances Encaissées */}
                 <KpiCard
                   title="Relances Encaissées"
-                  value={summary.daily?.Total_RelancesReglees || 0}
-                  subtitle={formatCurrency(summary.daily?.Total_Mt_RelancesReglees || 0)}
+                  value={summary?.daily?.Total_RelancesReglees || 0}
+                  subtitle={formatCurrency(summary?.daily?.Total_Mt_RelancesReglees || 0)}
                   icon={CheckCircle}
                   color="green"
-                  percentage={objectives?.Obj_Relances ? calculatePercentage(summary.daily?.Total_RelancesReglees || 0, objectives.Obj_Relances) : undefined}
+                  percentage={objectives?.Obj_Relances ? calculatePercentage(summary?.daily?.Total_RelancesReglees || 0, objectives.Obj_Relances) : undefined}
                   showProgress={!!objectives?.Obj_Relances}
                 />
 
                 {/* Mises en Demeure Envoyées */}
                 <KpiCard
                   title="Mises en Demeure Envoyées"
-                  value={summary.daily?.Total_MisesEnDemeureEnvoyees || 0}
-                  subtitle={formatCurrency(summary.daily?.Total_Mt_MisesEnDemeureEnvoyees || 0)}
+                  value={summary?.daily?.Total_MisesEnDemeureEnvoyees || 0}
+                  subtitle={formatCurrency(summary?.daily?.Total_Mt_MisesEnDemeureEnvoyees || 0)}
                   icon={Shield}
                   color="yellow"
-                  percentage={objectives?.Obj_MisesEnDemeure ? calculatePercentage(summary.daily?.Total_MisesEnDemeureEnvoyees || 0, objectives.Obj_MisesEnDemeure) : undefined}
+                  percentage={objectives?.Obj_MisesEnDemeure ? calculatePercentage(summary?.daily?.Total_MisesEnDemeureEnvoyees || 0, objectives.Obj_MisesEnDemeure) : undefined}
                   showProgress={!!objectives?.Obj_MisesEnDemeure}
                 />
 
                 {/* Mises en Demeure Encaissées */}
                 <KpiCard
                   title="Mises en Demeure Encaissées"
-                  value={summary.daily?.Total_MisesEnDemeureReglees || 0}
-                  subtitle={formatCurrency(summary.daily?.Total_Mt_MisesEnDemeureReglees || 0)}
+                  value={summary?.daily?.Total_MisesEnDemeureReglees || 0}
+                  subtitle={formatCurrency(summary?.daily?.Total_Mt_MisesEnDemeureReglees || 0)}
                   icon={CheckCircle}
                   color="orange"
-                  percentage={objectives?.Obj_MisesEnDemeure ? calculatePercentage(summary.daily?.Total_MisesEnDemeureReglees || 0, objectives.Obj_MisesEnDemeure) : undefined}
+                  percentage={objectives?.Obj_MisesEnDemeure ? calculatePercentage(summary?.daily?.Total_MisesEnDemeureReglees || 0, objectives.Obj_MisesEnDemeure) : undefined}
                   showProgress={!!objectives?.Obj_MisesEnDemeure}
                 />
 
                 {/* Dossiers Juridiques Transmis */}
                 <KpiCard
                   title="Dossiers Juridiques Transmis"
-                  value={summary.daily?.Total_DossiersJuridiques || 0}
-                  subtitle={formatCurrency(summary.daily?.Total_Mt_DossiersJuridiques || 0)}
+                  value={summary?.daily?.Total_DossiersJuridiques || 0}
+                  subtitle={formatCurrency(summary?.daily?.Total_Mt_DossiersJuridiques || 0)}
                   icon={Users}
                   color="orange"
-                  percentage={objectives?.Obj_Dossiers_Juridiques ? calculatePercentage(summary.daily?.Total_DossiersJuridiques || 0, objectives.Obj_Dossiers_Juridiques) : undefined}
+                  percentage={objectives?.Obj_Dossiers_Juridiques ? calculatePercentage(summary?.daily?.Total_DossiersJuridiques || 0, objectives.Obj_Dossiers_Juridiques) : undefined}
                   showProgress={!!objectives?.Obj_Dossiers_Juridiques}
                 />
 
                 {/* Coupures Réalisées */}
                 <KpiCard
                   title="Coupures Réalisées"
-                  value={summary.daily?.Total_Coupures || 0}
-                  subtitle={formatCurrency(summary.daily?.Total_Mt_Coupures || 0)}
+                  value={summary?.daily?.Total_Coupures || 0}
+                  subtitle={formatCurrency(summary?.daily?.Total_Mt_Coupures || 0)}
                   icon={Zap}
                   color="red"
-                  percentage={objectives?.Obj_Coupures ? calculatePercentage(summary.daily?.Total_Coupures || 0, objectives.Obj_Coupures) : undefined}
+                  percentage={objectives?.Obj_Coupures ? calculatePercentage(summary?.daily?.Total_Coupures || 0, objectives.Obj_Coupures) : undefined}
                   showProgress={!!objectives?.Obj_Coupures}
                 />
 
                 {/* Rétablissements */}
                 <KpiCard
                   title="Rétablissements"
-                  value={summary.daily?.Total_Retablissements || 0}
-                  subtitle={formatCurrency(summary.daily?.Total_Mt_Retablissements || 0)}
+                  value={summary?.daily?.Total_Retablissements || 0}
+                  subtitle={formatCurrency(summary?.daily?.Total_Mt_Retablissements || 0)}
                   icon={CheckCircle}
                   color="emerald"
                 />
@@ -999,7 +1090,7 @@ function KPI() {
                 {/* Branchements Réalisés */}
                 <KpiCard
                   title="Branchements Réalisés"
-                  value={summary.daily?.Total_Branchements || 0}
+                  value={summary?.daily?.Total_Branchements || 0}
                   icon={Users}
                   color="blue"
                 />
@@ -1007,34 +1098,68 @@ function KPI() {
                 {/* Remplacement de Compteur */}
                 <KpiCard
                   title="Remplacement de Compteur"
-                  value={summary.daily?.Total_CompteursRemplaces || 0}
+                  value={summary?.daily?.Total_CompteursRemplaces || 0}
                   icon={Wrench}
                   color="purple"
-                  percentage={objectives?.Obj_Compteurs_Remplaces ? calculatePercentage(summary.daily?.Total_CompteursRemplaces || 0, objectives.Obj_Compteurs_Remplaces) : undefined}
+                  percentage={objectives?.Obj_Compteurs_Remplaces ? calculatePercentage(summary?.daily?.Total_CompteursRemplaces || 0, objectives.Obj_Compteurs_Remplaces) : undefined}
                   showProgress={!!objectives?.Obj_Compteurs_Remplaces}
                 />
 
                 {/* Contrôles Effectués */}
                 <KpiCard
                   title="Contrôles Effectués"
-                  value={summary.daily?.Total_Controles || 0}
+                  value={summary?.daily?.Total_Controles || 0}
                   icon={Eye}
                   color="indigo"
-                  percentage={objectives?.Obj_Controles ? calculatePercentage(summary.daily?.Total_Controles || 0, objectives.Obj_Controles) : undefined}
+                  percentage={objectives?.Obj_Controles ? calculatePercentage(summary?.daily?.Total_Controles || 0, objectives.Obj_Controles) : undefined}
                   showProgress={!!objectives?.Obj_Controles}
                 />
 
                 {/* Encaissement du jour */}
                 <KpiCard
                   title="Encaissement du jour"
-                  value={formatCurrency(summary.daily?.Total_EncaissementGlobal || 0)}
+                  value={formatCurrency(summary?.daily?.Total_EncaissementGlobal || 0)}
                   icon={DollarSign}
                   color="emerald"
-                  percentage={objectives?.Obj_Encaissement ? calculatePercentage(summary.daily?.Total_EncaissementGlobal || 0, objectives.Obj_Encaissement) : undefined}
+                  percentage={objectives?.Obj_Encaissement ? calculatePercentage(summary?.daily?.Total_EncaissementGlobal || 0, objectives.Obj_Encaissement) : undefined}
                   showProgress={!!objectives?.Obj_Encaissement}
                 />
               </motion.div>
                                 </div>
+          </motion.div>
+        )}
+        
+        {/* Message d'état vide */}
+        {!summary && formData.dateKey && formData.agenceId && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="bg-gradient-to-br from-slate-50 via-yellow-50 to-orange-50 rounded-2xl border border-yellow-200/50 shadow-xl overflow-hidden"
+          >
+            <div className="bg-gradient-to-r from-yellow-600 via-orange-600 to-red-600 px-8 py-6">
+              <motion.h2 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+                className="text-2xl font-bold text-white flex items-center gap-3"
+              >
+                <BarChart3 className="h-6 w-6" />
+                Résumé Détaillé des Données
+              </motion.h2>
+            </div>
+            <div className="p-8 text-center">
+              <div className="flex flex-col items-center justify-center py-12">
+                <AlertCircle className="h-16 w-16 text-yellow-500 mb-4" />
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Aucune donnée disponible</h3>
+                <p className="text-gray-600 mb-4">
+                  Aucune donnée KPI n'a été trouvée pour cette date et cette agence.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Remplissez le formulaire ci-dessus pour enregistrer des données.
+                </p>
+              </div>
+            </div>
           </motion.div>
         )}
               </div>

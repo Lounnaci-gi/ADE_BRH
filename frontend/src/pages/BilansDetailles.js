@@ -252,39 +252,69 @@ const AgencyRow = ({ agence, index, filters }) => {
   const loadDetails = async () => {
     setLoading(true);
     try {
+      console.log('🔍 DEBUG loadDetails - Filtres reçus:', filters);
+      
       // Utiliser les filtres de date sélectionnés
       let dateKey;
       
       if (filters.date) {
         // Format YYYYMMDD pour une date spécifique
         const date = new Date(filters.date);
-        dateKey = date.getFullYear().toString() + 
-                 String(date.getMonth() + 1).padStart(2, '0') + 
-                 String(date.getDate()).padStart(2, '0');
-      } else if (filters.month && filters.year) {
+        dateKey = parseInt(
+          date.getFullYear().toString() + 
+          String(date.getMonth() + 1).padStart(2, '0') + 
+          String(date.getDate()).padStart(2, '0')
+        );
+        console.log('🔍 DEBUG loadDetails - Date spécifique:', { filtersDate: filters.date, date, dateKey });
+      } else if (filters.mois && filters.annee) {
         // Pour un mois spécifique, utiliser le premier jour du mois
-        const date = new Date(filters.year, filters.month - 1, 1);
-        dateKey = date.getFullYear().toString() + 
-                 String(date.getMonth() + 1).padStart(2, '0') + 
-                 String(date.getDate()).padStart(2, '0');
-      } else if (filters.year) {
+        const date = new Date(filters.annee, filters.mois - 1, 1);
+        dateKey = parseInt(
+          date.getFullYear().toString() + 
+          String(date.getMonth() + 1).padStart(2, '0') + 
+          String(date.getDate()).padStart(2, '0')
+        );
+        console.log('🔍 DEBUG loadDetails - Mois spécifique:', { mois: filters.mois, annee: filters.annee, date, dateKey });
+      } else if (filters.annee) {
         // Pour une année spécifique, utiliser le premier jour de l'année
-        const date = new Date(filters.year, 0, 1);
-        dateKey = date.getFullYear().toString() + 
-                 String(date.getMonth() + 1).padStart(2, '0') + 
-                 String(date.getDate()).padStart(2, '0');
+        const date = new Date(filters.annee, 0, 1);
+        dateKey = parseInt(
+          date.getFullYear().toString() + 
+          String(date.getMonth() + 1).padStart(2, '0') + 
+          String(date.getDate()).padStart(2, '0')
+        );
+        console.log('🔍 DEBUG loadDetails - Année spécifique:', { annee: filters.annee, date, dateKey });
       } else {
         // Par défaut, utiliser la date d'aujourd'hui
         const today = new Date();
-        dateKey = today.getFullYear().toString() + 
-                 String(today.getMonth() + 1).padStart(2, '0') + 
-                 String(today.getDate()).padStart(2, '0');
+        dateKey = parseInt(
+          today.getFullYear().toString() + 
+          String(today.getMonth() + 1).padStart(2, '0') + 
+          String(today.getDate()).padStart(2, '0')
+        );
+        console.log('🔍 DEBUG loadDetails - Date par défaut:', { today, dateKey });
       }
       
+      console.log('🔍 DEBUG loadDetails - Appel API avec:', { agenceId: agence.AgenceId, dateKey });
       const summaryData = await kpiService.getSummary(agence.AgenceId, dateKey);
-      setDetails(summaryData);
+      console.log('📊 DEBUG loadDetails - Données reçues:', summaryData);
+      
+      // Vérifier si on a des données valides
+      if (summaryData && summaryData.daily) {
+        const hasData = Object.values(summaryData.daily).some(val => val !== null && val !== undefined && val !== 0);
+        if (hasData) {
+          console.log('✅ Données trouvées pour l\'agence', agence.AgenceId);
+          setDetails(summaryData);
+        } else {
+          console.log('⚠️ Aucune donnée trouvée pour l\'agence', agence.AgenceId);
+          setDetails(null);
+        }
+      } else {
+        console.log('⚠️ Réponse API vide pour l\'agence', agence.AgenceId);
+        setDetails(null);
+      }
     } catch (err) {
-      console.error('Erreur lors du chargement des détails:', err);
+      console.error('❌ Erreur lors du chargement des détails:', err);
     } finally {
       setLoading(false);
     }
@@ -292,7 +322,7 @@ const AgencyRow = ({ agence, index, filters }) => {
 
   useEffect(() => {
     loadDetails();
-  }, [agence.AgenceId, filters.date, filters.month, filters.year]);
+  }, [agence.AgenceId, filters.date, filters.mois, filters.annee]);
 
   const formatCurrency = (value) => {
     if (!value) return '0,00 DA';
@@ -332,7 +362,10 @@ const AgencyRow = ({ agence, index, filters }) => {
             <div className="text-xs text-cyan-600">{formatCurrency(details.daily?.Total_Mt_RelancesEnvoyees || 0)}</div>
           </div>
         ) : (
-          <span className="text-gray-400 text-xs">-</span>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
         )}
       </td>
       
@@ -346,7 +379,10 @@ const AgencyRow = ({ agence, index, filters }) => {
             <div className="text-xs text-green-600">{formatCurrency(details.daily?.Total_Mt_RelancesReglees || 0)}</div>
           </div>
         ) : (
-          <span className="text-gray-400 text-xs">-</span>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
         )}
       </td>
       
@@ -360,7 +396,10 @@ const AgencyRow = ({ agence, index, filters }) => {
             <div className="text-xs text-yellow-600">{formatCurrency(details.daily?.Total_Mt_MisesEnDemeureEnvoyees || 0)}</div>
           </div>
         ) : (
-          <span className="text-gray-400 text-xs">-</span>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
         )}
       </td>
       
@@ -374,7 +413,10 @@ const AgencyRow = ({ agence, index, filters }) => {
             <div className="text-xs text-orange-600">{formatCurrency(details.daily?.Total_Mt_DossiersJuridiques || 0)}</div>
           </div>
         ) : (
-          <span className="text-gray-400 text-xs">-</span>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
         )}
       </td>
       
@@ -388,7 +430,10 @@ const AgencyRow = ({ agence, index, filters }) => {
             <div className="text-xs text-red-600">{formatCurrency(details.daily?.Total_Mt_Coupures || 0)}</div>
           </div>
         ) : (
-          <span className="text-gray-400 text-xs">-</span>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
         )}
       </td>
       
@@ -402,7 +447,10 @@ const AgencyRow = ({ agence, index, filters }) => {
             <div className="text-xs text-emerald-600">{formatCurrency(details.daily?.Total_Mt_Retablissements || 0)}</div>
           </div>
         ) : (
-          <span className="text-gray-400 text-xs">-</span>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
         )}
       </td>
       
@@ -413,7 +461,10 @@ const AgencyRow = ({ agence, index, filters }) => {
         ) : details ? (
           <div className="text-sm font-bold text-indigo-700">{details.daily?.Total_Controles || 0}</div>
         ) : (
-          <span className="text-gray-400 text-xs">-</span>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
         )}
       </td>
       
@@ -424,7 +475,10 @@ const AgencyRow = ({ agence, index, filters }) => {
         ) : details ? (
           <div className="text-sm font-bold text-purple-700">{details.daily?.Total_CompteursRemplaces || 0}</div>
         ) : (
-          <span className="text-gray-400 text-xs">-</span>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
         )}
       </td>
       
@@ -435,7 +489,10 @@ const AgencyRow = ({ agence, index, filters }) => {
         ) : details ? (
           <div className="text-sm font-bold text-emerald-700">{formatCurrency(details.daily?.Total_EncaissementGlobal || 0)}</div>
         ) : (
-          <span className="text-gray-400 text-xs">-</span>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
         )}
       </td>
     </motion.tr>

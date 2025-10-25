@@ -35,6 +35,13 @@ const agenceService = {
   async getCount() {
     const response = await api.get('/agences/count');
     return response.data?.count ?? 0;
+  },
+  async remove(id) {
+    const user = authService.getCurrentUser();
+    const res = await api.delete(`/agences/${id}`, { 
+      headers: { 'X-Role': user?.role || 'Administrateur' } 
+    });
+    return res.data;
   }
 };
 

@@ -41,7 +41,9 @@ export default function Agences() {
         ...agence,
         Numero: index + 1,
         Centre: agence.Nom_Centre,
-        Agence: agence.Nom_Agence
+        Agence: agence.Nom_Agence,
+        'Email Agence': agence.Email,
+        'Fax Agence': agence.Fax
       }));
       
       console.log('Agences with numbers:', agencesWithNumber);
@@ -64,9 +66,8 @@ export default function Agences() {
         'Agence',
         'Adresse',
         'Telephone',
-        'Fax',
-        'NIF',
-        'NCI',
+        'Email Agence',
+        'Fax Agence',
         'CreatedAt',
         'UpdatedAt'
       ];
@@ -76,7 +77,20 @@ export default function Agences() {
         ...keys.filter((k) => !preferredSet.has(k)).sort((a, b) => a.localeCompare(b))
       ];
       // Masquer certains champs
-      const hidden = new Set(['NIF', 'NCI', 'CreatedAt', 'Nom_Banque', 'Compte_Bancaire', 'FK_Centre', 'FK_Commune', 'AgenceId', 'Email', 'Nom_Centre', 'Nom_Agence']);
+      const hidden = new Set([
+        'CreatedAt', 
+        'FK_Centre', 
+        'FK_Commune', 
+        'AgenceId', 
+        'Email', 
+        'Fax',
+        'Nom_Centre', 
+        'Nom_Agence',
+        'Centre_Adresse',
+        'Centre_Email', 
+        'Centre_Fax',
+        'Centre_Telephone'
+      ]);
       const ordered = orderedAll.filter((k) => !hidden.has(k));
       
       console.log('Final columns:', ordered);
@@ -152,12 +166,32 @@ export default function Agences() {
     const agence = agenceParam || selectedAgence;
     if (!agence?.AgenceId) { return; }
     try {
-      await agenceService.remove(agence.AgenceId);
+      const response = await agenceService.remove(agence.AgenceId);
+      
+      // Vérifier si la suppression a été empêchée par des dépendances
+      if (response.canDelete === false) {
+        await swalError(response.message);
+        return;
+      }
+      
       await swalSuccess('Agence supprimée avec succès.');
       await loadAgences();
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Erreur lors de la suppression.';
-      await swalError(msg);
+      console.error('Erreur lors de la suppression:', err);
+      
+      // Gestion des erreurs spécifiques
+      if (err?.response?.status === 409) {
+        // Conflit - dépendances existantes
+        const errorData = err.response.data;
+        await swalError(errorData.message || 'Impossible de supprimer cette agence car elle est liée à d\'autres éléments.');
+      } else if (err?.response?.status === 404) {
+        await swalError('Agence non trouvée.');
+      } else if (err?.response?.status === 403) {
+        await swalError('Accès refusé. Seuls les administrateurs peuvent supprimer des agences.');
+      } else {
+        const msg = err?.response?.data?.message || 'Erreur lors de la suppression.';
+        await swalError(msg);
+      }
     } finally {
       setSelectedAgence(null);
     }
