@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Eye, Wrench, DollarSign } from 'lucide-react';
+import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Eye, Wrench, DollarSign, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
 
@@ -223,12 +223,13 @@ function BilansDetailles() {
                   <th className="px-4 py-3 text-center font-semibold text-xs">Relances Envoyées</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Relances Encaissées</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Mises en Demeure</th>
+                  <th className="px-4 py-3 text-center font-semibold text-xs">Mises en Demeure Encaissées</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Dossiers Juridiques</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Coupures</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Rétablissements</th>
-                  <th className="px-4 py-3 text-center font-semibold text-xs">Contrôles</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Compteurs</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Encaissement Global</th>
+                  <th className="px-4 py-3 text-center font-semibold text-xs">Taux Encaissement (%)</th>
                 </tr>
               </thead>
               <tbody>
@@ -332,6 +333,46 @@ const AgencyRow = ({ agence, index, filters }) => {
     }).format(value);
   };
 
+  // Fonction pour générer l'indicateur visuel du taux d'encaissement
+  const getEncaissementIndicator = (rate) => {
+    if (rate >= 100) {
+      return {
+        icon: ArrowUp,
+        color: 'text-green-600',
+        bgColor: 'bg-green-100',
+        text: 'Dépassé'
+      };
+    } else if (rate >= 80) {
+      return {
+        icon: ArrowUp,
+        color: 'text-green-500',
+        bgColor: 'bg-green-50',
+        text: 'Excellent'
+      };
+    } else if (rate >= 60) {
+      return {
+        icon: ArrowUp,
+        color: 'text-blue-500',
+        bgColor: 'bg-blue-50',
+        text: 'Bon'
+      };
+    } else if (rate >= 40) {
+      return {
+        icon: Minus,
+        color: 'text-yellow-500',
+        bgColor: 'bg-yellow-50',
+        text: 'Moyen'
+      };
+    } else {
+      return {
+        icon: ArrowDown,
+        color: 'text-red-500',
+        bgColor: 'bg-red-50',
+        text: 'Faible'
+      };
+    }
+  };
+
   return (
     <motion.tr 
       initial={{ opacity: 0, x: -20 }}
@@ -403,6 +444,23 @@ const AgencyRow = ({ agence, index, filters }) => {
         )}
       </td>
       
+      {/* Mises en Demeure Encaissées */}
+      <td className="px-4 py-3 text-center">
+        {loading ? (
+          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mx-auto"></div>
+        ) : details ? (
+          <div className="space-y-0.5">
+            <div className="text-sm font-bold text-orange-700">{details.daily?.Total_MisesEnDemeureReglees || 0}</div>
+            <div className="text-xs text-orange-600">{formatCurrency(details.daily?.Total_Mt_MisesEnDemeureReglees || 0)}</div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
+        )}
+      </td>
+      
       {/* Dossiers Juridiques */}
       <td className="px-4 py-3 text-center">
         {loading ? (
@@ -454,19 +512,6 @@ const AgencyRow = ({ agence, index, filters }) => {
         )}
       </td>
       
-      {/* Contrôles */}
-      <td className="px-4 py-3 text-center">
-        {loading ? (
-          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mx-auto"></div>
-        ) : details ? (
-          <div className="text-sm font-bold text-indigo-700">{details.daily?.Total_Controles || 0}</div>
-        ) : (
-          <div className="flex flex-col items-center">
-            <span className="text-gray-400 text-xs">Aucune donnée</span>
-            <span className="text-gray-300 text-xs">pour cette date</span>
-          </div>
-        )}
-      </td>
       
       {/* Compteurs */}
       <td className="px-4 py-3 text-center">
@@ -488,6 +533,34 @@ const AgencyRow = ({ agence, index, filters }) => {
           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mx-auto"></div>
         ) : details ? (
           <div className="text-sm font-bold text-emerald-700">{formatCurrency(details.daily?.Total_EncaissementGlobal || 0)}</div>
+        ) : (
+          <div className="flex flex-col items-center">
+            <span className="text-gray-400 text-xs">Aucune donnée</span>
+            <span className="text-gray-300 text-xs">pour cette date</span>
+          </div>
+        )}
+      </td>
+      
+      {/* Taux Encaissement */}
+      <td className="px-4 py-3 text-center">
+        {loading ? (
+          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mx-auto"></div>
+        ) : details ? (
+          <div className="flex flex-col items-center space-y-1">
+            <div className="text-sm font-bold text-blue-700">{details.daily?.TauxEncaissementGlobal || 0}%</div>
+            {(() => {
+              const indicator = getEncaissementIndicator(details.daily?.TauxEncaissementGlobal || 0);
+              const IconComponent = indicator.icon;
+              return (
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${indicator.bgColor}`}>
+                  <IconComponent className={`h-3 w-3 ${indicator.color}`} />
+                  <span className={`text-xs font-medium ${indicator.color}`}>
+                    {indicator.text}
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
         ) : (
           <div className="flex flex-col items-center">
             <span className="text-gray-400 text-xs">Aucune donnée</span>

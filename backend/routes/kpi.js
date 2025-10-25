@@ -336,15 +336,17 @@ router.get('/agences', async (req, res) => {
     const isAdmin = role === 'Administrateur';
     const query = isAdmin || !userAgenceId
       ? `
-        SELECT AgenceId, Nom_Agence
-        FROM dbo.DIM_AGENCE
-        ORDER BY Nom_Agence
+        SELECT a.AgenceId, a.Nom_Agence, c.Nom_Centre
+        FROM dbo.DIM_AGENCE a
+        LEFT JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
+        ORDER BY a.Nom_Agence
       `
       : `
-        SELECT AgenceId, Nom_Agence
-        FROM dbo.DIM_AGENCE
-        WHERE AgenceId = @agenceId
-        ORDER BY Nom_Agence
+        SELECT a.AgenceId, a.Nom_Agence, c.Nom_Centre
+        FROM dbo.DIM_AGENCE a
+        LEFT JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
+        WHERE a.AgenceId = @agenceId
+        ORDER BY a.Nom_Agence
       `;
 
     const params = [];
@@ -464,7 +466,7 @@ router.get('/summary', async (req, res) => {
       });
     }
 
-    // Récupérer les données du jour
+    // Récupérer les données du jour avec calcul du taux d'encaissement
     const dailyQuery = `
       SELECT 
         SUM(k.Nb_RelancesEnvoyees) as Total_RelancesEnvoyees,
@@ -484,11 +486,23 @@ router.get('/summary', async (req, res) => {
         SUM(k.Nb_Controles) as Total_Controles,
         SUM(k.Nb_Compteurs_Remplaces) as Total_CompteursRemplaces,
         MAX(k.Encaissement_Journalier_Global) as Total_EncaissementGlobal,
-        a.Nom_Agence
+        a.Nom_Agence,
+        c.Nom_Centre,
+        -- Calcul du taux d'encaissement basé sur l'objectif d'encaissement de l'agence
+        CASE 
+          WHEN o.Obj_Encaissement > 0 
+          THEN ROUND((MAX(k.Encaissement_Journalier_Global) * 100.0) / o.Obj_Encaissement, 2)
+          ELSE 0 
+        END as TauxEncaissementGlobal
       FROM dbo.FAIT_KPI_ADE k
       LEFT JOIN dbo.DIM_AGENCE a ON k.AgenceId = a.AgenceId
+      LEFT JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
+      LEFT JOIN dbo.DIM_OBJECTIF o ON a.AgenceId = o.FK_Agence 
+        AND o.DateDebut <= @dateKey 
+        AND o.DateFin >= @dateKey 
+        AND o.IsActive = 1
       WHERE k.AgenceId = @agenceId AND k.DateKPI = @dateKey
-      GROUP BY a.Nom_Agence
+      GROUP BY a.Nom_Agence, c.Nom_Centre, o.Obj_Encaissement
     `;
 
     // Récupérer les objectifs du mois
