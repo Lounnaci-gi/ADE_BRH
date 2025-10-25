@@ -748,4 +748,102 @@ router.get('/global-summary', async (req, res) => {
   }
 });
 
+// GET /api/kpi/detailed-data - récupérer les données détaillées par agence et période
+router.get('/detailed-data', async (req, res) => {
+  try {
+    const { agenceId, startDate, endDate } = req.query;
+    
+    if (!agenceId || !startDate || !endDate) {
+      return res.status(400).json({ message: 'AgenceId, startDate et endDate sont requis' });
+    }
+
+    // Validation des dates
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    
+    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+      return res.status(400).json({ message: 'Format de date invalide' });
+    }
+    
+    if (startDateObj > endDateObj) {
+      return res.status(400).json({ message: 'La date de début doit être antérieure à la date de fin' });
+    }
+
+    // Requête pour récupérer les données détaillées par jour avec agrégation et objectifs
+    const detailedQuery = `
+      SELECT 
+        k.DateKPI,
+        -- Agrégation des réalisations (somme pour chaque date)
+        SUM(k.Nb_RelancesEnvoyees) as Nb_RelancesEnvoyees,
+        SUM(k.Mt_RelancesEnvoyees) as Mt_RelancesEnvoyees,
+        SUM(k.Nb_RelancesReglees) as Nb_RelancesReglees,
+        SUM(k.Mt_RelancesReglees) as Mt_RelancesReglees,
+        SUM(k.Nb_MisesEnDemeure_Envoyees) as Nb_MisesEnDemeure_Envoyees,
+        SUM(k.Mt_MisesEnDemeure_Envoyees) as Mt_MisesEnDemeure_Envoyees,
+        SUM(k.Nb_MisesEnDemeure_Reglees) as Nb_MisesEnDemeure_Reglees,
+        SUM(k.Mt_MisesEnDemeure_Reglees) as Mt_MisesEnDemeure_Reglees,
+        SUM(k.Nb_Dossiers_Juridiques) as Nb_Dossiers_Juridiques,
+        SUM(k.Mt_Dossiers_Juridiques) as Mt_Dossiers_Juridiques,
+        SUM(k.Nb_Coupures) as Nb_Coupures,
+        SUM(k.Mt_Coupures) as Mt_Coupures,
+        SUM(k.Nb_Retablissements) as Nb_Retablissements,
+        SUM(k.Mt_Retablissements) as Mt_Retablissements,
+        SUM(k.Nb_Compteurs_Remplaces) as Nb_Compteurs_Remplaces,
+        SUM(k.Encaissement_Journalier_Global) as Encaissement_Journalier_Global,
+        -- Observation (première occurrence)
+        MIN(k.Observation) as Observation,
+        -- Informations agence (première occurrence)
+        MIN(a.Nom_Agence) as Nom_Agence,
+        MIN(c.Nom_Centre) as Nom_Centre,
+        -- Objectifs (première occurrence - ils sont identiques pour une même date)
+        MIN(o.Obj_Encaissement) as Obj_Encaissement,
+        MIN(o.Obj_Relances) as Obj_Relances,
+        MIN(o.Obj_MisesEnDemeure) as Obj_MisesEnDemeure,
+        MIN(o.Obj_Dossiers_Juridiques) as Obj_Dossiers_Juridiques,
+        MIN(o.Obj_Coupures) as Obj_Coupures,
+        MIN(o.Obj_Controles) as Obj_Controles,
+        MIN(o.Obj_Compteurs_Remplaces) as Obj_Compteurs_Remplaces
+      FROM dbo.FAIT_KPI_ADE k
+      LEFT JOIN dbo.DIM_AGENCE a ON k.AgenceId = a.AgenceId
+      LEFT JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
+      LEFT JOIN dbo.DIM_OBJECTIF o ON k.AgenceId = o.FK_Agence 
+        AND o.DateDebut <= k.DateKPI 
+        AND o.DateFin >= k.DateKPI 
+        AND o.IsActive = 1
+      WHERE k.AgenceId = @agenceId 
+        AND k.DateKPI >= @startDate 
+        AND k.DateKPI <= @endDate
+      GROUP BY k.DateKPI
+      ORDER BY k.DateKPI ASC
+    `;
+
+    const params = [
+      { name: 'agenceId', type: TYPES.Int, value: parseInt(agenceId, 10) },
+      { name: 'startDate', type: TYPES.Date, value: startDateObj },
+      { name: 'endDate', type: TYPES.Date, value: endDateObj }
+    ];
+
+    console.log('🔍 DEBUG /kpi/detailed-data - Paramètres:', { agenceId, startDate, endDate });
+
+    const results = await db.query(detailedQuery, params);
+    
+    console.log('🔍 DEBUG /kpi/detailed-data - Résultats:', results.length, 'enregistrements trouvés');
+
+    const response = {
+      data: results || [],
+      agenceId: parseInt(agenceId, 10),
+      startDate: startDate,
+      endDate: endDate,
+      totalRecords: results.length
+    };
+
+    console.log('🔍 DEBUG /kpi/detailed-data - Réponse finale:', response);
+    res.json(response);
+  } catch (err) {
+    console.error('Erreur GET /kpi/detailed-data:', err);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ message: 'Erreur lors de la récupération des données détaillées', error: err.message });
+  }
+});
+
 module.exports = router;

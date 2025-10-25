@@ -44,6 +44,11 @@ const kpiService = {
   async getGlobalSummary(dateKey) {
     const res = await api.get(`/kpi/global-summary?dateKey=${dateKey}`);
     return res.data;
+  },
+
+  async getDetailedData(agenceId, startDate, endDate) {
+    const res = await api.get(`/kpi/detailed-data?agenceId=${agenceId}&startDate=${startDate}&endDate=${endDate}`);
+    return res.data;
   }
 };
 
