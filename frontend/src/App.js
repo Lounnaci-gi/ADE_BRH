@@ -17,6 +17,7 @@ import Categories from './pages/Categories';
 import KPI from './pages/KPI';
 import Objectives from './pages/Objectives';
 import BilansDetailles from './pages/BilansDetailles';
+import DetailedDataByAgency from './pages/DetailedDataByAgency';
 import Centres from './pages/Centres';
 import Communes from './pages/Communes';
 
@@ -117,6 +118,16 @@ function App() {
           element={
             <PrivateRoute>
               <BilansDetailles />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 🏢 Detailed Data by Agency */}
+        <Route
+          path="/detailed-data-by-agency"
+          element={
+            <PrivateRoute>
+              <DetailedDataByAgency />
             </PrivateRoute>
           }
         />

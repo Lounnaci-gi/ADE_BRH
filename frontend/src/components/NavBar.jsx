@@ -155,6 +155,14 @@ const NavBar = () => {
                     <FileText className="h-4 w-4 text-blue-600" />
                     <span>Bilans liste détaillés</span>
                   </NavLink>
+                  <NavLink 
+                    to="/detailed-data-by-agency" 
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-water-50 dark:hover:bg-slate-700 transition-colors duration-200 rounded-lg mx-2"
+                    onClick={() => setShowDataMenu(false)}
+                  >
+                    <Building2 className="h-4 w-4 text-green-600" />
+                    <span>Detailed Data by Agency</span>
+                  </NavLink>
                 </div>
               </div>
             )}
@@ -318,6 +326,12 @@ const NavBar = () => {
             </NavLink>
             <NavLink onClick={() => setOpen(false)} to="/kpi" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
               <BarChart3 className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> KPIs
+            </NavLink>
+            <NavLink onClick={() => setOpen(false)} to="/bilans-detailles" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+              <FileText className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Bilans Détaillés
+            </NavLink>
+            <NavLink onClick={() => setOpen(false)} to="/detailed-data-by-agency" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+              <Building2 className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Data par Agence
             </NavLink>
             <NavLink onClick={() => setOpen(false)} to="/objectives" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
               <Target className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Objectifs

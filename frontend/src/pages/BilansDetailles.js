@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Eye, Wrench, DollarSign, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
-import TabSheet from '../components/TabSheet';
 
 function BilansDetailles() {
   const [agences, setAgences] = useState([]);
@@ -284,28 +283,6 @@ function BilansDetailles() {
         )}
       </motion.div>
 
-      {/* Section Données Détaillées par Agence avec TabSheet */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="mt-8"
-      >
-        <TabSheet 
-          agences={filteredAgences}
-          onFiltersChange={(newFilters) => {
-            console.log('Filtres changés:', newFilters);
-            // Optionnel : synchroniser avec les filtres du composant parent
-            setFilters(prev => ({
-              ...prev,
-              selectedAgence: newFilters.selectedAgence,
-              startDate: newFilters.startDate,
-              endDate: newFilters.endDate
-            }));
-          }}
-          className="shadow-xl"
-        />
-      </motion.div>
 
       {/* Section Résumé */}
       {summaryTotals && (
