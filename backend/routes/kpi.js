@@ -846,4 +846,80 @@ router.get('/detailed-data', async (req, res) => {
   }
 });
 
+// GET /api/kpi/highest-daily-rate - récupérer le taux journalier le plus élevé du jour
+router.get('/highest-daily-rate', async (req, res) => {
+  try {
+    const { date } = req.query;
+    
+    // Utiliser la date du jour si non spécifiée
+    const targetDate = date ? new Date(date) : new Date();
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth() + 1;
+    const day = targetDate.getDate();
+    const dateKey = year * 10000 + month * 100 + day;
+    
+    console.log('🔍 DEBUG /kpi/highest-daily-rate - Paramètres:', { date, year, month, day, dateKey });
+    
+    const dateValue = convertDateKeyToSQLServer(dateKey);
+
+    // Requête pour calculer le taux journalier pour chaque agence et trouver le maximum
+    const query = `
+      WITH DailyRates AS (
+        SELECT 
+          k.AgenceId,
+          a.Nom_Agence,
+          SUM(k.Encaissement_Journalier_Global) as Encaissement_Journalier_Global,
+          MAX(o.Obj_Encaissement) as Obj_Encaissement,
+          CASE 
+            WHEN MAX(o.Obj_Encaissement) > 0 
+            THEN ROUND((SUM(k.Encaissement_Journalier_Global) * 100.0) / MAX(o.Obj_Encaissement), 2)
+            ELSE 0 
+          END as Taux_Journalier
+        FROM dbo.FAIT_KPI_ADE k
+        LEFT JOIN dbo.DIM_AGENCE a ON k.AgenceId = a.AgenceId
+        LEFT JOIN dbo.DIM_OBJECTIF o ON k.AgenceId = o.FK_Agence 
+          AND o.DateDebut <= k.DateKPI 
+          AND o.DateFin >= k.DateKPI 
+          AND o.IsActive = 1
+        WHERE k.DateKPI = @dateKey
+        GROUP BY k.AgenceId, a.Nom_Agence
+        HAVING SUM(k.Encaissement_Journalier_Global) IS NOT NULL 
+          AND MAX(o.Obj_Encaissement) IS NOT NULL
+          AND MAX(o.Obj_Encaissement) > 0
+      )
+      SELECT TOP 1
+        AgenceId,
+        Nom_Agence,
+        Encaissement_Journalier_Global,
+        Obj_Encaissement,
+        Taux_Journalier
+      FROM DailyRates
+      WHERE Taux_Journalier IS NOT NULL AND Taux_Journalier > 0
+      ORDER BY Taux_Journalier DESC
+    `;
+
+    const params = [
+      { name: 'dateKey', type: TYPES.Date, value: dateValue }
+    ];
+
+    console.log('🔍 DEBUG /kpi/highest-daily-rate - Paramètres SQL:', params);
+
+    const results = await db.query(query, params);
+    
+    console.log('🔍 DEBUG /kpi/highest-daily-rate - Résultats:', results);
+    
+    if (results && results.length > 0) {
+      console.log('✅ /kpi/highest-daily-rate - Meilleur taux trouvé:', results[0]);
+      res.json(results[0]);
+    } else {
+      console.log('⚠️ /kpi/highest-daily-rate - Aucun taux trouvé pour la date:', dateKey);
+      res.json(null);
+    }
+  } catch (err) {
+    console.error('❌ Erreur GET /kpi/highest-daily-rate:', err);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ message: 'Erreur lors de la récupération du meilleur taux journalier', error: err.message });
+  }
+});
+
 module.exports = router;

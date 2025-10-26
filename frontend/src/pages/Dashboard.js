@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Building2, Activity, MapPin } from 'lucide-react';
+import { Users, Building2, Activity, MapPin, Trophy, TrendingUp } from 'lucide-react';
 import authService from '../services/authService';
 import centresService from '../services/centresService';
 import agenceService from '../services/agenceService';
 import communesService from '../services/communesService';
 import userService from '../services/userService';
+import kpiService from '../services/kpiService';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -15,6 +16,11 @@ const Dashboard = () => {
     communes: 0,
     loading: true
   });
+  const [highestDailyRate, setHighestDailyRate] = useState({
+    taux: 0,
+    agence: '',
+    loading: true
+  });
   const user = authService.getCurrentUser();
   const navigate = useNavigate();
 
@@ -22,11 +28,12 @@ const Dashboard = () => {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [usersData, centresCount, agencesCount, communesCount] = await Promise.all([
+        const [usersData, centresCount, agencesCount, communesCount, highestRate] = await Promise.all([
           userService.list(),
           centresService.getCount(),
           agenceService.getCount(),
-          communesService.getCount()
+          communesService.getCount(),
+          kpiService.getHighestDailyRate()
         ]);
         
         setStats({
@@ -36,9 +43,25 @@ const Dashboard = () => {
           communes: communesCount || 0,
           loading: false
         });
+
+        if (highestRate && highestRate.Taux_Journalier) {
+          setHighestDailyRate({
+            taux: highestRate.Taux_Journalier,
+            agence: highestRate.Nom_Agence || '',
+            loading: false
+          });
+        } else {
+          console.log('⚠️ Dashboard - Aucun meilleur taux trouvé');
+          setHighestDailyRate({
+            taux: null,
+            agence: '',
+            loading: false
+          });
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des statistiques:', error);
         setStats(prev => ({ ...prev, loading: false }));
+        setHighestDailyRate(prev => ({ ...prev, loading: false }));
       }
     };
 
@@ -64,6 +87,45 @@ const Dashboard = () => {
 
         {/* Contenu principal */}
         <main className="p-6 fade-in space-y-6">
+          {/* Carte Taux le plus élevé */}
+          <div className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/90 text-sm uppercase tracking-wider font-semibold mb-2">Meilleur Taux du Jour</p>
+                {highestDailyRate.loading ? (
+                  <p className="text-4xl font-bold text-white mb-2">...</p>
+                ) : highestDailyRate.taux !== null ? (
+                  <>
+                    <p className="text-4xl font-bold text-white mb-2">
+                      {highestDailyRate.taux.toFixed(1)}%
+                    </p>
+                    {highestDailyRate.agence && (
+                      <p className="text-white/80 text-sm font-medium">
+                        {highestDailyRate.agence}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xl font-semibold text-white/90 mb-2">Aucune donnée</p>
+                    <p className="text-white/70 text-sm">
+                      Aucune agence avec données aujourd'hui
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="bg-white/20 rounded-full p-4">
+                <Trophy className="w-10 h-10 text-white" />
+              </div>
+            </div>
+            {highestDailyRate.taux !== null && !highestDailyRate.loading && (
+              <div className="mt-4 flex items-center gap-2 text-white/90 text-xs">
+                <TrendingUp className="w-4 h-4" />
+                <span>Performance exceptionnelle</span>
+              </div>
+            )}
+          </div>
+
           {/* Cartes KPI interactives */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div 

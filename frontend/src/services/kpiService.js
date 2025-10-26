@@ -49,6 +49,11 @@ const kpiService = {
   async getDetailedData(agenceId, startDate, endDate) {
     const res = await api.get(`/kpi/detailed-data?agenceId=${agenceId}&startDate=${startDate}&endDate=${endDate}`);
     return res.data;
+  },
+
+  async getHighestDailyRate(date) {
+    const res = await api.get(`/kpi/highest-daily-rate${date ? `?date=${date}` : ''}`);
+    return res.data;
   }
 };
 
