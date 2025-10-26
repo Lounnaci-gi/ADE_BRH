@@ -322,15 +322,23 @@ function DetailedDataByAgency() {
                   </span>
                   <div className="flex items-center gap-4">
                     <span className="text-gray-600 dark:text-gray-300">
-                      <strong>Objectif:</strong> {formatCurrency(objectiveData.Obj_Encaissement || 0)}
+                      <strong>Objectif Total:</strong> {formatCurrency(objectiveData?.Obj_Encaissement ? objectiveData.Obj_Encaissement * detailedData.length : 0)}
                     </span>
                     <span className="text-gray-600 dark:text-gray-300">
-                      <strong>Total:</strong> {formatCurrency(detailedData.reduce((sum, day) => sum + (day.Encaissement_Journalier_Global || 0), 0))}
+                      <strong>Total Encaissement:</strong> {formatCurrency(detailedData.reduce((sum, day) => sum + (day.Encaissement_Journalier_Global || 0), 0))}
                     </span>
                     {(() => {
+                      // Calculer le Taux Global pour toute la période
+                      // Numerator: Somme totale de tous les Encaissement_Journalier_Global
                       const totalEncaissement = detailedData.reduce((sum, day) => sum + (day.Encaissement_Journalier_Global || 0), 0);
-                      const objEncaissement = objectiveData.Obj_Encaissement || 0;
-                      const tauxGlobal = objEncaissement > 0 ? (totalEncaissement / objEncaissement) * 100 : 0;
+                      
+                      // Denominator: Objectif total pour la période entière
+                      // L'objectif doit être multiplié par le nombre de jours pour obtenir l'objectif total de la période
+                      const objectifEncaissement = objectiveData?.Obj_Encaissement || 0;
+                      const totalObjectifPériode = objectifEncaissement * detailedData.length;
+                      
+                      // Taux Global (%) = (Total Encaissement / Total Objectif Période) × 100
+                      const tauxGlobal = totalObjectifPériode > 0 ? (totalEncaissement / totalObjectifPériode) * 100 : 0;
                       return (
                         <span className={`font-bold ${
                           tauxGlobal >= 100 ? 'text-green-700 dark:text-green-300' :
@@ -374,11 +382,11 @@ function DetailedDataByAgency() {
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-600">
                     {getPaginatedData().map((day, index) => {
-                      // Calculer le taux d'encaissement correct basé sur l'objectif
-                      // Taux (%) = (Encaissement_Journalier_Global / Obj_Encaissement) × 100
+                      // Calculer le Taux Journalier pour ce jour spécifique
+                      // Taux Journalier (%) = (Encaissement_Journalier_Global du jour / Obj_Encaissement) × 100
                       const encaissementJournalier = day.Encaissement_Journalier_Global || 0;
                       const objectifEncaissement = objectiveData?.Obj_Encaissement || 0;
-                      const tauxEncaissement = objectifEncaissement > 0 
+                      const tauxJournalier = objectifEncaissement > 0 
                         ? (encaissementJournalier / objectifEncaissement) * 100 
                         : 0;
                       
@@ -450,39 +458,39 @@ function DetailedDataByAgency() {
                           </td>
                           <td className="px-2 py-2 text-center">
                             <div className={`rounded p-1 group-hover:scale-105 transition-all duration-200 ${
-                              tauxEncaissement >= 100 ? 'bg-green-100 dark:bg-green-900/30' :
-                              tauxEncaissement >= 80 ? 'bg-blue-100 dark:bg-blue-900/30' :
-                              tauxEncaissement >= 60 ? 'bg-yellow-100 dark:bg-yellow-900/30' :
+                              tauxJournalier >= 100 ? 'bg-green-100 dark:bg-green-900/30' :
+                              tauxJournalier >= 80 ? 'bg-blue-100 dark:bg-blue-900/30' :
+                              tauxJournalier >= 60 ? 'bg-yellow-100 dark:bg-yellow-900/30' :
                               'bg-red-100 dark:bg-red-900/30'
                             }`}>
                               <div className={`font-bold text-[0.7rem] ${
-                                tauxEncaissement >= 100 ? 'text-green-700 dark:text-green-300' :
-                                tauxEncaissement >= 80 ? 'text-blue-700 dark:text-blue-300' :
-                                tauxEncaissement >= 60 ? 'text-yellow-700 dark:text-yellow-300' :
+                                tauxJournalier >= 100 ? 'text-green-700 dark:text-green-300' :
+                                tauxJournalier >= 80 ? 'text-blue-700 dark:text-blue-300' :
+                                tauxJournalier >= 60 ? 'text-yellow-700 dark:text-yellow-300' :
                                 'text-red-700 dark:text-red-300'
                               }`}>
-                                {tauxEncaissement.toFixed(1)}%
+                                {tauxJournalier.toFixed(1)}%
                               </div>
                               <div className="flex items-center justify-center gap-0.5 mt-0.5">
-                                {tauxEncaissement >= 100 ? (
+                                {tauxJournalier >= 100 ? (
                                   <>
                                     <ArrowUp className="h-2 w-2 text-green-600" />
-                                    <span className="text-[0.6rem] text-green-600 font-bold">+{(tauxEncaissement - 100).toFixed(1)}%</span>
+                                    <span className="text-[0.6rem] text-green-600 font-bold">+{(tauxJournalier - 100).toFixed(1)}%</span>
                                   </>
-                                ) : tauxEncaissement >= 80 ? (
+                                ) : tauxJournalier >= 80 ? (
                                   <>
                                     <ArrowUp className="h-2 w-2 text-blue-600" />
-                                    <span className="text-[0.6rem] text-blue-600 font-bold">{tauxEncaissement.toFixed(1)}%</span>
+                                    <span className="text-[0.6rem] text-blue-600 font-bold">{tauxJournalier.toFixed(1)}%</span>
                                   </>
-                                ) : tauxEncaissement >= 60 ? (
+                                ) : tauxJournalier >= 60 ? (
                                   <>
                                     <Minus className="h-2 w-2 text-yellow-600" />
-                                    <span className="text-[0.6rem] text-yellow-600 font-bold">{tauxEncaissement.toFixed(1)}%</span>
+                                    <span className="text-[0.6rem] text-yellow-600 font-bold">{tauxJournalier.toFixed(1)}%</span>
                                   </>
                                 ) : (
                                   <>
                                     <ArrowDown className="h-2 w-2 text-red-600" />
-                                    <span className="text-[0.6rem] text-red-600 font-bold">{tauxEncaissement.toFixed(1)}%</span>
+                                    <span className="text-[0.6rem] text-red-600 font-bold">{tauxJournalier.toFixed(1)}%</span>
                                   </>
                                 )}
                               </div>
