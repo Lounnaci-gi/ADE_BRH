@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Eye, Wrench, DollarSign, ArrowUp, ArrowDown, Minus, Play } from 'lucide-react';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
+import ModernDatePicker from '../components/ModernDatePicker';
 
 function DetailedDataByAgency() {
   const [agences, setAgences] = useState([]);
@@ -208,31 +209,31 @@ function DetailedDataByAgency() {
 
             {/* Filtre par date de début */}
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Calendar className="h-5 w-5 text-green-500" />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <Calendar className="h-4 w-4 text-green-500" />
               </div>
-              <input
-                type="date"
-                value={filters.date1}
-                onChange={(e) => handleFilterChange('date1', e.target.value)}
-                className="pl-10 pr-4 py-3 text-sm border-2 border-green-200 rounded-xl focus:ring-2 focus:ring-green-500/30 focus:border-green-400 transition-all duration-300 bg-white shadow-sm hover:shadow-md font-medium text-gray-700 w-full"
-                placeholder="Date de début"
-              />
+              <div className="pl-10">
+                <ModernDatePicker
+                  value={filters.date1}
+                  onChange={(value) => handleFilterChange('date1', value)}
+                  placeholder="Date de début"
+                />
+              </div>
               <label className="text-xs text-gray-500 mt-1 block">Date de début</label>
             </div>
 
             {/* Filtre par date de fin */}
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Calendar className="h-5 w-5 text-red-500" />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <Calendar className="h-4 w-4 text-red-500" />
               </div>
-              <input
-                type="date"
-                value={filters.date2}
-                onChange={(e) => handleFilterChange('date2', e.target.value)}
-                className="pl-10 pr-4 py-3 text-sm border-2 border-red-200 rounded-xl focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all duration-300 bg-white shadow-sm hover:shadow-md font-medium text-gray-700 w-full"
-                placeholder="Date de fin"
-              />
+              <div className="pl-10">
+                <ModernDatePicker
+                  value={filters.date2}
+                  onChange={(value) => handleFilterChange('date2', value)}
+                  placeholder="Date de fin"
+                />
+              </div>
               <label className="text-xs text-gray-500 mt-1 block">Date de fin</label>
             </div>
           </div>
@@ -288,20 +289,20 @@ function DetailedDataByAgency() {
               </div>
             ) : !loading && (
               <div className="overflow-x-auto">
-                <table className="min-w-full text-xs">
+                <table className="min-w-full text-[0.65rem]">
                   <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-700 dark:from-slate-700 dark:to-slate-600 dark:text-gray-300">
                     <tr>
-                      <th className="px-4 py-4 text-left font-semibold text-xs uppercase tracking-wider">Date</th>
-                      <th className="px-4 py-4 text-center font-semibold text-xs uppercase tracking-wider">Relances Envoyées</th>
-                      <th className="px-4 py-4 text-center font-semibold text-xs uppercase tracking-wider">Relances Encaissées</th>
-                      <th className="px-4 py-4 text-center font-semibold text-xs uppercase tracking-wider">Mises en Demeure</th>
-                      <th className="px-4 py-4 text-center font-semibold text-xs uppercase tracking-wider">Mises en Demeure Encaissées</th>
-                      <th className="px-4 py-4 text-center font-semibold text-xs uppercase tracking-wider">Dossiers Juridiques</th>
-                      <th className="px-4 py-4 text-center font-semibold text-xs uppercase tracking-wider">Coupures</th>
-                      <th className="px-4 py-4 text-center font-semibold text-xs uppercase tracking-wider">Rétablissements</th>
-                      <th className="px-4 py-4 text-center font-semibold text-xs uppercase tracking-wider">Compteurs</th>
-                      <th className="px-4 py-4 text-center font-semibold text-xs uppercase tracking-wider">Encaissement Global</th>
-                      <th className="px-4 py-4 text-center font-semibold text-xs uppercase tracking-wider">Taux Encaissement (%)</th>
+                      <th className="px-2 py-2 text-left font-semibold text-[0.65rem] uppercase tracking-wide">Date</th>
+                      <th className="px-2 py-2 text-center font-semibold text-[0.65rem] uppercase tracking-wide">Relances</th>
+                      <th className="px-2 py-2 text-center font-semibold text-[0.65rem] uppercase tracking-wide">Rel. Encaissées</th>
+                      <th className="px-2 py-2 text-center font-semibold text-[0.65rem] uppercase tracking-wide">M.D.</th>
+                      <th className="px-2 py-2 text-center font-semibold text-[0.65rem] uppercase tracking-wide">M.D. Encaissées</th>
+                      <th className="px-2 py-2 text-center font-semibold text-[0.65rem] uppercase tracking-wide">Juridique</th>
+                      <th className="px-2 py-2 text-center font-semibold text-[0.65rem] uppercase tracking-wide">Coupures</th>
+                      <th className="px-2 py-2 text-center font-semibold text-[0.65rem] uppercase tracking-wide">Rétablis.</th>
+                      <th className="px-2 py-2 text-center font-semibold text-[0.65rem] uppercase tracking-wide">Compteurs</th>
+                      <th className="px-2 py-2 text-center font-semibold text-[0.65rem] uppercase tracking-wide">Encaissement</th>
+                      <th className="px-2 py-2 text-center font-semibold text-[0.65rem] uppercase tracking-wide">Taux %</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-600">
@@ -311,6 +312,20 @@ function DetailedDataByAgency() {
                       const totalEncaisses = (day.Nb_RelancesReglees || 0) + (day.Nb_MisesEnDemeure_Reglees || 0);
                       const tauxEncaissement = totalRelances > 0 ? (totalEncaisses / totalRelances) * 100 : 0;
                       
+                      // Calculer les ratios pour les indicateurs de tendance
+                      const relanceRatio = (day.Nb_RelancesEnvoyees || 0) > 0 
+                        ? ((day.Nb_RelancesReglees || 0) / (day.Nb_RelancesEnvoyees || 0)) * 100 : 0;
+                      
+                      const misesEnDemeureRatio = (day.Nb_MisesEnDemeure_Envoyees || 0) > 0
+                        ? ((day.Nb_MisesEnDemeure_Reglees || 0) / (day.Nb_MisesEnDemeure_Envoyees || 0)) * 100 : 0;
+                      
+                      // Calculer le pourcentage de changement pour les encaissements
+                      const montantRelancesRatio = (day.Mt_RelancesEnvoyees || 0) > 0
+                        ? ((day.Mt_RelancesReglees || 0) / (day.Mt_RelancesEnvoyees || 0)) * 100 : 0;
+                      
+                      const montantMDRatio = (day.Mt_MisesEnDemeure_Envoyees || 0) > 0
+                        ? ((day.Mt_MisesEnDemeure_Reglees || 0) / (day.Mt_MisesEnDemeure_Envoyees || 0)) * 100 : 0;
+                      
                       return (
                         <motion.tr
                           key={index}
@@ -319,72 +334,108 @@ function DetailedDataByAgency() {
                           transition={{ duration: 0.3, delay: index * 0.05 }}
                           className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-slate-700 dark:hover:to-slate-600 transition-all duration-300 group"
                         >
-                          <td className="px-4 py-4 text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-gray-400" />
-                              {new Date(day.DateKPI).toLocaleDateString('fr-FR')}
+                          <td className="px-2 py-2 text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3 text-gray-400" />
+                              <span className="text-[0.7rem]">{new Date(day.DateKPI).toLocaleDateString('fr-FR')}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-2 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors duration-200">
-                              <div className="text-blue-700 dark:text-blue-300 font-bold text-sm">{day.Nb_RelancesEnvoyees || 0}</div>
-                              <div className="text-xs text-blue-600 dark:text-blue-400">{formatCurrency(day.Mt_RelancesEnvoyees || 0)}</div>
+                          <td className="px-2 py-2 text-center">
+                            <div className="bg-blue-100 dark:bg-blue-900/30 rounded p-1 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors duration-200">
+                              <div className="text-blue-700 dark:text-blue-300 font-semibold text-[0.75rem]">{day.Nb_RelancesEnvoyees || 0}</div>
+                              <div className="text-[0.65rem] text-blue-600 dark:text-blue-400 truncate">{formatCurrency(day.Mt_RelancesEnvoyees || 0)}</div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-2 group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors duration-200">
-                              <div className="text-green-700 dark:text-green-300 font-bold text-sm">{day.Nb_RelancesReglees || 0}</div>
-                              <div className="text-xs text-green-600 dark:text-green-400">{formatCurrency(day.Mt_RelancesReglees || 0)}</div>
+                          <td className="px-2 py-2 text-center">
+                            <div className="bg-green-100 dark:bg-green-900/30 rounded p-1 group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors duration-200">
+                              <div className="text-green-700 dark:text-green-300 font-semibold text-[0.75rem]">{day.Nb_RelancesReglees || 0}</div>
+                              <div className="text-[0.65rem] text-green-600 dark:text-green-400 truncate">{formatCurrency(day.Mt_RelancesReglees || 0)}</div>
+                              <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                                {relanceRatio >= 80 ? (
+                                  <>
+                                    <ArrowUp className="h-2 w-2 text-green-600" />
+                                    <span className="text-[0.6rem] text-green-600 font-bold">+{relanceRatio.toFixed(1)}%</span>
+                                  </>
+                                ) : relanceRatio >= 50 ? (
+                                  <>
+                                    <Minus className="h-2 w-2 text-yellow-600" />
+                                    <span className="text-[0.6rem] text-yellow-600 font-bold">{relanceRatio.toFixed(1)}%</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ArrowDown className="h-2 w-2 text-red-600" />
+                                    <span className="text-[0.6rem] text-red-600 font-bold">{relanceRatio.toFixed(1)}%</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded-lg p-2 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-900/50 transition-colors duration-200">
-                              <div className="text-yellow-700 dark:text-yellow-300 font-bold text-sm">{day.Nb_MisesEnDemeure_Envoyees || 0}</div>
-                              <div className="text-xs text-yellow-600 dark:text-yellow-400">{formatCurrency(day.Mt_MisesEnDemeure_Envoyees || 0)}</div>
+                          <td className="px-2 py-2 text-center">
+                            <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded p-1 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-900/50 transition-colors duration-200">
+                              <div className="text-yellow-700 dark:text-yellow-300 font-semibold text-[0.75rem]">{day.Nb_MisesEnDemeure_Envoyees || 0}</div>
+                              <div className="text-[0.65rem] text-yellow-600 dark:text-yellow-400 truncate">{formatCurrency(day.Mt_MisesEnDemeure_Envoyees || 0)}</div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="bg-orange-100 dark:bg-orange-900/30 rounded-lg p-2 group-hover:bg-orange-200 dark:group-hover:bg-orange-900/50 transition-colors duration-200">
-                              <div className="text-orange-700 dark:text-orange-300 font-bold text-sm">{day.Nb_MisesEnDemeure_Reglees || 0}</div>
-                              <div className="text-xs text-orange-600 dark:text-orange-400">{formatCurrency(day.Mt_MisesEnDemeure_Reglees || 0)}</div>
+                          <td className="px-2 py-2 text-center">
+                            <div className="bg-orange-100 dark:bg-orange-900/30 rounded p-1 group-hover:bg-orange-200 dark:group-hover:bg-orange-900/50 transition-colors duration-200">
+                              <div className="text-orange-700 dark:text-orange-300 font-semibold text-[0.75rem]">{day.Nb_MisesEnDemeure_Reglees || 0}</div>
+                              <div className="text-[0.65rem] text-orange-600 dark:text-orange-400 truncate">{formatCurrency(day.Mt_MisesEnDemeure_Reglees || 0)}</div>
+                              <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                                {misesEnDemeureRatio >= 80 ? (
+                                  <>
+                                    <ArrowUp className="h-2 w-2 text-green-600" />
+                                    <span className="text-[0.6rem] text-green-600 font-bold">+{misesEnDemeureRatio.toFixed(1)}%</span>
+                                  </>
+                                ) : misesEnDemeureRatio >= 50 ? (
+                                  <>
+                                    <Minus className="h-2 w-2 text-yellow-600" />
+                                    <span className="text-[0.6rem] text-yellow-600 font-bold">{misesEnDemeureRatio.toFixed(1)}%</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ArrowDown className="h-2 w-2 text-red-600" />
+                                    <span className="text-[0.6rem] text-red-600 font-bold">{misesEnDemeureRatio.toFixed(1)}%</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="bg-red-100 dark:bg-red-900/30 rounded-lg p-2 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors duration-200">
-                              <div className="text-red-700 dark:text-red-300 font-bold text-sm">{day.Nb_Dossiers_Juridiques || 0}</div>
-                              <div className="text-xs text-red-600 dark:text-red-400">{formatCurrency(day.Mt_Dossiers_Juridiques || 0)}</div>
+                          <td className="px-2 py-2 text-center">
+                            <div className="bg-red-100 dark:bg-red-900/30 rounded p-1 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors duration-200">
+                              <div className="text-red-700 dark:text-red-300 font-semibold text-[0.75rem]">{day.Nb_Dossiers_Juridiques || 0}</div>
+                              <div className="text-[0.65rem] text-red-600 dark:text-red-400 truncate">{formatCurrency(day.Mt_Dossiers_Juridiques || 0)}</div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-2 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors duration-200">
-                              <div className="text-purple-700 dark:text-purple-300 font-bold text-sm">{day.Nb_Coupures || 0}</div>
-                              <div className="text-xs text-purple-600 dark:text-purple-400">{formatCurrency(day.Mt_Coupures || 0)}</div>
+                          <td className="px-2 py-2 text-center">
+                            <div className="bg-purple-100 dark:bg-purple-900/30 rounded p-1 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors duration-200">
+                              <div className="text-purple-700 dark:text-purple-300 font-semibold text-[0.75rem]">{day.Nb_Coupures || 0}</div>
+                              <div className="text-[0.65rem] text-purple-600 dark:text-purple-400 truncate">{formatCurrency(day.Mt_Coupures || 0)}</div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-lg p-2 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors duration-200">
-                              <div className="text-indigo-700 dark:text-indigo-300 font-bold text-sm">{day.Nb_Retablissements || 0}</div>
-                              <div className="text-xs text-indigo-600 dark:text-indigo-400">{formatCurrency(day.Mt_Retablissements || 0)}</div>
+                          <td className="px-2 py-2 text-center">
+                            <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded p-1 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors duration-200">
+                              <div className="text-indigo-700 dark:text-indigo-300 font-semibold text-[0.75rem]">{day.Nb_Retablissements || 0}</div>
+                              <div className="text-[0.65rem] text-indigo-600 dark:text-indigo-400 truncate">{formatCurrency(day.Mt_Retablissements || 0)}</div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="bg-cyan-100 dark:bg-cyan-900/30 rounded-lg p-2 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-900/50 transition-colors duration-200">
-                              <div className="text-cyan-700 dark:text-cyan-300 font-bold text-sm">{day.Nb_Compteurs_Remplaces || 0}</div>
+                          <td className="px-2 py-2 text-center">
+                            <div className="bg-cyan-100 dark:bg-cyan-900/30 rounded p-1 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-900/50 transition-colors duration-200">
+                              <div className="text-cyan-700 dark:text-cyan-300 font-semibold text-[0.75rem]">{day.Nb_Compteurs_Remplaces || 0}</div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="bg-emerald-100 dark:bg-emerald-900/30 rounded-lg p-3 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors duration-200">
-                              <div className="text-emerald-700 dark:text-emerald-300 font-bold text-base">{formatCurrency(day.Encaissement_Journalier_Global || 0)}</div>
+                          <td className="px-2 py-2 text-center">
+                            <div className="bg-emerald-100 dark:bg-emerald-900/30 rounded p-1 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors duration-200">
+                              <div className="text-emerald-700 dark:text-emerald-300 font-bold text-[0.75rem] truncate">{formatCurrency(day.Encaissement_Journalier_Global || 0)}</div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className={`rounded-lg p-2 group-hover:scale-105 transition-all duration-200 ${
+                          <td className="px-2 py-2 text-center">
+                            <div className={`rounded p-1 group-hover:scale-105 transition-all duration-200 ${
                               tauxEncaissement >= 100 ? 'bg-green-100 dark:bg-green-900/30' :
                               tauxEncaissement >= 80 ? 'bg-blue-100 dark:bg-blue-900/30' :
                               tauxEncaissement >= 60 ? 'bg-yellow-100 dark:bg-yellow-900/30' :
                               'bg-red-100 dark:bg-red-900/30'
                             }`}>
-                              <div className={`font-bold text-sm ${
+                              <div className={`font-bold text-[0.7rem] ${
                                 tauxEncaissement >= 100 ? 'text-green-700 dark:text-green-300' :
                                 tauxEncaissement >= 80 ? 'text-blue-700 dark:text-blue-300' :
                                 tauxEncaissement >= 60 ? 'text-yellow-700 dark:text-yellow-300' :
@@ -392,11 +443,28 @@ function DetailedDataByAgency() {
                               }`}>
                                 {tauxEncaissement.toFixed(1)}%
                               </div>
-                              <div className="flex items-center justify-center gap-1 mt-1">
-                                {tauxEncaissement >= 100 ? <ArrowUp className="h-3 w-3 text-green-600" /> :
-                                 tauxEncaissement >= 80 ? <ArrowUp className="h-3 w-3 text-blue-600" /> :
-                                 tauxEncaissement >= 60 ? <Minus className="h-3 w-3 text-yellow-600" /> :
-                                 <ArrowDown className="h-3 w-3 text-red-600" />}
+                              <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                                {tauxEncaissement >= 100 ? (
+                                  <>
+                                    <ArrowUp className="h-2 w-2 text-green-600" />
+                                    <span className="text-[0.6rem] text-green-600 font-bold">+{(tauxEncaissement - 100).toFixed(1)}%</span>
+                                  </>
+                                ) : tauxEncaissement >= 80 ? (
+                                  <>
+                                    <ArrowUp className="h-2 w-2 text-blue-600" />
+                                    <span className="text-[0.6rem] text-blue-600 font-bold">+{(tauxEncaissement - 80).toFixed(1)}%</span>
+                                  </>
+                                ) : tauxEncaissement >= 60 ? (
+                                  <>
+                                    <Minus className="h-2 w-2 text-yellow-600" />
+                                    <span className="text-[0.6rem] text-yellow-600 font-bold">{(tauxEncaissement - 60).toFixed(1)}%</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ArrowDown className="h-2 w-2 text-red-600" />
+                                    <span className="text-[0.6rem] text-red-600 font-bold">{tauxEncaissement.toFixed(1)}%</span>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </td>
