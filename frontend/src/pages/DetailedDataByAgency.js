@@ -475,23 +475,14 @@ function DetailedDataByAgency() {
                                 {tauxJournalier >= 100 ? (
                                   <>
                                     <ArrowUp className="h-2 w-2 text-green-600" />
-                                    <span className="text-[0.6rem] text-green-600 font-bold">+{(tauxJournalier - 100).toFixed(1)}%</span>
+                                    <span className="text-[0.6rem] text-green-600 font-bold">+{(tauxJournalier - 100).toFixed(1)}</span>
                                   </>
                                 ) : tauxJournalier >= 80 ? (
-                                  <>
-                                    <ArrowUp className="h-2 w-2 text-blue-600" />
-                                    <span className="text-[0.6rem] text-blue-600 font-bold">{tauxJournalier.toFixed(1)}%</span>
-                                  </>
+                                  <ArrowUp className="h-2 w-2 text-blue-600" />
                                 ) : tauxJournalier >= 60 ? (
-                                  <>
-                                    <Minus className="h-2 w-2 text-yellow-600" />
-                                    <span className="text-[0.6rem] text-yellow-600 font-bold">{tauxJournalier.toFixed(1)}%</span>
-                                  </>
+                                  <Minus className="h-2 w-2 text-yellow-600" />
                                 ) : (
-                                  <>
-                                    <ArrowDown className="h-2 w-2 text-red-600" />
-                                    <span className="text-[0.6rem] text-red-600 font-bold">{tauxJournalier.toFixed(1)}%</span>
-                                  </>
+                                  <ArrowDown className="h-2 w-2 text-red-600" />
                                 )}
                               </div>
                             </div>
