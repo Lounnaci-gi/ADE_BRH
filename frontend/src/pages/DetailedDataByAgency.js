@@ -4,6 +4,7 @@ import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCi
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
 import ModernDatePicker from '../components/ModernDatePicker';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 function DetailedDataByAgency() {
   const [agences, setAgences] = useState([]);
@@ -18,6 +19,21 @@ function DetailedDataByAgency() {
   const [filtersApplied, setFiltersApplied] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
+  
+  // State for selected metrics in the evolution chart
+  const [selectedMetrics, setSelectedMetrics] = useState({
+    relancesEnvoyees: true,
+    relancesEncaissees: true,
+    misesEnDemeureEnvoyees: true,
+    misesEnDemeureEncaisses: true,
+    dossiersJuridiques: true,
+    coupures: true,
+    retablissements: true,
+    encaissementGlobal: true
+  });
+  
+  // State for objective data
+  const [objectiveData, setObjectiveData] = useState(null);
 
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
@@ -63,6 +79,7 @@ function DetailedDataByAgency() {
   const loadDetailedData = async () => {
     if (!filters.selectedAgence || !filters.date1 || !filters.date2) {
       setDetailedData([]);
+      setObjectiveData(null);
       return;
     }
 
@@ -76,12 +93,20 @@ function DetailedDataByAgency() {
         filters.date2
       );
       
-      setDetailedData(response.data || []);
+      const data = response.data || [];
+      setDetailedData(data);
+      
+      // Extract objective data from the first row (Obj_Encaissement should be consistent across dates)
+      if (data.length > 0 && data[0].Obj_Encaissement) {
+        setObjectiveData(data[0]);
+      }
+      
       setFiltersApplied(true);
     } catch (err) {
       console.error('❌ Erreur lors du chargement des données détaillées:', err);
       setError('Erreur lors du chargement des données détaillées');
       setDetailedData([]);
+      setObjectiveData(null);
     } finally {
       setLoading(false);
     }
@@ -130,6 +155,14 @@ function DetailedDataByAgency() {
   useEffect(() => {
     loadAgences();
   }, []);
+
+  // Toggle metric selection
+  const toggleMetric = (metricKey) => {
+    setSelectedMetrics(prev => ({
+      ...prev,
+      [metricKey]: !prev[metricKey]
+    }));
+  };
 
   if (loading && agences.length === 0) {
     return (
@@ -280,6 +313,40 @@ function DetailedDataByAgency() {
               </div>
             )}
 
+            {/* Résumé de la période */}
+            {!loading && detailedData.length > 0 && objectiveData && (
+              <div className="px-6 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-slate-700 dark:to-slate-600 border-b border-gray-200 dark:border-slate-600">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-300">
+                    <strong>Période:</strong> {detailedData.length} jour{detailedData.length > 1 ? 's' : ''}
+                  </span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-gray-600 dark:text-gray-300">
+                      <strong>Objectif:</strong> {formatCurrency(objectiveData.Obj_Encaissement || 0)}
+                    </span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      <strong>Total:</strong> {formatCurrency(detailedData.reduce((sum, day) => sum + (day.Encaissement_Journalier_Global || 0), 0))}
+                    </span>
+                    {(() => {
+                      const totalEncaissement = detailedData.reduce((sum, day) => sum + (day.Encaissement_Journalier_Global || 0), 0);
+                      const objEncaissement = objectiveData.Obj_Encaissement || 0;
+                      const tauxGlobal = objEncaissement > 0 ? (totalEncaissement / objEncaissement) * 100 : 0;
+                      return (
+                        <span className={`font-bold ${
+                          tauxGlobal >= 100 ? 'text-green-700 dark:text-green-300' :
+                          tauxGlobal >= 80 ? 'text-blue-700 dark:text-blue-300' :
+                          tauxGlobal >= 60 ? 'text-yellow-700 dark:text-yellow-300' :
+                          'text-red-700 dark:text-red-300'
+                        }`}>
+                          <strong>Taux Global:</strong> {tauxGlobal.toFixed(1)}%
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Tableau des données */}
             {!loading && detailedData.length === 0 ? (
               <div className="p-8 text-center text-gray-500">
@@ -307,24 +374,13 @@ function DetailedDataByAgency() {
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-600">
                     {getPaginatedData().map((day, index) => {
-                      // Calculer le taux d'encaissement
-                      const totalRelances = (day.Nb_RelancesEnvoyees || 0) + (day.Nb_MisesEnDemeure_Envoyees || 0);
-                      const totalEncaisses = (day.Nb_RelancesReglees || 0) + (day.Nb_MisesEnDemeure_Reglees || 0);
-                      const tauxEncaissement = totalRelances > 0 ? (totalEncaisses / totalRelances) * 100 : 0;
-                      
-                      // Calculer les ratios pour les indicateurs de tendance
-                      const relanceRatio = (day.Nb_RelancesEnvoyees || 0) > 0 
-                        ? ((day.Nb_RelancesReglees || 0) / (day.Nb_RelancesEnvoyees || 0)) * 100 : 0;
-                      
-                      const misesEnDemeureRatio = (day.Nb_MisesEnDemeure_Envoyees || 0) > 0
-                        ? ((day.Nb_MisesEnDemeure_Reglees || 0) / (day.Nb_MisesEnDemeure_Envoyees || 0)) * 100 : 0;
-                      
-                      // Calculer le pourcentage de changement pour les encaissements
-                      const montantRelancesRatio = (day.Mt_RelancesEnvoyees || 0) > 0
-                        ? ((day.Mt_RelancesReglees || 0) / (day.Mt_RelancesEnvoyees || 0)) * 100 : 0;
-                      
-                      const montantMDRatio = (day.Mt_MisesEnDemeure_Envoyees || 0) > 0
-                        ? ((day.Mt_MisesEnDemeure_Reglees || 0) / (day.Mt_MisesEnDemeure_Envoyees || 0)) * 100 : 0;
+                      // Calculer le taux d'encaissement correct basé sur l'objectif
+                      // Taux (%) = (Encaissement_Journalier_Global / Obj_Encaissement) × 100
+                      const encaissementJournalier = day.Encaissement_Journalier_Global || 0;
+                      const objectifEncaissement = objectiveData?.Obj_Encaissement || 0;
+                      const tauxEncaissement = objectifEncaissement > 0 
+                        ? (encaissementJournalier / objectifEncaissement) * 100 
+                        : 0;
                       
                       return (
                         <motion.tr
@@ -350,24 +406,6 @@ function DetailedDataByAgency() {
                             <div className="bg-green-100 dark:bg-green-900/30 rounded p-1 group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors duration-200">
                               <div className="text-green-700 dark:text-green-300 font-semibold text-[0.75rem]">{day.Nb_RelancesReglees || 0}</div>
                               <div className="text-[0.65rem] text-green-600 dark:text-green-400 truncate">{formatCurrency(day.Mt_RelancesReglees || 0)}</div>
-                              <div className="flex items-center justify-center gap-0.5 mt-0.5">
-                                {relanceRatio >= 80 ? (
-                                  <>
-                                    <ArrowUp className="h-2 w-2 text-green-600" />
-                                    <span className="text-[0.6rem] text-green-600 font-bold">+{relanceRatio.toFixed(1)}%</span>
-                                  </>
-                                ) : relanceRatio >= 50 ? (
-                                  <>
-                                    <Minus className="h-2 w-2 text-yellow-600" />
-                                    <span className="text-[0.6rem] text-yellow-600 font-bold">{relanceRatio.toFixed(1)}%</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <ArrowDown className="h-2 w-2 text-red-600" />
-                                    <span className="text-[0.6rem] text-red-600 font-bold">{relanceRatio.toFixed(1)}%</span>
-                                  </>
-                                )}
-                              </div>
                             </div>
                           </td>
                           <td className="px-2 py-2 text-center">
@@ -380,24 +418,6 @@ function DetailedDataByAgency() {
                             <div className="bg-orange-100 dark:bg-orange-900/30 rounded p-1 group-hover:bg-orange-200 dark:group-hover:bg-orange-900/50 transition-colors duration-200">
                               <div className="text-orange-700 dark:text-orange-300 font-semibold text-[0.75rem]">{day.Nb_MisesEnDemeure_Reglees || 0}</div>
                               <div className="text-[0.65rem] text-orange-600 dark:text-orange-400 truncate">{formatCurrency(day.Mt_MisesEnDemeure_Reglees || 0)}</div>
-                              <div className="flex items-center justify-center gap-0.5 mt-0.5">
-                                {misesEnDemeureRatio >= 80 ? (
-                                  <>
-                                    <ArrowUp className="h-2 w-2 text-green-600" />
-                                    <span className="text-[0.6rem] text-green-600 font-bold">+{misesEnDemeureRatio.toFixed(1)}%</span>
-                                  </>
-                                ) : misesEnDemeureRatio >= 50 ? (
-                                  <>
-                                    <Minus className="h-2 w-2 text-yellow-600" />
-                                    <span className="text-[0.6rem] text-yellow-600 font-bold">{misesEnDemeureRatio.toFixed(1)}%</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <ArrowDown className="h-2 w-2 text-red-600" />
-                                    <span className="text-[0.6rem] text-red-600 font-bold">{misesEnDemeureRatio.toFixed(1)}%</span>
-                                  </>
-                                )}
-                              </div>
                             </div>
                           </td>
                           <td className="px-2 py-2 text-center">
@@ -452,12 +472,12 @@ function DetailedDataByAgency() {
                                 ) : tauxEncaissement >= 80 ? (
                                   <>
                                     <ArrowUp className="h-2 w-2 text-blue-600" />
-                                    <span className="text-[0.6rem] text-blue-600 font-bold">+{(tauxEncaissement - 80).toFixed(1)}%</span>
+                                    <span className="text-[0.6rem] text-blue-600 font-bold">{tauxEncaissement.toFixed(1)}%</span>
                                   </>
                                 ) : tauxEncaissement >= 60 ? (
                                   <>
                                     <Minus className="h-2 w-2 text-yellow-600" />
-                                    <span className="text-[0.6rem] text-yellow-600 font-bold">{(tauxEncaissement - 60).toFixed(1)}%</span>
+                                    <span className="text-[0.6rem] text-yellow-600 font-bold">{tauxEncaissement.toFixed(1)}%</span>
                                   </>
                                 ) : (
                                   <>
@@ -532,6 +552,203 @@ function DetailedDataByAgency() {
                 </div>
               </div>
             )}
+          </motion.div>
+        )}
+
+        {/* Graphique d'Evolution - Evolution Chart */}
+        {filtersApplied && !loading && detailedData.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden mt-6"
+          >
+            {/* En-tête du graphique */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-slate-700 dark:to-slate-600 px-6 py-4 border-b border-gray-200 dark:border-slate-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="h-6 w-6 text-purple-600" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                      Évolution des Indicateurs de Performance
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {getSelectedAgencyName()} - {filters.date1} au {filters.date2}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Selector Component for Metrics */}
+            <div className="px-6 py-4 bg-gray-50 dark:bg-slate-700 border-b border-gray-200 dark:border-slate-600">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Afficher:</span>
+                {Object.entries({
+                  relancesEnvoyees: { label: 'Relances Envoyées', color: '#3b82f6' },
+                  relancesEncaissees: { label: 'Relances Encaissées', color: '#10b981' },
+                  misesEnDemeureEnvoyees: { label: 'Mises en Demeure', color: '#f59e0b' },
+                  misesEnDemeureEncaisses: { label: 'MD Encaissées', color: '#ef4444' },
+                  dossiersJuridiques: { label: 'Dossiers Juridiques', color: '#8b5cf6' },
+                  coupures: { label: 'Coupures', color: '#ec4899' },
+                  retablissements: { label: 'Rétablissements', color: '#06b6d4' },
+                  encaissementGlobal: { label: 'Encaissement Global', color: '#14b8a6' }
+                }).map(([key, { label, color }]) => (
+                  <button
+                    key={key}
+                    onClick={() => toggleMetric(key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border-2 ${
+                      selectedMetrics[key]
+                        ? 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 border-current shadow-sm'
+                        : 'bg-gray-100 dark:bg-slate-600 text-gray-500 dark:text-gray-400 border-transparent'
+                    }`}
+                    style={selectedMetrics[key] ? { 
+                      borderColor: color,
+                      color: color 
+                    } : {}}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <div 
+                        className="w-2 h-2 rounded-full" 
+                        style={{ backgroundColor: selectedMetrics[key] ? color : '#9ca3af' }}
+                      />
+                      {label}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Graphique */}
+            <div className="p-6">
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart
+                  data={detailedData.map(day => ({
+                    date: new Date(day.DateKPI).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+                    relancesEnvoyees: day.Nb_RelancesEnvoyees || 0,
+                    relancesEncaissees: day.Nb_RelancesReglees || 0,
+                    misesEnDemeureEnvoyees: day.Nb_MisesEnDemeure_Envoyees || 0,
+                    misesEnDemeureEncaisses: day.Nb_MisesEnDemeure_Reglees || 0,
+                    dossiersJuridiques: day.Nb_Dossiers_Juridiques || 0,
+                    coupures: day.Nb_Coupures || 0,
+                    retablissements: day.Nb_Retablissements || 0,
+                    encaissementGlobal: (day.Encaissement_Journalier_Global || 0) / 1000
+                  }))}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 12 }}
+                    stroke="#666"
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12 }}
+                    stroke="#666"
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                      border: '1px solid #ccc',
+                      borderRadius: '8px',
+                      padding: '10px'
+                    }}
+                  />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: '20px' }}
+                    iconType="line"
+                  />
+                  {selectedMetrics.relancesEnvoyees && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="relancesEnvoyees" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2}
+                      name="Relances Envoyées"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  )}
+                  {selectedMetrics.relancesEncaissees && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="relancesEncaissees" 
+                      stroke="#10b981" 
+                      strokeWidth={2}
+                      name="Relances Encaissées"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  )}
+                  {selectedMetrics.misesEnDemeureEnvoyees && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="misesEnDemeureEnvoyees" 
+                      stroke="#f59e0b" 
+                      strokeWidth={2}
+                      name="Mises en Demeure"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  )}
+                  {selectedMetrics.misesEnDemeureEncaisses && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="misesEnDemeureEncaisses" 
+                      stroke="#ef4444" 
+                      strokeWidth={2}
+                      name="MD Encaissées"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  )}
+                  {selectedMetrics.dossiersJuridiques && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="dossiersJuridiques" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={2}
+                      name="Dossiers Juridiques"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  )}
+                  {selectedMetrics.coupures && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="coupures" 
+                      stroke="#ec4899" 
+                      strokeWidth={2}
+                      name="Coupures"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  )}
+                  {selectedMetrics.retablissements && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="retablissements" 
+                      stroke="#06b6d4" 
+                      strokeWidth={2}
+                      name="Rétablissements"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  )}
+                  {selectedMetrics.encaissementGlobal && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="encaissementGlobal" 
+                      stroke="#14b8a6" 
+                      strokeWidth={3}
+                      name="Encaissement Global (x1000 DA)"
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </motion.div>
         )}
       </motion.div>
