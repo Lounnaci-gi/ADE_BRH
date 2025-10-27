@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Eye, Wrench, DollarSign, ArrowUp, ArrowDown, Minus, Play } from 'lucide-react';
+import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Eye, Wrench, DollarSign, ArrowUp, ArrowDown, Minus, Play, Search, ChevronDown, X } from 'lucide-react';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
-import ModernDatePicker from '../components/ModernDatePicker';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 function DetailedDataByAgency() {
@@ -34,6 +33,13 @@ function DetailedDataByAgency() {
   
   // State for objective data
   const [objectiveData, setObjectiveData] = useState(null);
+  
+  // States for enhanced filter components
+  const [isAgencyDropdownOpen, setIsAgencyDropdownOpen] = useState(false);
+  const [agencySearchTerm, setAgencySearchTerm] = useState('');
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const agencyButtonRef = useRef(null);
 
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
@@ -156,12 +162,58 @@ function DetailedDataByAgency() {
     loadAgences();
   }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isAgencyDropdownOpen && !event.target.closest('.agency-dropdown-container')) {
+        setIsAgencyDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isAgencyDropdownOpen]);
+
+  // Auto-reload data when filters change
+  useEffect(() => {
+    if (filters.selectedAgence && filters.date1 && filters.date2) {
+      loadDetailedData();
+    }
+  }, [filters.selectedAgence, filters.date1, filters.date2]);
+
   // Toggle metric selection
   const toggleMetric = (metricKey) => {
     setSelectedMetrics(prev => ({
       ...prev,
       [metricKey]: !prev[metricKey]
     }));
+  };
+
+  // Enhanced filter functions
+  const filteredAgencies = agences.filter(agence => 
+    agence.Nom_Agence.toLowerCase().includes(agencySearchTerm.toLowerCase())
+  );
+
+  const formatDateRange = () => {
+    if (filters.date1 && filters.date2) {
+      const startDate = new Date(filters.date1).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      const endDate = new Date(filters.date2).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      return `${startDate} - ${endDate}`;
+    }
+    return 'Sélectionner une période';
+  };
+
+  const calculateDropdownPosition = (buttonRef) => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 5,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
   };
 
   if (loading && agences.length === 0) {
@@ -207,85 +259,156 @@ function DetailedDataByAgency() {
           </div>
         </div>
 
-        {/* Section Filtres */}
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
+        {/* Professional Filter Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 mb-6"
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700 p-6 mb-8"
         >
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Filtres</h3>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Filtre par agence */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Building2 className="h-5 w-5 text-purple-500" />
-              </div>
-              <select
-                value={filters.selectedAgence}
-                onChange={(e) => handleFilterChange('selectedAgence', e.target.value)}
-                className="pl-10 pr-4 py-3 text-sm border-2 border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all duration-300 bg-white shadow-sm hover:shadow-md font-medium text-gray-700 w-full appearance-none"
-              >
-                <option value="">Sélectionner une agence</option>
-                {agences.map((agence) => (
-                  <option key={agence.AgenceId} value={agence.AgenceId}>
-                    {agence.Nom_Agence}
-                  </option>
-                ))}
-              </select>
-              <label className="text-xs text-gray-500 mt-1 block">Agence</label>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <Filter className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
-
-            {/* Filtre par date de début */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                <Calendar className="h-4 w-4 text-green-500" />
-              </div>
-              <div className="pl-10">
-                <ModernDatePicker
-                  value={filters.date1}
-                  onChange={(value) => handleFilterChange('date1', value)}
-                  placeholder="Date de début"
-                />
-              </div>
-              <label className="text-xs text-gray-500 mt-1 block">Date de début</label>
-            </div>
-
-            {/* Filtre par date de fin */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                <Calendar className="h-4 w-4 text-red-500" />
-              </div>
-              <div className="pl-10">
-                <ModernDatePicker
-                  value={filters.date2}
-                  onChange={(value) => handleFilterChange('date2', value)}
-                  placeholder="Date de fin"
-                />
-              </div>
-              <label className="text-xs text-gray-500 mt-1 block">Date de fin</label>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filtres de Recherche</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Sélectionnez une agence et une période pour afficher les données</p>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
+            {/* Agency Selector with Search */}
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Agence
+              </label>
+              <div className="relative agency-dropdown-container">
+                <button
+                  ref={agencyButtonRef}
+                  onClick={() => {
+                    calculateDropdownPosition(agencyButtonRef);
+                    setIsAgencyDropdownOpen(!isAgencyDropdownOpen);
+                  }}
+                  className="w-full px-4 py-3 text-left bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg shadow-sm hover:border-blue-500 dark:hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 flex items-center justify-between"
+                >
+                  <span className={`truncate ${filters.selectedAgence ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {filters.selectedAgence ? getSelectedAgencyName() : 'Sélectionner une agence'}
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isAgencyDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isAgencyDropdownOpen && (
+                  <div className="fixed z-[9999] bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg shadow-xl max-h-80 overflow-hidden" style={{ 
+                    top: `${dropdownPosition.top}px`,
+                    left: `${dropdownPosition.left}px`,
+                    width: `${dropdownPosition.width}px`,
+                    minWidth: '300px',
+                    maxWidth: '90vw'
+                  }}>
+                    <div className="p-3 border-b border-gray-200 dark:border-slate-600">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Rechercher une agence..."
+                          value={agencySearchTerm}
+                          onChange={(e) => setAgencySearchTerm(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {filteredAgencies.map((agence) => (
+                        <button
+                          key={agence.AgenceId}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, selectedAgence: agence.AgenceId.toString() }));
+                            setIsAgencyDropdownOpen(false);
+                            setAgencySearchTerm('');
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-blue-50 dark:hover:bg-slate-600 text-sm text-gray-900 dark:text-white transition-colors duration-150"
+                        >
+                          {agence.Nom_Agence}
+                        </button>
+                      ))}
+                      {filteredAgencies.length === 0 && (
+                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                          Aucune agence trouvée
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Date Range Picker */}
+            <div className="lg:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Période
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Date de début</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <input
+                      type="date"
+                      value={filters.date1}
+                      onChange={(e) => setFilters(prev => ({ ...prev, date1: e.target.value }))}
+                      className="w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      placeholder="jj/mm/aaaa"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Date de fin</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <input
+                      type="date"
+                      value={filters.date2}
+                      onChange={(e) => setFilters(prev => ({ ...prev, date2: e.target.value }))}
+                      className="w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      placeholder="jj/mm/aaaa"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter Status */}
+          {filtersApplied && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+            >
+              <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
+                <CheckCircle className="h-4 w-4" />
+                <span>
+                  Filtres appliqués : <strong>{getSelectedAgencyName()}</strong> du {formatDateRange()}
+                </span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Message d'instruction si aucun filtre n'est appliqué */}
+          {!filtersApplied && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+            >
+              <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400">
+                <AlertCircle className="h-4 w-4" />
+                <span>Veuillez sélectionner une agence et une période pour afficher les données.</span>
+              </div>
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* Message si aucun filtre n'est appliqué */}
-        {!filtersApplied && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center"
-          >
-            <AlertCircle className="h-8 w-8 text-yellow-600 mx-auto mb-3" />
-            <p className="text-yellow-800 font-medium">
-              Veuillez sélectionner une agence et un intervalle de dates pour afficher les données.
-            </p>
-          </motion.div>
-        )}
 
         {/* Contenu principal - Liste détaillée des encaissements */}
         {filtersApplied && (

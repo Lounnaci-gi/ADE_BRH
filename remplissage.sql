@@ -1,156 +1,235 @@
--- S'assurer d'utiliser la bonne base de données
-USE ADE_KPI;
+ï»¿USE ADE_KPI;
 GO
 
--------------------------------------------------------
--- DÉCLARATION DES VARIABLES DE TABLE POUR GÉRER LES IDs
--------------------------------------------------------
-DECLARE @InsertedCategories TABLE (CategorieId INT, CodeCategorie NVARCHAR(50));
-DECLARE @InsertedCentres TABLE (CentreId INT, Nom_Centre NVARCHAR(200));
-DECLARE @InsertedAgences TABLE (AgenceId INT, Nom_Agence NVARCHAR(200));
+/*******************************************************
+  INSERTION DES CATÃ‰GORIES (4)
+*******************************************************/
+SET IDENTITY_INSERT dbo.DIM_CATEGORIE ON;
 
--------------------------------------------------------
--- 1. INSERTION DES CATÉGORIES (4 Catégories)
--------------------------------------------------------
-PRINT '--- 1. Insertion des 4 Catégories de clients ---';
+INSERT INTO dbo.DIM_CATEGORIE (CategorieId, CodeCategorie, Libelle, Description)
+VALUES 
+    (1, 'DOM', 'Domestique', 'Clients rÃ©sidentiels - usage domestique'),
+    (2, 'COM', 'Commercial', 'Clients commerciaux et professionnels'),
+    (3, 'IND', 'Industriel', 'Clients industriels - grandes consommations'),
+    (4, 'ADM', 'Administration', 'Administrations publiques et institutions');
 
-INSERT INTO dbo.DIM_CATEGORIE (CodeCategorie, Libelle, Description)
-OUTPUT inserted.CategorieId, inserted.CodeCategorie INTO @InsertedCategories (CategorieId, CodeCategorie)
-VALUES
-    ('CATI', 'Ménage Individuel', 'Clients Particuliers résidentiels (Faible Consommation)'),
-    ('CATII', 'Administration / Public', 'Collectivités, organismes publics (Gros Consommateurs, Régulateurs)'),
-    ('CATIII', 'Artisanat / Commercial', 'PME, Commerces et Services (Fiabilité Critique pour l''activité)'),
-    ('CATIV', 'Industriels', 'Grandes Entreprises de production (Très Gros Consommateurs, Besoins techniques)');
+SET IDENTITY_INSERT dbo.DIM_CATEGORIE OFF;
+GO
 
--------------------------------------------------------
--- 2. INSERTION DES CENTRES (5 Centres)
--------------------------------------------------------
-PRINT '--- 2. Insertion des 5 Centres (Médéa, Berrouaghia, Ksar Boukhari, etc.) ---';
+/*******************************************************
+  INSERTION DES CENTRES (5)
+*******************************************************/
+SET IDENTITY_INSERT dbo.DIM_CENTRE ON;
 
-INSERT INTO dbo.DIM_CENTRE (Nom_Centre, Adresse, Telephone, Telephone2, Email, Nom_Banque, Compte_Bancaire, NIF, NIS, RC)
-OUTPUT inserted.CentreId, inserted.Nom_Centre INTO @InsertedCentres (CentreId, Nom_Centre)
-VALUES
-    ('Medea', '10 Rue de la Liberté, Medea', '025-50-10-00', '055-00-10-01', 'medea.centre@ade.dz', 'BNA', '00100203040506001', '000010000000001', '5001', 'RC0001'),
-    ('Berrouaghia', 'Zone Industrielle, Berrouaghia', '025-50-20-00', '055-00-20-02', 'berrouaghia.centre@ade.dz', 'CPA', '00100203040506002', '000010000000002', '5002', 'RC0002'),
-    ('Ksar Boukhari', 'Centre-Ville, Ksar Boukhari', '025-50-30-00', '055-00-30-03', 'ksarboukhari.centre@ade.dz', 'BDL', '00100203040506003', '000010000000003', '5003', 'RC0003'),
-    ('Beni Slimane', 'Quartier Administratif, Beni Slimane', '025-50-40-00', '055-00-40-04', 'benislimane.centre@ade.dz', 'AGB', '00100203040506004', '000010000000004', '5004', 'RC0004'),
-    ('Si El Mahdjoub', 'Rond-Point 05, Si El Mahdjoub', '025-50-50-00', '055-00-50-05', 'sielmahdjoub.centre@ade.dz', 'BCE', '00100203040506005', '000010000000005', '5005', 'RC0005');
+INSERT INTO dbo.DIM_CENTRE (CentreId, Nom_Centre, Adresse, Telephone, Telephone2, Email, Fax, Nom_Banque, Compte_Bancaire, NIF, NIS, RC)
+VALUES 
+    (1, 'Centre Alger', 'Boulevard Mohamed V, Alger 16000', '023 45 67 89', '023 45 67 90', 'centre.alger@ade.dz', '023 45 67 91', 'BNA', '0079 9999 1234567890 12', '099916000123456', '199916B0123456', '16/00-1234567B23'),
+    (2, 'Centre Oran', 'Avenue de l''ALN, Oran 31000', '041 23 45 67', '041 23 45 68', 'centre.oran@ade.dz', '041 23 45 69', 'BEA', '0080 8888 2345678901 23', '099931000234567', '199931B0234567', '31/00-2345678B34'),
+    (3, 'Centre Constantine', 'Rue Didouche Mourad, Constantine 25000', '031 87 65 43', '031 87 65 44', 'centre.constantine@ade.dz', '031 87 65 45', 'CPA', '0082 7777 3456789012 34', '099925000345678', '199925B0345678', '25/00-3456789B45'),
+    (4, 'Centre Annaba', 'Boulevard du 1er Novembre, Annaba 23000', '038 54 32 10', '038 54 32 11', 'centre.annaba@ade.dz', '038 54 32 12', 'BADR', '0081 6666 4567890123 45', '099923000456789', '199923B0456789', '23/00-4567890B56'),
+    (5, 'Centre Blida', 'Place de la LibertÃ©, Blida 09000', '025 98 76 54', '025 98 76 55', 'centre.blida@ade.dz', '025 98 76 56', 'CNEP', '0083 5555 5678901234 56', '099909000567890', '199909B0567890', '09/00-5678901B67');
 
--------------------------------------------------------
--- 3. INSERTION DES AGENCES (10 Agences)
--------------------------------------------------------
-PRINT '--- 3. Insertion des 10 Agences (réparties sur les centres) ---';
+SET IDENTITY_INSERT dbo.DIM_CENTRE OFF;
+GO
 
-INSERT INTO dbo.DIM_AGENCE (FK_Centre, Nom_Agence, Adresse, Telephone, Telephone2, Email, Fax)
-OUTPUT inserted.AgenceId, inserted.Nom_Agence INTO @InsertedAgences (AgenceId, Nom_Agence)
-SELECT
-    C.CentreId,
-    A.Nom_Agence,
-    A.Adresse,
-    A.Telephone,
-    A.Telephone2,
-    A.Email,
-    A.Fax
-FROM (
-    -- Medea (3 agences)
-    SELECT 'TahTouh' AS Nom_Agence, 'Cité TahTouh, Medea' AS Adresse, '025-50-11-11' AS Telephone, '055-00-11-12' AS Telephone2, 'ag.tahtouh@ade.dz' AS Email, NULL AS Fax, 'Medea' AS Centre
-    UNION ALL SELECT '24Février', 'Avenue du 24 Février, Medea', '025-50-11-21', '055-00-11-22', 'ag.24fev@ade.dz', NULL, 'Medea'
-    UNION ALL SELECT 'Ouzra', 'Route de Ouzra, Medea', '025-50-11-31', '055-00-11-32', 'ag.ouzra@ade.dz', NULL, 'Medea'
+/*******************************************************
+  INSERTION DES AGENCES (10)
+*******************************************************/
+SET IDENTITY_INSERT dbo.DIM_AGENCE ON;
+
+INSERT INTO dbo.DIM_AGENCE (AgenceId, FK_Centre, Nom_Agence, Adresse, Telephone, Telephone2, Email, Fax)
+VALUES 
+    -- Agences Centre Alger (3)
+    (1, 1, 'Agence Bab El Oued', 'Rue Tripoli, Bab El Oued, Alger', '023 12 34 56', '023 12 34 57', 'ag.babeloued@ade.dz', '023 12 34 58'),
+    (2, 1, 'Agence Hussein Dey', 'Avenue Pasteur, Hussein Dey, Alger', '023 23 45 67', '023 23 45 68', 'ag.husseindey@ade.dz', '023 23 45 69'),
+    (3, 1, 'Agence Birtouta', 'Route Nationale 1, Birtouta, Alger', '023 34 56 78', NULL, 'ag.birtouta@ade.dz', NULL),
     
-    -- Berrouaghia (2 agences)
-    UNION ALL SELECT 'Berrouaghia Ville', 'Rue Principale, Berrouaghia', '025-50-21-11', '055-00-21-12', 'ag.berro@ade.dz', NULL, 'Berrouaghia'
-    UNION ALL SELECT 'Sidi Merabet', 'Quartier Sidi Merabet, Berrouaghia', '025-50-21-21', '055-00-21-22', 'ag.sidi@ade.dz', NULL, 'Berrouaghia'
+    -- Agences Centre Oran (2)
+    (4, 2, 'Agence Es Senia', 'Rue Larbi Ben M''hidi, Es Senia, Oran', '041 34 56 78', '041 34 56 79', 'ag.essenia@ade.dz', '041 34 56 80'),
+    (5, 2, 'Agence Bir El Djir', 'Boulevard de la Soummam, Bir El Djir, Oran', '041 45 67 89', NULL, 'ag.bireldjir@ade.dz', NULL),
     
-    -- Ksar Boukhari (2 agences)
-    UNION ALL SELECT 'Ksar Centre', 'Place Centrale, Ksar Boukhari', '025-50-31-11', '055-00-31-12', 'ag.ksar@ade.dz', NULL, 'Ksar Boukhari'
-    UNION ALL SELECT 'Ouled Hellal', 'RN1, Ouled Hellal', '025-50-31-21', '055-00-31-22', 'ag.ouled@ade.dz', NULL, 'Ksar Boukhari'
-
-    -- Beni Slimane (2 agences)
-    UNION ALL SELECT 'Beni Slimane Nord', 'Rond-Point Nord, Beni Slimane', '025-50-41-11', '055-00-41-12', 'ag.benisl@ade.dz', NULL, 'Beni Slimane'
-    UNION ALL SELECT 'Aziz', 'Centre-Ville, Aziz', '025-50-41-21', '055-00-41-22', 'ag.aziz@ade.dz', NULL, 'Beni Slimane'
-
-    -- Si El Mahdjoub (1 agence)
-    UNION ALL SELECT 'Si El Mahdjoub', 'Rue des Martyrs, Si El Mahdjoub', '025-50-51-11', '055-00-51-12', 'ag.sielmahdjoub@ade.dz', NULL, 'Si El Mahdjoub'
-) AS A
-JOIN @InsertedCentres C ON A.Centre = C.Nom_Centre;
-
--------------------------------------------------------
--- 4. INSERTION DES COMMUNES (15 Communes)
--------------------------------------------------------
-PRINT '--- 4. Insertion des 15 Communes (réparties sur les agences) ---';
-
-INSERT INTO dbo.DIM_COMMUNE (FK_Agence, Nom_Commune)
-SELECT
-    A.AgenceId,
-    C.Nom_Commune
-FROM (
-    -- TahTouh (3 communes)
-    SELECT 'Medea' AS Nom_Commune, 'TahTouh' AS Agence
-    UNION ALL SELECT 'Ouamri', 'TahTouh'
-    UNION ALL SELECT 'Tamesguida', 'TahTouh'
+    -- Agences Centre Constantine (2)
+    (6, 3, 'Agence Zouaghi', 'Rue des FrÃ¨res Ferrad, Zouaghi, Constantine', '031 56 78 90', '031 56 78 91', 'ag.zouaghi@ade.dz', '031 56 78 92'),
+    (7, 3, 'Agence El Khroub', 'Avenue de l''IndÃ©pendance, El Khroub', '031 67 89 01', NULL, 'ag.elkhroub@ade.dz', NULL),
     
-    -- 24Février (2 communes)
-    UNION ALL SELECT 'Seghouane', '24Février'
-    UNION ALL SELECT 'Derrag', '24Février'
+    -- Agences Centre Annaba (2)
+    (8, 4, 'Agence Sidi Amar', 'Rue de la RÃ©volution, Sidi Amar, Annaba', '038 78 90 12', '038 78 90 13', 'ag.sidiamar@ade.dz', NULL),
+    (9, 4, 'Agence Berrahal', 'Boulevard Bouguerra, Berrahal, Annaba', '038 89 01 23', NULL, 'ag.berrahal@ade.dz', NULL),
     
-    -- Ouzra (1 commune)
-    UNION ALL SELECT 'Ouzra', 'Ouzra'
-    
-    -- Berrouaghia Ville (2 communes)
-    UNION ALL SELECT 'Berrouaghia', 'Berrouaghia Ville'
-    UNION ALL SELECT 'Sidi Naamane', 'Berrouaghia Ville'
-    
-    -- Sidi Merabet (1 commune)
-    UNION ALL SELECT 'Ain Boucif', 'Sidi Merabet'
-    
-    -- Ksar Centre (1 commune)
-    UNION ALL SELECT 'Ksar Boukhari', 'Ksar Centre'
-    
-    -- Ouled Hellal (1 commune)
-    UNION ALL SELECT 'Ouled Hellal', 'Ouled Hellal'
+    -- Agence Centre Blida (1)
+    (10, 5, 'Agence Ouled YaÃ¯ch', 'Avenue Ahmed Zabana, Ouled YaÃ¯ch, Blida', '025 90 12 34', '025 90 12 35', 'ag.ouledyaich@ade.dz', '025 90 12 36');
 
-    -- Beni Slimane Nord (2 communes)
-    UNION ALL SELECT 'Beni Slimane', 'Beni Slimane Nord'
-    UNION ALL SELECT 'Ouled Brahim', 'Beni Slimane Nord'
+SET IDENTITY_INSERT dbo.DIM_AGENCE OFF;
+GO
+
+/*******************************************************
+  INSERTION DES COMMUNES (8)
+*******************************************************/
+SET IDENTITY_INSERT dbo.DIM_COMMUNE ON;
+
+INSERT INTO dbo.DIM_COMMUNE (CommuneId, FK_Agence, Nom_Commune)
+VALUES 
+    -- Communes pour Agence Bab El Oued
+    (1, 1, 'Bab El Oued'),
+    (2, 1, 'Oued Koriche'),
     
-    -- Aziz (1 commune)
-    UNION ALL SELECT 'Aziz', 'Aziz'
+    -- Communes pour Agence Hussein Dey
+    (3, 2, 'Hussein Dey'),
+    (4, 2, 'Kouba'),
+    
+    -- Commune pour Agence Es Senia
+    (5, 4, 'Es Senia'),
+    
+    -- Commune pour Agence Zouaghi
+    (6, 6, 'Constantine Centre'),
+    
+    -- Commune pour Agence Sidi Amar
+    (7, 8, 'Sidi Amar'),
+    
+    -- Commune pour Agence Ouled YaÃ¯ch
+    (8, 10, 'Ouled YaÃ¯ch');
 
-    -- Si El Mahdjoub (1 commune)
-    UNION ALL SELECT 'Si El Mahdjoub', 'Si El Mahdjoub'
-) AS C
-JOIN @InsertedAgences A ON C.Agence = A.Nom_Agence;
+SET IDENTITY_INSERT dbo.DIM_COMMUNE OFF;
+GO
 
+/*******************************************************
+  INSERTION DES OBJECTIFS POUR CHAQUE AGENCE
+  PÃ©riode : 01/01/2025 - 31/12/2025
+*******************************************************/
+SET IDENTITY_INSERT dbo.DIM_OBJECTIF ON;
 
--------------------------------------------------------
--- VÉRIFICATION GLOBALE (Synthèse)
--------------------------------------------------------
-PRINT '--- Vérification des données insérées ---';
+INSERT INTO dbo.DIM_OBJECTIF (ObjectifId, FK_Agence, DateDebut, DateFin, Titre, Description, 
+    Obj_Encaissement, Obj_Coupures, Obj_Dossiers_Juridiques, Obj_MisesEnDemeure, 
+    Obj_Relances, Obj_Controles, Obj_Compteurs_Remplaces, IsActive)
+VALUES 
+    (1, 1, '2025-01-01', '2025-12-31', 'Objectifs 2025 - Agence Bab El Oued', 'Objectifs annuels pour amÃ©liorer le recouvrement', 
+        385000.00, 48, 17, 16, 125, 18, 8, 1),
+    (2, 2, '2025-01-01', '2025-12-31', 'Objectifs 2025 - Agence Hussein Dey', 'Objectifs annuels pour amÃ©liorer le recouvrement', 
+        420000.00, 55, 19, 18, 140, 19, 9, 1),
+    (3, 3, '2025-01-01', '2025-12-31', 'Objectifs 2025 - Agence Birtouta', 'Objectifs annuels pour amÃ©liorer le recouvrement', 
+        295000.00, 38, 12, 11, 85, 14, 6, 1),
+    (4, 4, '2025-01-01', '2025-12-31', 'Objectifs 2025 - Agence Es Senia', 'Objectifs annuels pour amÃ©liorer le recouvrement', 
+        365000.00, 45, 15, 14, 110, 17, 7, 1),
+    (5, 5, '2025-01-01', '2025-12-31', 'Objectifs 2025 - Agence Bir El Djir', 'Objectifs annuels pour amÃ©liorer le recouvrement', 
+        310000.00, 42, 13, 12, 95, 15, 5, 1),
+    (6, 6, '2025-01-01', '2025-12-31', 'Objectifs 2025 - Agence Zouaghi', 'Objectifs annuels pour amÃ©liorer le recouvrement', 
+        445000.00, 58, 20, 19, 145, 20, 10, 1),
+    (7, 7, '2025-01-01', '2025-12-31', 'Objectifs 2025 - Agence El Khroub', 'Objectifs annuels pour amÃ©liorer le recouvrement', 
+        275000.00, 35, 10, 9, 75, 12, 4, 1),
+    (8, 8, '2025-01-01', '2025-12-31', 'Objectifs 2025 - Agence Sidi Amar', 'Objectifs annuels pour amÃ©liorer le recouvrement', 
+        340000.00, 43, 14, 13, 100, 16, 6, 1),
+    (9, 9, '2025-01-01', '2025-12-31', 'Objectifs 2025 - Agence Berrahal', 'Objectifs annuels pour amÃ©liorer le recouvrement', 
+        260000.00, 32, 9, 8, 65, 11, 3, 1),
+    (10, 10, '2025-01-01', '2025-12-31', 'Objectifs 2025 - Agence Ouled YaÃ¯ch', 'Objectifs annuels pour amÃ©liorer le recouvrement', 
+        325000.00, 40, 13, 12, 90, 15, 7, 1);
 
+SET IDENTITY_INSERT dbo.DIM_OBJECTIF OFF;
+GO
+
+/*******************************************************
+  INSERTION DES FAITS KPI - OCTOBRE 2025
+  PÃ©riode : 01/10/2025 au 27/10/2025 (excluant les vendredis)
+  Vendredis exclus : 04/10, 11/10, 18/10, 25/10
+*******************************************************/
+
+-- Variable pour gÃ©nÃ©rer des variations alÃ©atoires
+DECLARE @dates TABLE (DateKPI DATE);
+INSERT INTO @dates VALUES 
+    ('2025-10-01'), ('2025-10-02'), ('2025-10-03'), -- Mer, Jeu, Ven (exclu)
+    ('2025-10-05'), ('2025-10-06'), ('2025-10-07'), ('2025-10-08'), ('2025-10-09'), ('2025-10-10'), -- Sam-Jeu
+    ('2025-10-12'), ('2025-10-13'), ('2025-10-14'), ('2025-10-15'), ('2025-10-16'), ('2025-10-17'), -- Sam-Jeu
+    ('2025-10-19'), ('2025-10-20'), ('2025-10-21'), ('2025-10-22'), ('2025-10-23'), ('2025-10-24'), -- Sam-Jeu
+    ('2025-10-26'), ('2025-10-27'); -- Sam, Dim
+
+-- Insertion des donnÃ©es pour chaque agence, chaque catÃ©gorie, chaque jour
+INSERT INTO dbo.FAIT_KPI_ADE (
+    AgenceId, DateKPI, CategorieId,
+    Nb_RelancesEnvoyees, Mt_RelancesEnvoyees, Nb_RelancesReglees, Mt_RelancesReglees,
+    Nb_MisesEnDemeure_Envoyees, Mt_MisesEnDemeure_Envoyees, Nb_MisesEnDemeure_Reglees, Mt_MisesEnDemeure_Reglees,
+    Nb_Dossiers_Juridiques, Mt_Dossiers_Juridiques,
+    Nb_Coupures, Mt_Coupures,
+    Nb_Retablissements, Mt_Retablissements,
+    Nb_Branchements, Nb_Compteurs_Remplaces, Nb_Controles,
+    Encaissement_Journalier_Global
+)
 SELECT 
-    'Catégories' AS Entité, COUNT(*) AS Nombre_Inséré FROM @InsertedCategories 
-UNION ALL
-SELECT 
-    'Centres' AS Entité, COUNT(*) AS Nombre_Inséré FROM @InsertedCentres 
-UNION ALL
-SELECT 
-    'Agences' AS Entité, COUNT(*) AS Nombre_Inséré FROM @InsertedAgences 
-UNION ALL
-SELECT 
-    'Communes' AS Entité, COUNT(*) AS Nombre_Inséré FROM dbo.DIM_COMMUNE WHERE FK_Agence IN (SELECT AgenceId FROM @InsertedAgences);
+    a.AgenceId,
+    d.DateKPI,
+    c.CategorieId,
+    -- Relances (variation Â±50% de l'objectif quotidien)
+    CAST((o.Obj_Relances / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS INT),
+    CAST((o.Obj_Encaissement * 0.15 / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS MONEY),
+    CAST((o.Obj_Relances / 30.0) * (0.3 + RAND(CHECKSUM(NEWID())) * 0.4) AS INT),
+    CAST((o.Obj_Encaissement * 0.10 / 30.0) * (0.3 + RAND(CHECKSUM(NEWID())) * 0.4) AS MONEY),
+    -- Mises en demeure
+    CAST((o.Obj_MisesEnDemeure / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS INT),
+    CAST((o.Obj_Encaissement * 0.12 / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS MONEY),
+    CAST((o.Obj_MisesEnDemeure / 30.0) * (0.2 + RAND(CHECKSUM(NEWID())) * 0.3) AS INT),
+    CAST((o.Obj_Encaissement * 0.08 / 30.0) * (0.2 + RAND(CHECKSUM(NEWID())) * 0.3) AS MONEY),
+    -- Dossiers juridiques
+    CAST((o.Obj_Dossiers_Juridiques / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS INT),
+    CAST((o.Obj_Encaissement * 0.18 / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS MONEY),
+    -- Coupures
+    CAST((o.Obj_Coupures / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS INT),
+    CAST((o.Obj_Encaissement * 0.08 / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS MONEY),
+    -- RÃ©tablissements (environ 60% des coupures)
+    CAST((o.Obj_Coupures / 30.0) * 0.6 * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS INT),
+    CAST((o.Obj_Encaissement * 0.05 / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS MONEY),
+    -- Branchements (1-3 par jour en moyenne)
+    CAST(1 + RAND(CHECKSUM(NEWID())) * 2 AS INT),
+    -- Compteurs remplacÃ©s
+    CAST((o.Obj_Compteurs_Remplaces / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS INT),
+    -- ContrÃ´les
+    CAST((o.Obj_Controles / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS INT),
+    -- Encaissement journalier (variation Â±50%)
+    CAST((o.Obj_Encaissement / 30.0) * (0.5 + RAND(CHECKSUM(NEWID())) * 1.0) AS MONEY)
+FROM 
+    dbo.DIM_AGENCE a
+    CROSS JOIN @dates d
+    CROSS JOIN dbo.DIM_CATEGORIE c
+    INNER JOIN dbo.DIM_OBJECTIF o ON a.AgenceId = o.FK_Agence AND o.IsActive = 1
+WHERE 
+    -- Exclure les vendredis
+    DATEPART(WEEKDAY, d.DateKPI) != 6; -- 6 = Vendredi (si DATEFIRST = 7)
 
 GO
 
--- Affichage détaillé de la hiérarchie pour confirmation
-SELECT
-    CEN.Nom_Centre,
-    AGE.Nom_Agence,
-    COM.Nom_Commune
-FROM
-    dbo.DIM_CENTRE CEN
-JOIN
-    dbo.DIM_AGENCE AGE ON CEN.CentreId = AGE.FK_Centre
-JOIN
-    dbo.DIM_COMMUNE COM ON AGE.AgenceId = COM.FK_Agence
-ORDER BY CEN.Nom_Centre, AGE.Nom_Agence, COM.Nom_Commune;
+/*******************************************************
+  AFFICHAGE DES STATISTIQUES
+*******************************************************/
+PRINT '========================================================';
+PRINT 'âœ“ INSERTION DES DONNÃ‰ES TERMINÃ‰E AVEC SUCCÃˆS';
+PRINT '========================================================';
+PRINT '';
+PRINT 'RÃ‰SUMÃ‰ DES INSERTIONS :';
+PRINT '------------------------';
+PRINT 'CatÃ©gories insÃ©rÃ©es     : ' + CAST((SELECT COUNT(*) FROM dbo.DIM_CATEGORIE) AS VARCHAR(10));
+PRINT 'Centres insÃ©rÃ©s         : ' + CAST((SELECT COUNT(*) FROM dbo.DIM_CENTRE) AS VARCHAR(10));
+PRINT 'Agences insÃ©rÃ©es        : ' + CAST((SELECT COUNT(*) FROM dbo.DIM_AGENCE) AS VARCHAR(10));
+PRINT 'Communes insÃ©rÃ©es       : ' + CAST((SELECT COUNT(*) FROM dbo.DIM_COMMUNE) AS VARCHAR(10));
+PRINT 'Objectifs insÃ©rÃ©s       : ' + CAST((SELECT COUNT(*) FROM dbo.DIM_OBJECTIF) AS VARCHAR(10));
+PRINT 'KPI Faits insÃ©rÃ©s       : ' + CAST((SELECT COUNT(*) FROM dbo.FAIT_KPI_ADE) AS VARCHAR(10));
+PRINT '';
+PRINT 'PÃ‰RIODE DES DONNÃ‰ES KPI :';
+PRINT '------------------------';
+PRINT 'Date dÃ©but              : ' + CONVERT(VARCHAR(10), (SELECT MIN(DateKPI) FROM dbo.FAIT_KPI_ADE), 103);
+PRINT 'Date fin                : ' + CONVERT(VARCHAR(10), (SELECT MAX(DateKPI) FROM dbo.FAIT_KPI_ADE), 103);
+PRINT 'Nombre de jours         : ' + CAST((SELECT COUNT(DISTINCT DateKPI) FROM dbo.FAIT_KPI_ADE) AS VARCHAR(10));
+PRINT '';
+PRINT '========================================================';
+GO
+
+-- VÃ©rification : Afficher un Ã©chantillon de donnÃ©es
+SELECT TOP 20
+    a.Nom_Agence,
+    k.DateKPI,
+    cat.Libelle AS Categorie,
+    k.Encaissement_Journalier_Global,
+    k.Nb_Coupures,
+    k.Nb_RelancesEnvoyees,
+    k.Nb_Controles
+FROM dbo.FAIT_KPI_ADE k
+INNER JOIN dbo.DIM_AGENCE a ON k.AgenceId = a.AgenceId
+INNER JOIN dbo.DIM_CATEGORIE cat ON k.CategorieId = cat.CategorieId
+ORDER BY k.DateKPI DESC, a.Nom_Agence, cat.Libelle;
 GO
