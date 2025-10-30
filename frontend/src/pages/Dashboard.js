@@ -162,10 +162,10 @@ const Dashboard = () => {
         {/* Contenu principal */}
         <main className="p-6 fade-in space-y-6">
           {/* Carte Taux le plus élevé (Agence) - harmonisée */}
-          <div className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl transition-all min-h-[140px]">
-            <div className="flex items-center justify-between">
+          <div className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+            <div className="flex items-center justify-between w-full">
               <div>
-                <p className="text-white/90 text-xs uppercase tracking-wider font-semibold mb-1">Meilleur Taux du Jour</p>
+                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux du Jour</p>
                 {highestDailyRate.loading ? (
                   <p className="text-3xl font-bold text-white mb-1">...</p>
                 ) : highestDailyRate.taux !== null ? (
@@ -188,7 +188,7 @@ const Dashboard = () => {
                   </>
                 )}
               </div>
-              <div className="bg-white/20 rounded-full p-3">
+              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
                 <Trophy className="w-7 h-7 text-white" />
               </div>
             </div>
@@ -201,10 +201,10 @@ const Dashboard = () => {
           </div>
 
           {/* Carte Taux le plus élevé (Centre) - harmonisée */}
-          <div className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl transition-all min-h-[140px]">
-            <div className="flex items-center justify-between">
+          <div className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+            <div className="flex items-center justify-between w-full">
               <div>
-                <p className="text-white/90 text-xs uppercase tracking-wider font-semibold mb-1">Meilleur Taux Centre du Jour</p>
+                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux Centre du Jour</p>
                 {highestCentreDailyRate.loading ? (
                   <p className="text-3xl font-bold text-white mb-1">...</p>
                 ) : highestCentreDailyRate.taux !== null ? (
@@ -227,7 +227,7 @@ const Dashboard = () => {
                   </>
                 )}
               </div>
-              <div className="bg-white/20 rounded-full p-3">
+              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
                 <Trophy className="w-7 h-7 text-white" />
               </div>
             </div>
@@ -242,83 +242,91 @@ const Dashboard = () => {
           {/* Cartes KPI interactives */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div 
-              className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer min-h-[140px]"
+              className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/users')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-white/90">Utilisateurs</p>
-                  <p className="mt-1 text-3xl font-bold text-white">{stats.loading ? '...' : stats.users}</p>
+                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90">Utilisateurs</p>
+                  <p className="mt-1 text-3xl font-bold text-gray-900">
+                    {stats.loading ? '...' : stats.users}
+                  </p>
                 </div>
-                <div className="bg-white/20 rounded-full p-3">
+                <div className="bg-sky-300/60 rounded-full p-3 flex items-center justify-center">
                   <Users className="w-7 h-7 text-white" />
                 </div>
               </div>
-              <div className="mt-3 text-xs text-white/90 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-gray-600/90 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Actifs'}
               </div>
-              <div className="mt-3 text-xs text-white/90 font-medium">Cliquez pour gérer →</div>
+              <div className="mt-3 text-xs text-sky-700 font-medium">Cliquez pour gérer →</div>
             </div>
 
             <div 
-              className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer min-h-[140px]"
+              className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/centres')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-white/90">Centres</p>
-                  <p className="mt-1 text-3xl font-bold text-white">{stats.loading ? '...' : stats.centres}</p>
+                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90">Centres</p>
+                  <p className="mt-1 text-3xl font-bold text-gray-900">
+                    {stats.loading ? '...' : stats.centres}
+                  </p>
                 </div>
-                <div className="bg-white/20 rounded-full p-3">
+                <div className="bg-sky-300/60 rounded-full p-3 flex items-center justify-center">
                   <Building2 className="w-7 h-7 text-white" />
                 </div>
               </div>
-              <div className="mt-3 text-xs text-white/90 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-gray-600/90 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Opérationnels'}
               </div>
-              <div className="mt-3 text-xs text-white/90 font-medium">Cliquez pour gérer →</div>
+              <div className="mt-3 text-xs text-sky-700 font-medium">Cliquez pour gérer →</div>
             </div>
 
             <div 
-              className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer min-h-[140px]"
+              className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/agences')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-white/90">Agences</p>
-                  <p className="mt-1 text-3xl font-bold text-white">{stats.loading ? '...' : stats.agences}</p>
+                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90">Agences</p>
+                  <p className="mt-1 text-3xl font-bold text-gray-900">
+                    {stats.loading ? '...' : stats.agences}
+                  </p>
                 </div>
-                <div className="bg-white/20 rounded-full p-3">
+                <div className="bg-sky-300/60 rounded-full p-3 flex items-center justify-center">
                   <Building2 className="w-7 h-7 text-white" />
                 </div>
               </div>
-              <div className="mt-3 text-xs text-white/90 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-gray-600/90 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'En service'}
               </div>
-              <div className="mt-3 text-xs text-white/90 font-medium">Cliquez pour gérer →</div>
+              <div className="mt-3 text-xs text-sky-700 font-medium">Cliquez pour gérer →</div>
             </div>
 
             <div 
-              className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer min-h-[140px]"
+              className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/communes')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-white/90">Communes</p>
-                  <p className="mt-1 text-3xl font-bold text-white">{stats.loading ? '...' : stats.communes}</p>
+                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90">Communes</p>
+                  <p className="mt-1 text-3xl font-bold text-gray-900">
+                    {stats.loading ? '...' : stats.communes}
+                  </p>
                 </div>
-                <div className="bg-white/20 rounded-full p-3">
+                <div className="bg-sky-300/60 rounded-full p-3 flex items-center justify-center">
                   <MapPin className="w-7 h-7 text-white" />
                 </div>
               </div>
-              <div className="mt-3 text-xs text-white/90 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-gray-600/90 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Couvrent'}
               </div>
-              <div className="mt-3 text-xs text-white/90 font-medium">Cliquez pour gérer →</div>
+              <div className="mt-3 text-xs text-sky-700 font-medium">Cliquez pour gérer →</div>
             </div>
           </div>
         </main>
