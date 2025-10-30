@@ -26,6 +26,11 @@ const Dashboard = () => {
     centre: '',
     loading: true
   });
+  const [highestMonthlyAvgRate, setHighestMonthlyAvgRate] = useState({
+    taux: 0,
+    agence: '',
+    loading: true
+  });
   const user = authService.getCurrentUser();
   const navigate = useNavigate();
 
@@ -39,10 +44,11 @@ const Dashboard = () => {
           agenceService.getCount(),
           communesService.getCount(),
           kpiService.getHighestDailyRate(),
-          kpiService.getHighestDailyRateByCentre()
+          kpiService.getHighestDailyRateByCentre(),
+          kpiService.getHighestMonthlyAverageRate()
         ]);
 
-        const [usersRes, centresCountRes, agencesCountRes, communesCountRes, highestRateRes, highestCentreRateRes] = results;
+        const [usersRes, centresCountRes, agencesCountRes, communesCountRes, highestRateRes, highestCentreRateRes, highestMonthlyAvgRes] = results;
 
         // Users count
         let usersCount = 0;
@@ -131,11 +137,25 @@ const Dashboard = () => {
             loading: false
           });
         }
+
+        const highestMonthlyAvg = highestMonthlyAvgRes.status === 'fulfilled' ? highestMonthlyAvgRes.value : null;
+        if (highestMonthlyAvg && (highestMonthlyAvg.Taux_Moyen != null || highestMonthlyAvg.Taux_Moyen_MTD != null)) {
+          const taux = highestMonthlyAvg.Taux_Moyen ?? highestMonthlyAvg.Taux_Moyen_MTD;
+          setHighestMonthlyAvgRate({
+            taux,
+            agence: highestMonthlyAvg.Nom_Agence || '',
+            loading: false
+          });
+        } else {
+          console.log('⚠️ Dashboard - Aucun taux moyen mensuel trouvé');
+          setHighestMonthlyAvgRate({ taux: null, agence: '', loading: false });
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des statistiques:', error);
         setStats(prev => ({ ...prev, loading: false }));
         setHighestDailyRate({ taux: null, agence: '', loading: false });
         setHighestCentreDailyRate({ taux: null, centre: '', loading: false });
+        setHighestMonthlyAvgRate({ taux: null, agence: '', loading: false });
       }
     };
 
@@ -171,7 +191,7 @@ const Dashboard = () => {
                 ) : highestDailyRate.taux !== null ? (
                   <>
                     <p className="text-3xl font-bold text-white mb-1">
-                      {highestDailyRate.taux.toFixed(1)}%
+                      {highestDailyRate.taux.toFixed(2)}%
                     </p>
                     {highestDailyRate.agence && (
                       <p className="text-white/80 text-xs font-medium">
@@ -210,7 +230,7 @@ const Dashboard = () => {
                 ) : highestCentreDailyRate.taux !== null ? (
                   <>
                     <p className="text-3xl font-bold text-white mb-1">
-                      {highestCentreDailyRate.taux.toFixed(1)}%
+                      {highestCentreDailyRate.taux.toFixed(2)}%
                     </p>
                     {highestCentreDailyRate.centre && (
                       <p className="text-white/80 text-xs font-medium">
@@ -235,6 +255,45 @@ const Dashboard = () => {
               <div className="mt-4 flex items-center gap-2 text-white/90 text-xs">
                 <TrendingUp className="w-4 h-4" />
                 <span>Centre le plus performant</span>
+              </div>
+            )}
+          </div>
+
+          {/* Carte Taux moyen le plus fort depuis le début du mois (Agence) */}
+          <div className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-indigo-500 via-sky-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux Moyen (Mois en cours)</p>
+                {highestMonthlyAvgRate.loading ? (
+                  <p className="text-3xl font-bold text-white mb-1">...</p>
+                ) : highestMonthlyAvgRate.taux !== null ? (
+                  <>
+                    <p className="text-3xl font-bold text-white mb-1">
+                      {highestMonthlyAvgRate.taux.toFixed(2)}%
+                    </p>
+                    {highestMonthlyAvgRate.agence && (
+                      <p className="text-white/80 text-xs font-medium">
+                        {highestMonthlyAvgRate.agence}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-base font-semibold text-white/90 mb-1">Aucune donnée</p>
+                    <p className="text-white/70 text-xs">
+                      Aucune agence avec taux moyen pour ce mois
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+                <Trophy className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            {highestMonthlyAvgRate.taux !== null && !highestMonthlyAvgRate.loading && (
+              <div className="mt-4 flex items-center gap-2 text-white/90 text-xs">
+                <TrendingUp className="w-4 h-4" />
+                <span>Depuis le 1er du mois</span>
               </div>
             )}
           </div>

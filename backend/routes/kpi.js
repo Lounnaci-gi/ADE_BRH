@@ -981,4 +981,83 @@ router.get('/highest-daily-rate-centre', async (req, res) => {
   }
 });
 
+// GET /api/kpi/highest-monthly-average-rate - meilleur taux mensuel (Mois en cours) basé sur l'objectif de tout le mois
+router.get('/highest-monthly-average-rate', async (req, res) => {
+  try {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    const query = `
+      WITH MonthDays AS (
+        SELECT @monthStart AS d
+        UNION ALL
+        SELECT DATEADD(DAY, 1, d) FROM MonthDays WHERE d < @monthEnd
+      ),
+      AgencyEnc AS (
+        SELECT a.AgenceId, a.Nom_Agence,
+               SUM(k.Encaissement_Journalier_Global) AS Encaissement_Total
+        FROM dbo.DIM_AGENCE a
+        LEFT JOIN dbo.FAIT_KPI_ADE k ON a.AgenceId = k.AgenceId
+          AND k.DateKPI >= @monthStart AND k.DateKPI <= @today
+        GROUP BY a.AgenceId, a.Nom_Agence
+      ),
+      AgencyObj AS (
+        SELECT a.AgenceId,
+               SUM(ISNULL(o.Obj_Encaissement, 0)) AS Obj_Total_Mois
+        FROM dbo.DIM_AGENCE a
+        INNER JOIN MonthDays md ON 1 = 1
+        LEFT JOIN dbo.DIM_OBJECTIF o ON a.AgenceId = o.FK_Agence
+          AND o.IsActive = 1
+          AND o.DateDebut <= md.d AND o.DateFin >= md.d
+        GROUP BY a.AgenceId
+      ),
+      Final AS (
+        SELECT e.AgenceId, e.Nom_Agence,
+               ISNULL(e.Encaissement_Total, 0) AS Encaissement_Total,
+               ISNULL(o.Obj_Total_Mois, 0) AS Obj_Total_Mois,
+               CASE WHEN ISNULL(o.Obj_Total_Mois, 0) > 0
+                    THEN ROUND(ISNULL(e.Encaissement_Total, 0) * 100.0 / o.Obj_Total_Mois, 2)
+                    ELSE 0 END AS Taux_Mensuel
+        FROM AgencyEnc e
+        INNER JOIN AgencyObj o ON o.AgenceId = e.AgenceId
+      )
+      SELECT TOP 1 AgenceId, Nom_Agence, Encaissement_Total, Obj_Total_Mois, Taux_Mensuel
+      FROM Final
+      WHERE Obj_Total_Mois > 0
+      ORDER BY Taux_Mensuel DESC
+      OPTION (MAXRECURSION 1000);
+    `;
+
+    const params = [
+      { name: 'monthStart', type: TYPES.Date, value: monthStart },
+      { name: 'monthEnd', type: TYPES.Date, value: monthEnd },
+      { name: 'today', type: TYPES.Date, value: today }
+    ];
+
+    console.log('🔍 DEBUG /kpi/highest-monthly-average-rate - Période:', { monthStart, monthEnd, today });
+
+    const results = await db.query(query, params);
+
+    if (results && results.length > 0) {
+      const row = results[0];
+      res.json({
+        AgenceId: row.AgenceId,
+        Nom_Agence: row.Nom_Agence,
+        Taux_Moyen: row.Taux_Mensuel,
+        Obj_Total_Mois: row.Obj_Total_Mois,
+        Encaissement_Total: row.Encaissement_Total,
+        StartDate: monthStart,
+        EndDate: monthEnd,
+        Today: today
+      });
+    } else {
+      res.json(null);
+    }
+  } catch (err) {
+    console.error('❌ Erreur GET /kpi/highest-monthly-average-rate:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du taux moyen mensuel', error: err.message });
+  }
+});
+
 module.exports = router;
