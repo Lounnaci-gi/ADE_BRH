@@ -64,6 +64,11 @@ const kpiService = {
   async getHighestMonthlyAverageRate() {
     const res = await api.get('/kpi/highest-monthly-average-rate');
     return res.data;
+  },
+
+  async getHighestMonthlyAverageRateByCentre() {
+    const res = await api.get('/kpi/highest-monthly-average-rate-centre');
+    return res.data;
   }
 };
 

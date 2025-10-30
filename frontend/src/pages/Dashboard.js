@@ -31,6 +31,11 @@ const Dashboard = () => {
     agence: '',
     loading: true
   });
+  const [highestMonthlyCentreAvgRate, setHighestMonthlyCentreAvgRate] = useState({
+    taux: 0,
+    centre: '',
+    loading: true
+  });
   const user = authService.getCurrentUser();
   const navigate = useNavigate();
 
@@ -45,10 +50,11 @@ const Dashboard = () => {
           communesService.getCount(),
           kpiService.getHighestDailyRate(),
           kpiService.getHighestDailyRateByCentre(),
-          kpiService.getHighestMonthlyAverageRate()
+          kpiService.getHighestMonthlyAverageRate(),
+          kpiService.getHighestMonthlyAverageRateByCentre()
         ]);
 
-        const [usersRes, centresCountRes, agencesCountRes, communesCountRes, highestRateRes, highestCentreRateRes, highestMonthlyAvgRes] = results;
+        const [usersRes, centresCountRes, agencesCountRes, communesCountRes, highestRateRes, highestCentreRateRes, highestMonthlyAvgRes, highestMonthlyCentreAvgRes] = results;
 
         // Users count
         let usersCount = 0;
@@ -150,12 +156,26 @@ const Dashboard = () => {
           console.log('⚠️ Dashboard - Aucun taux moyen mensuel trouvé');
           setHighestMonthlyAvgRate({ taux: null, agence: '', loading: false });
         }
+
+        const highestMonthlyCentreAvg = highestMonthlyCentreAvgRes.status === 'fulfilled' ? highestMonthlyCentreAvgRes.value : null;
+        if (highestMonthlyCentreAvg && (highestMonthlyCentreAvg.Taux_Mensuel != null || highestMonthlyCentreAvg.Taux_Mensuel_Centre != null)) {
+          const tauxCentre = highestMonthlyCentreAvg.Taux_Mensuel ?? highestMonthlyCentreAvg.Taux_Mensuel_Centre;
+          setHighestMonthlyCentreAvgRate({
+            taux: tauxCentre,
+            centre: highestMonthlyCentreAvg.Nom_Centre || '',
+            loading: false
+          });
+        } else {
+          console.log('⚠️ Dashboard - Aucun centre taux moyen mensuel trouvé');
+          setHighestMonthlyCentreAvgRate({ taux: null, centre: '', loading: false });
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des statistiques:', error);
         setStats(prev => ({ ...prev, loading: false }));
         setHighestDailyRate({ taux: null, agence: '', loading: false });
         setHighestCentreDailyRate({ taux: null, centre: '', loading: false });
         setHighestMonthlyAvgRate({ taux: null, agence: '', loading: false });
+        setHighestMonthlyCentreAvgRate({ taux: null, centre: '', loading: false });
       }
     };
 
@@ -291,6 +311,45 @@ const Dashboard = () => {
               </div>
             </div>
             {highestMonthlyAvgRate.taux !== null && !highestMonthlyAvgRate.loading && (
+              <div className="mt-4 flex items-center gap-2 text-white/90 text-xs">
+                <TrendingUp className="w-4 h-4" />
+                <span>Depuis le 1er du mois</span>
+              </div>
+            )}
+          </div>
+
+          {/* Carte Taux moyen centre le plus élevé (Mois en cours) */}
+          <div className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-indigo-500 via-sky-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux Moyen Centre (Mois en cours)</p>
+                {highestMonthlyCentreAvgRate.loading ? (
+                  <p className="text-3xl font-bold text-white mb-1">...</p>
+                ) : highestMonthlyCentreAvgRate.taux !== null ? (
+                  <>
+                    <p className="text-3xl font-bold text-white mb-1">
+                      {highestMonthlyCentreAvgRate.taux.toFixed(2)}%
+                    </p>
+                    {highestMonthlyCentreAvgRate.centre && (
+                      <p className="text-white/80 text-xs font-medium">
+                        {highestMonthlyCentreAvgRate.centre}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-base font-semibold text-white/90 mb-1">Aucune donnée</p>
+                    <p className="text-white/70 text-xs">
+                      Aucun centre avec taux moyen pour ce mois
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+                <Trophy className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            {highestMonthlyCentreAvgRate.taux !== null && !highestMonthlyCentreAvgRate.loading && (
               <div className="mt-4 flex items-center gap-2 text-white/90 text-xs">
                 <TrendingUp className="w-4 h-4" />
                 <span>Depuis le 1er du mois</span>

@@ -981,6 +981,78 @@ router.get('/highest-daily-rate-centre', async (req, res) => {
   }
 });
 
+// GET /api/kpi/highest-monthly-average-rate-centre - meilleur taux mensuel par centre (moyenne des taux mensuels des agences)
+router.get('/highest-monthly-average-rate-centre', async (req, res) => {
+  try {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    const query = `
+      WITH MonthDays AS (
+        SELECT @monthStart AS d
+        UNION ALL
+        SELECT DATEADD(DAY, 1, d) FROM MonthDays WHERE d < @monthEnd
+      ),
+      -- Encaissement cumulé par agence sur le mois jusqu'à aujourd'hui
+      AgencyEnc AS (
+        SELECT a.AgenceId, a.FK_Centre AS CentreId,
+               SUM(k.Encaissement_Journalier_Global) AS Encaissement_Total
+        FROM dbo.DIM_AGENCE a
+        LEFT JOIN dbo.FAIT_KPI_ADE k ON a.AgenceId = k.AgenceId
+          AND k.DateKPI >= @monthStart AND k.DateKPI <= @today
+        GROUP BY a.AgenceId, a.FK_Centre
+      ),
+      -- Objectif total du mois par agence (somme sur tous les jours du mois)
+      AgencyObj AS (
+        SELECT a.AgenceId,
+               SUM(ISNULL(o.Obj_Encaissement, 0)) AS Obj_Total_Mois
+        FROM dbo.DIM_AGENCE a
+        INNER JOIN MonthDays md ON 1 = 1
+        LEFT JOIN dbo.DIM_OBJECTIF o ON a.AgenceId = o.FK_Agence
+          AND o.IsActive = 1
+          AND o.DateDebut <= md.d AND o.DateFin >= md.d
+        GROUP BY a.AgenceId
+      ),
+      -- Taux mensuel par agence
+      AgencyMonthlyRate AS (
+        SELECT e.AgenceId,
+               e.CentreId,
+               CASE WHEN ISNULL(o.Obj_Total_Mois, 0) > 0
+                    THEN ROUND(ISNULL(e.Encaissement_Total, 0) * 100.0 / o.Obj_Total_Mois, 2)
+                    ELSE 0 END AS Taux_Mensuel_Agence
+        FROM AgencyEnc e
+        INNER JOIN AgencyObj o ON o.AgenceId = e.AgenceId
+      )
+      -- Moyenne des taux mensuels des agences par centre
+      SELECT TOP 1 c.CentreId, c.Nom_Centre, AVG(amr.Taux_Mensuel_Agence) AS Taux_Mensuel_Centre
+      FROM AgencyMonthlyRate amr
+      INNER JOIN dbo.DIM_CENTRE c ON c.CentreId = amr.CentreId
+      GROUP BY c.CentreId, c.Nom_Centre
+      ORDER BY AVG(amr.Taux_Mensuel_Agence) DESC
+      OPTION (MAXRECURSION 1000);
+    `;
+
+    const params = [
+      { name: 'monthStart', type: TYPES.Date, value: monthStart },
+      { name: 'monthEnd', type: TYPES.Date, value: monthEnd },
+      { name: 'today', type: TYPES.Date, value: today }
+    ];
+
+    const results = await db.query(query, params);
+
+    if (results && results.length > 0) {
+      const row = results[0];
+      res.json({ CentreId: row.CentreId, Nom_Centre: row.Nom_Centre, Taux_Mensuel: row.Taux_Mensuel_Centre });
+    } else {
+      res.json(null);
+    }
+  } catch (err) {
+    console.error('❌ Erreur GET /kpi/highest-monthly-average-rate-centre:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du meilleur taux mensuel par centre', error: err.message });
+  }
+});
+
 // GET /api/kpi/highest-monthly-average-rate - meilleur taux mensuel (Mois en cours) basé sur l'objectif de tout le mois
 router.get('/highest-monthly-average-rate', async (req, res) => {
   try {
