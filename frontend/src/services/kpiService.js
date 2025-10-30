@@ -54,6 +54,11 @@ const kpiService = {
   async getHighestDailyRate(date) {
     const res = await api.get(`/kpi/highest-daily-rate${date ? `?date=${date}` : ''}`);
     return res.data;
+  },
+
+  async getHighestDailyRateByCentre(date) {
+    const res = await api.get(`/kpi/highest-daily-rate-centre${date ? `?date=${date}` : ''}`);
+    return res.data;
   }
 };
 

@@ -922,4 +922,63 @@ router.get('/highest-daily-rate', async (req, res) => {
   }
 });
 
+// GET /api/kpi/highest-daily-rate-centre - meilleur taux journalier par centre (moyenne stricte de toutes les agences, 0 si pas de KPI)
+router.get('/highest-daily-rate-centre', async (req, res) => {
+  try {
+    const { date } = req.query;
+    const targetDate = date ? new Date(date) : new Date();
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth() + 1;
+    const day = targetDate.getDate();
+    const dateKey = year * 10000 + month * 100 + day;
+    const dateValue = convertDateKeyToSQLServer(dateKey);
+    // Strict average over all agencies with encaissement objective, KPI defaults to 0 if missing
+    const query = `
+      WITH AgenciesWithObjectives AS (
+        SELECT a.AgenceId, a.FK_Centre AS CentreId, c.Nom_Centre, o.Obj_Encaissement
+        FROM dbo.DIM_AGENCE a
+        INNER JOIN dbo.DIM_CENTRE c ON a.FK_Centre = c.CentreId
+        LEFT JOIN dbo.DIM_OBJECTIF o ON a.AgenceId = o.FK_Agence
+          AND o.DateDebut <= @dateKey AND o.DateFin >= @dateKey AND o.IsActive = 1
+        WHERE o.Obj_Encaissement IS NOT NULL AND o.Obj_Encaissement > 0
+      ),
+      AgencyKPI AS (
+        SELECT k.AgenceId, k.Encaissement_Journalier_Global
+        FROM dbo.FAIT_KPI_ADE k
+        WHERE k.DateKPI = @dateKey
+      ),
+      CentreTaux AS (
+        SELECT
+          a.CentreId,
+          a.Nom_Centre,
+          CASE
+            WHEN a.Obj_Encaissement > 0
+            THEN ROUND(ISNULL(k.Encaissement_Journalier_Global, 0) * 100.0 / a.Obj_Encaissement, 2)
+            ELSE 0
+          END AS Taux_Agence
+        FROM AgenciesWithObjectives a
+        LEFT JOIN AgencyKPI k ON a.AgenceId = k.AgenceId
+      )
+      SELECT TOP 1
+        CentreId, Nom_Centre, AVG(Taux_Agence) AS Taux_Journalier_Centre
+      FROM CentreTaux
+      GROUP BY CentreId, Nom_Centre
+      ORDER BY AVG(Taux_Agence) DESC
+    `;
+    const params = [
+      { name: 'dateKey', type: TYPES.Date, value: dateValue }
+    ];
+    const results = await db.query(query, params);
+    if (results && results.length > 0) {
+      const row = results[0];
+      res.json({ CentreId: row.CentreId, Nom_Centre: row.Nom_Centre, Taux_Journalier: row.Taux_Journalier_Centre });
+    } else {
+      res.json(null);
+    }
+  } catch (err) {
+    console.error('❌ Erreur GET /kpi/highest-daily-rate-centre:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du meilleur taux journalier par centre', error: err.message });
+  }
+});
+
 module.exports = router;

@@ -21,6 +21,11 @@ const Dashboard = () => {
     agence: '',
     loading: true
   });
+  const [highestCentreDailyRate, setHighestCentreDailyRate] = useState({
+    taux: 0,
+    centre: '',
+    loading: true
+  });
   const user = authService.getCurrentUser();
   const navigate = useNavigate();
 
@@ -28,22 +33,67 @@ const Dashboard = () => {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [usersData, centresCount, agencesCount, communesCount, highestRate] = await Promise.all([
+        const results = await Promise.allSettled([
           userService.list(),
           centresService.getCount(),
           agenceService.getCount(),
           communesService.getCount(),
-          kpiService.getHighestDailyRate()
+          kpiService.getHighestDailyRate(),
+          kpiService.getHighestDailyRateByCentre()
         ]);
-        
+
+        const [usersRes, centresCountRes, agencesCountRes, communesCountRes, highestRateRes, highestCentreRateRes] = results;
+
+        // Users count
+        let usersCount = 0;
+        if (usersRes.status === 'fulfilled') {
+          const usersData = usersRes.value || [];
+          usersCount = Array.isArray(usersData) ? usersData.length : (usersData?.data?.length || 0);
+        }
+
+        // Centres count with fallback to list length
+        let centresCount = 0;
+        if (centresCountRes.status === 'fulfilled') {
+          centresCount = centresCountRes.value || 0;
+        } else {
+          try {
+            const centresList = await centresService.list();
+            const centresData = centresList?.data ?? centresList ?? [];
+            centresCount = Array.isArray(centresData) ? centresData.length : 0;
+          } catch (_) {}
+        }
+
+        // Agences count with fallback to list length
+        let agencesCount = 0;
+        if (agencesCountRes.status === 'fulfilled') {
+          agencesCount = agencesCountRes.value || 0;
+        } else {
+          try {
+            const agencesData = await agenceService.list();
+            agencesCount = Array.isArray(agencesData) ? agencesData.length : 0;
+          } catch (_) {}
+        }
+
+        // Communes count with fallback to list length
+        let communesCount = 0;
+        if (communesCountRes.status === 'fulfilled') {
+          communesCount = communesCountRes.value || 0;
+        } else {
+          try {
+            const communesData = await communesService.list();
+            communesCount = Array.isArray(communesData) ? communesData.length : 0;
+          } catch (_) {}
+        }
+
         setStats({
-          users: usersData.length || 0,
-          centres: centresCount || 0,
-          agences: agencesCount || 0,
-          communes: communesCount || 0,
+          users: usersCount,
+          centres: centresCount,
+          agences: agencesCount,
+          communes: communesCount,
           loading: false
         });
 
+        const highestRate = highestRateRes.status === 'fulfilled' ? highestRateRes.value : null;
         if (highestRate && highestRate.Taux_Journalier) {
           setHighestDailyRate({
             taux: highestRate.Taux_Journalier,
@@ -58,10 +108,34 @@ const Dashboard = () => {
             loading: false
           });
         }
+
+        const highestCentreRate = highestCentreRateRes.status === 'fulfilled' ? highestCentreRateRes.value : null;
+        if (highestCentreRate && highestCentreRate.Taux_Journalier) {
+          setHighestCentreDailyRate({
+            taux: highestCentreRate.Taux_Journalier,
+            centre: highestCentreRate.Nom_Centre || '',
+            loading: false
+          });
+        } else if (highestCentreRate && highestCentreRate.Taux_Journalier_Centre) {
+          // Compatibilité si backend renvoie Taux_Journalier_Centre
+          setHighestCentreDailyRate({
+            taux: highestCentreRate.Taux_Journalier_Centre,
+            centre: highestCentreRate.Nom_Centre || '',
+            loading: false
+          });
+        } else {
+          console.log('⚠️ Dashboard - Aucun meilleur centre trouvé');
+          setHighestCentreDailyRate({
+            taux: null,
+            centre: '',
+            loading: false
+          });
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des statistiques:', error);
         setStats(prev => ({ ...prev, loading: false }));
-        setHighestDailyRate(prev => ({ ...prev, loading: false }));
+        setHighestDailyRate({ taux: null, agence: '', loading: false });
+        setHighestCentreDailyRate({ taux: null, centre: '', loading: false });
       }
     };
 
@@ -87,35 +161,35 @@ const Dashboard = () => {
 
         {/* Contenu principal */}
         <main className="p-6 fade-in space-y-6">
-          {/* Carte Taux le plus élevé */}
-          <div className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white">
+          {/* Carte Taux le plus élevé (Agence) - harmonisée */}
+          <div className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl transition-all min-h-[140px]">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white/90 text-sm uppercase tracking-wider font-semibold mb-2">Meilleur Taux du Jour</p>
+                <p className="text-white/90 text-xs uppercase tracking-wider font-semibold mb-1">Meilleur Taux du Jour</p>
                 {highestDailyRate.loading ? (
-                  <p className="text-4xl font-bold text-white mb-2">...</p>
+                  <p className="text-3xl font-bold text-white mb-1">...</p>
                 ) : highestDailyRate.taux !== null ? (
                   <>
-                    <p className="text-4xl font-bold text-white mb-2">
+                    <p className="text-3xl font-bold text-white mb-1">
                       {highestDailyRate.taux.toFixed(1)}%
                     </p>
                     {highestDailyRate.agence && (
-                      <p className="text-white/80 text-sm font-medium">
+                      <p className="text-white/80 text-xs font-medium">
                         {highestDailyRate.agence}
                       </p>
                     )}
                   </>
                 ) : (
                   <>
-                    <p className="text-xl font-semibold text-white/90 mb-2">Aucune donnée</p>
-                    <p className="text-white/70 text-sm">
+                    <p className="text-base font-semibold text-white/90 mb-1">Aucune donnée</p>
+                    <p className="text-white/70 text-xs">
                       Aucune agence avec données aujourd'hui
                     </p>
                   </>
                 )}
               </div>
-              <div className="bg-white/20 rounded-full p-4">
-                <Trophy className="w-10 h-10 text-white" />
+              <div className="bg-white/20 rounded-full p-3">
+                <Trophy className="w-7 h-7 text-white" />
               </div>
             </div>
             {highestDailyRate.taux !== null && !highestDailyRate.loading && (
@@ -126,94 +200,125 @@ const Dashboard = () => {
             )}
           </div>
 
+          {/* Carte Taux le plus élevé (Centre) - harmonisée */}
+          <div className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl transition-all min-h-[140px]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/90 text-xs uppercase tracking-wider font-semibold mb-1">Meilleur Taux Centre du Jour</p>
+                {highestCentreDailyRate.loading ? (
+                  <p className="text-3xl font-bold text-white mb-1">...</p>
+                ) : highestCentreDailyRate.taux !== null ? (
+                  <>
+                    <p className="text-3xl font-bold text-white mb-1">
+                      {highestCentreDailyRate.taux.toFixed(1)}%
+                    </p>
+                    {highestCentreDailyRate.centre && (
+                      <p className="text-white/80 text-xs font-medium">
+                        {highestCentreDailyRate.centre}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-base font-semibold text-white/90 mb-1">Aucune donnée</p>
+                    <p className="text-white/70 text-xs">
+                      Aucun centre avec données aujourd'hui
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="bg-white/20 rounded-full p-3">
+                <Trophy className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            {highestCentreDailyRate.taux !== null && !highestCentreDailyRate.loading && (
+              <div className="mt-4 flex items-center gap-2 text-white/90 text-xs">
+                <TrendingUp className="w-4 h-4" />
+                <span>Centre le plus performant</span>
+              </div>
+            )}
+          </div>
+
           {/* Cartes KPI interactives */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div 
-              className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+              className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer min-h-[140px]"
               onClick={() => navigate('/users')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Utilisateurs</p>
-                  <p className="mt-1 text-2xl font-semibold text-sky-700">
-                    {stats.loading ? '...' : stats.users}
-                  </p>
+                  <p className="text-xs uppercase tracking-wide text-white/90">Utilisateurs</p>
+                  <p className="mt-1 text-3xl font-bold text-white">{stats.loading ? '...' : stats.users}</p>
                 </div>
-                <Users className="w-6 h-6 text-sky-500" />
+                <div className="bg-white/20 rounded-full p-3">
+                  <Users className="w-7 h-7 text-white" />
+                </div>
               </div>
-              <div className="mt-3 text-xs text-green-600 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-white/90 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Actifs'}
               </div>
-              <div className="mt-3 text-xs text-sky-600 font-medium">
-                Cliquez pour gérer →
-              </div>
+              <div className="mt-3 text-xs text-white/90 font-medium">Cliquez pour gérer →</div>
             </div>
 
             <div 
-              className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+              className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer min-h-[140px]"
               onClick={() => navigate('/centres')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Centres</p>
-                  <p className="mt-1 text-2xl font-semibold text-sky-700">
-                    {stats.loading ? '...' : stats.centres}
-                  </p>
+                  <p className="text-xs uppercase tracking-wide text-white/90">Centres</p>
+                  <p className="mt-1 text-3xl font-bold text-white">{stats.loading ? '...' : stats.centres}</p>
                 </div>
-                <Building2 className="w-6 h-6 text-indigo-500" />
+                <div className="bg-white/20 rounded-full p-3">
+                  <Building2 className="w-7 h-7 text-white" />
+                </div>
               </div>
-              <div className="mt-3 text-xs text-green-600 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-white/90 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Opérationnels'}
               </div>
-              <div className="mt-3 text-xs text-indigo-600 font-medium">
-                Cliquez pour gérer →
-              </div>
+              <div className="mt-3 text-xs text-white/90 font-medium">Cliquez pour gérer →</div>
             </div>
 
             <div 
-              className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+              className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer min-h-[140px]"
               onClick={() => navigate('/agences')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Agences</p>
-                  <p className="mt-1 text-2xl font-semibold text-sky-700">
-                    {stats.loading ? '...' : stats.agences}
-                  </p>
+                  <p className="text-xs uppercase tracking-wide text-white/90">Agences</p>
+                  <p className="mt-1 text-3xl font-bold text-white">{stats.loading ? '...' : stats.agences}</p>
                 </div>
-                <Building2 className="w-6 h-6 text-emerald-500" />
+                <div className="bg-white/20 rounded-full p-3">
+                  <Building2 className="w-7 h-7 text-white" />
+                </div>
               </div>
-              <div className="mt-3 text-xs text-green-600 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-white/90 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'En service'}
               </div>
-              <div className="mt-3 text-xs text-emerald-600 font-medium">
-                Cliquez pour gérer →
-              </div>
+              <div className="mt-3 text-xs text-white/90 font-medium">Cliquez pour gérer →</div>
             </div>
 
             <div 
-              className="bg-white rounded-xl border border-blue-50 shadow-sm p-5 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+              className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl p-6 border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer min-h-[140px]"
               onClick={() => navigate('/communes')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Communes</p>
-                  <p className="mt-1 text-2xl font-semibold text-sky-700">
-                    {stats.loading ? '...' : stats.communes}
-                  </p>
+                  <p className="text-xs uppercase tracking-wide text-white/90">Communes</p>
+                  <p className="mt-1 text-3xl font-bold text-white">{stats.loading ? '...' : stats.communes}</p>
                 </div>
-                <MapPin className="w-6 h-6 text-amber-500" />
+                <div className="bg-white/20 rounded-full p-3">
+                  <MapPin className="w-7 h-7 text-white" />
+                </div>
               </div>
-              <div className="mt-3 text-xs text-green-600 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-white/90 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Couvrent'}
               </div>
-              <div className="mt-3 text-xs text-amber-600 font-medium">
-                Cliquez pour gérer →
-              </div>
+              <div className="mt-3 text-xs text-white/90 font-medium">Cliquez pour gérer →</div>
             </div>
           </div>
         </main>
