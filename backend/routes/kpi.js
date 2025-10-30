@@ -994,7 +994,7 @@ router.get('/highest-monthly-average-rate-centre', async (req, res) => {
         UNION ALL
         SELECT DATEADD(DAY, 1, d) FROM MonthDays WHERE d < @monthEnd
       ),
-      -- Encaissement cumulé par agence sur le mois jusqu'à aujourd'hui
+      -- Encaissement cumulé par agence (01 -> aujourd'hui)
       AgencyEnc AS (
         SELECT a.AgenceId, a.FK_Centre AS CentreId,
                SUM(k.Encaissement_Journalier_Global) AS Encaissement_Total
@@ -1003,7 +1003,7 @@ router.get('/highest-monthly-average-rate-centre', async (req, res) => {
           AND k.DateKPI >= @monthStart AND k.DateKPI <= @today
         GROUP BY a.AgenceId, a.FK_Centre
       ),
-      -- Objectif total du mois par agence (somme sur tous les jours du mois)
+      -- Objectif total du mois par agence (01 -> fin du mois)
       AgencyObj AS (
         SELECT a.AgenceId,
                SUM(ISNULL(o.Obj_Encaissement, 0)) AS Obj_Total_Mois
@@ -1014,22 +1014,24 @@ router.get('/highest-monthly-average-rate-centre', async (req, res) => {
           AND o.DateDebut <= md.d AND o.DateFin >= md.d
         GROUP BY a.AgenceId
       ),
-      -- Taux mensuel par agence
-      AgencyMonthlyRate AS (
-        SELECT e.AgenceId,
-               e.CentreId,
-               CASE WHEN ISNULL(o.Obj_Total_Mois, 0) > 0
-                    THEN ROUND(ISNULL(e.Encaissement_Total, 0) * 100.0 / o.Obj_Total_Mois, 2)
-                    ELSE 0 END AS Taux_Mensuel_Agence
+      -- Agrégation au niveau centre: somme des encaissements et somme des objectifs
+      CentreAgg AS (
+        SELECT e.CentreId,
+               SUM(ISNULL(e.Encaissement_Total, 0)) AS Encaissement_Total_Centre,
+               SUM(ISNULL(o.Obj_Total_Mois, 0)) AS Obj_Total_Mois_Centre
         FROM AgencyEnc e
         INNER JOIN AgencyObj o ON o.AgenceId = e.AgenceId
+        GROUP BY e.CentreId
       )
-      -- Moyenne des taux mensuels des agences par centre
-      SELECT TOP 1 c.CentreId, c.Nom_Centre, AVG(amr.Taux_Mensuel_Agence) AS Taux_Mensuel_Centre
-      FROM AgencyMonthlyRate amr
-      INNER JOIN dbo.DIM_CENTRE c ON c.CentreId = amr.CentreId
-      GROUP BY c.CentreId, c.Nom_Centre
-      ORDER BY AVG(amr.Taux_Mensuel_Agence) DESC
+      -- Taux centre = somme encaissements / somme objectifs
+      SELECT TOP 1 c.CentreId, c.Nom_Centre,
+             CASE WHEN ca.Obj_Total_Mois_Centre > 0
+                  THEN ROUND(ca.Encaissement_Total_Centre * 100.0 / ca.Obj_Total_Mois_Centre, 2)
+                  ELSE 0 END AS Taux_Mensuel_Centre
+      FROM CentreAgg ca
+      INNER JOIN dbo.DIM_CENTRE c ON c.CentreId = ca.CentreId
+      WHERE ca.Obj_Total_Mois_Centre > 0
+      ORDER BY Taux_Mensuel_Centre DESC
       OPTION (MAXRECURSION 1000);
     `;
 
