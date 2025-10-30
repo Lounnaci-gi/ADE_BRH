@@ -201,86 +201,9 @@ const Dashboard = () => {
 
         {/* Contenu principal */}
         <main className="p-6 fade-in space-y-6">
-          {/* Carte Taux le plus élevé (Agence) - harmonisée */}
-          <div className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux du Jour</p>
-                {highestDailyRate.loading ? (
-                  <p className="text-3xl font-bold text-white mb-1">...</p>
-                ) : highestDailyRate.taux !== null ? (
-                  <>
-                    <p className="text-3xl font-bold text-white mb-1">
-                      {highestDailyRate.taux.toFixed(2)}%
-                    </p>
-                    {highestDailyRate.agence && (
-                      <p className="text-white/80 text-xs font-medium">
-                        {highestDailyRate.agence}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <p className="text-base font-semibold text-white/90 mb-1">Aucune donnée</p>
-                    <p className="text-white/70 text-xs">
-                      Aucune agence avec données aujourd'hui
-                    </p>
-                  </>
-                )}
-              </div>
-              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
-                <Trophy className="w-7 h-7 text-white" />
-              </div>
-            </div>
-            {highestDailyRate.taux !== null && !highestDailyRate.loading && (
-              <div className="mt-4 flex items-center gap-2 text-white/90 text-xs">
-                <TrendingUp className="w-4 h-4" />
-                <span>Performance exceptionnelle</span>
-              </div>
-            )}
-          </div>
-
-          {/* Carte Taux le plus élevé (Centre) - harmonisée */}
-          <div className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux Centre du Jour</p>
-                {highestCentreDailyRate.loading ? (
-                  <p className="text-3xl font-bold text-white mb-1">...</p>
-                ) : highestCentreDailyRate.taux !== null ? (
-                  <>
-                    <p className="text-3xl font-bold text-white mb-1">
-                      {highestCentreDailyRate.taux.toFixed(2)}%
-                    </p>
-                    {highestCentreDailyRate.centre && (
-                      <p className="text-white/80 text-xs font-medium">
-                        {highestCentreDailyRate.centre}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <p className="text-base font-semibold text-white/90 mb-1">Aucune donnée</p>
-                    <p className="text-white/70 text-xs">
-                      Aucun centre avec données aujourd'hui
-                    </p>
-                  </>
-                )}
-              </div>
-              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
-                <Trophy className="w-7 h-7 text-white" />
-              </div>
-            </div>
-            {highestCentreDailyRate.taux !== null && !highestCentreDailyRate.loading && (
-              <div className="mt-4 flex items-center gap-2 text-white/90 text-xs">
-                <TrendingUp className="w-4 h-4" />
-                <span>Centre le plus performant</span>
-              </div>
-            )}
-          </div>
-
-          {/* Carte Taux moyen le plus fort depuis le début du mois (Agence) */}
-          <div className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-indigo-500 via-sky-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Carte Taux moyen le plus fort depuis le début du mois (Agence) - GOLD */}
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
                 <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux Moyen (Mois en cours)</p>
@@ -319,7 +242,7 @@ const Dashboard = () => {
           </div>
 
           {/* Carte Taux moyen centre le plus élevé (Mois en cours) */}
-          <div className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-indigo-500 via-sky-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-indigo-500 via-sky-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
                 <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux Moyen Centre (Mois en cours)</p>
@@ -357,10 +280,89 @@ const Dashboard = () => {
             )}
           </div>
 
+          {/* Carte Taux le plus élevé (Agence) - journée */}
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux du Jour</p>
+                {highestDailyRate.loading ? (
+                  <p className="text-3xl font-bold text-white mb-1">...</p>
+                ) : highestDailyRate.taux !== null ? (
+                  <>
+                    <p className="text-3xl font-bold text-white mb-1">
+                      {highestDailyRate.taux.toFixed(2)}%
+                    </p>
+                    {highestDailyRate.agence && (
+                      <p className="text-white/80 text-xs font-medium">
+                        {highestDailyRate.agence}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-base font-semibold text-white/90 mb-1">Aucune donnée</p>
+                    <p className="text-white/70 text-xs">
+                      Aucune agence avec données aujourd'hui
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+                <Trophy className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            {highestDailyRate.taux !== null && !highestDailyRate.loading && (
+              <div className="mt-4 flex items-center gap-2 text-white/90 text-xs">
+                <TrendingUp className="w-4 h-4" />
+                <span>Performance exceptionnelle</span>
+              </div>
+            )}
+          </div>
+
+          {/* Carte Taux le plus élevé (Centre) - journée */}
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux Centre du Jour</p>
+                {highestCentreDailyRate.loading ? (
+                  <p className="text-3xl font-bold text-white mb-1">...</p>
+                ) : highestCentreDailyRate.taux !== null ? (
+                  <>
+                    <p className="text-3xl font-bold text-white mb-1">
+                      {highestCentreDailyRate.taux.toFixed(2)}%
+                    </p>
+                    {highestCentreDailyRate.centre && (
+                      <p className="text-white/80 text-xs font-medium">
+                        {highestCentreDailyRate.centre}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-base font-semibold text-white/90 mb-1">Aucune donnée</p>
+                    <p className="text-white/70 text-xs">
+                      Aucun centre avec données aujourd'hui
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+                <Trophy className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            {highestCentreDailyRate.taux !== null && !highestCentreDailyRate.loading && (
+              <div className="mt-4 flex items-center gap-2 text-white/90 text-xs">
+                <TrendingUp className="w-4 h-4" />
+                <span>Centre le plus performant</span>
+              </div>
+            )}
+          </div>
+          </div>
+
           {/* Cartes KPI interactives */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div 
-              className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/users')}
             >
               <div className="flex items-center justify-between">
@@ -382,7 +384,7 @@ const Dashboard = () => {
             </div>
 
             <div 
-              className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/centres')}
             >
               <div className="flex items-center justify-between">
@@ -404,7 +406,7 @@ const Dashboard = () => {
             </div>
 
             <div 
-              className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/agences')}
             >
               <div className="flex items-center justify-between">
@@ -426,7 +428,7 @@ const Dashboard = () => {
             </div>
 
             <div 
-              className="min-w-[240px] max-w-[280px] min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/communes')}
             >
               <div className="flex items-center justify-between">
