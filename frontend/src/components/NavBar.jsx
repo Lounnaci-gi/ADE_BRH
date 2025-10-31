@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, Crown, Sparkles, FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, Crown, Sparkles, FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText, Settings } from 'lucide-react';
 import notificationsService from '../services/notificationsService';
 import ThemeToggle from './ThemeToggle';
 import authService from '../services/authService';
@@ -19,6 +19,10 @@ const NavBar = () => {
   const userMenuButtonRef = React.useRef(null);
   const userMenuRef = React.useRef(null);
   const [userMenuPos, setUserMenuPos] = React.useState({ top: 0, left: 0, width: 0 });
+  const [showGestionMenu, setShowGestionMenu] = React.useState(false);
+  const gestionMenuButtonRef = React.useRef(null);
+  const gestionMenuRef = React.useRef(null);
+  const [gestionMenuPos, setGestionMenuPos] = React.useState({ top: 0, left: 0, width: 0 });
   const navigate = useNavigate();
 
   const linkBase = "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors duration-200 relative group";
@@ -74,6 +78,9 @@ const NavBar = () => {
       if (showUserMenu && !event.target.closest('.user-menu-dropdown')) {
         setShowUserMenu(false);
       }
+      if (showGestionMenu && !event.target.closest('.gestion-menu-dropdown')) {
+        setShowGestionMenu(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -82,6 +89,7 @@ const NavBar = () => {
         if (showAgenciesStatus) setShowAgenciesStatus(false);
         if (showDataMenu) setShowDataMenu(false);
         if (showUserMenu) setShowUserMenu(false);
+        if (showGestionMenu) setShowGestionMenu(false);
       }
     };
     document.addEventListener('keydown', handleKey);
@@ -89,7 +97,7 @@ const NavBar = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKey);
     };
-  }, [showAgenciesStatus, showDataMenu, showUserMenu]);
+  }, [showAgenciesStatus, showDataMenu, showUserMenu, showGestionMenu]);
 
   // Calculer la position du sous-menu "Saisie des Données" pour l'afficher en dehors du navbar
   React.useEffect(() => {
@@ -167,6 +175,43 @@ const NavBar = () => {
     };
   }, [showUserMenu]);
 
+  // Positionnement du menu Gestion
+  React.useEffect(() => {
+    const updateGestionMenuPosition = () => {
+      const buttonEl = gestionMenuButtonRef.current;
+      const menuEl = gestionMenuRef.current;
+      if (!buttonEl) return;
+      const rect = buttonEl.getBoundingClientRect();
+      const viewportPadding = 8;
+
+      const desiredWidth = Math.max(220, Math.round(rect.width));
+      const maxLeft = window.innerWidth - desiredWidth - viewportPadding;
+      const left = Math.min(Math.max(Math.round(rect.left), viewportPadding), Math.max(maxLeft, viewportPadding));
+
+      let top = Math.round(rect.bottom + 8);
+      if (menuEl) {
+        const menuHeight = menuEl.offsetHeight || 0;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < menuHeight + 16) {
+          top = Math.max(viewportPadding, Math.round(rect.top - menuHeight - 8));
+        }
+      }
+
+      setGestionMenuPos({ top, left, width: desiredWidth });
+    };
+
+    if (showGestionMenu) {
+      updateGestionMenuPosition();
+      window.addEventListener('resize', updateGestionMenuPosition);
+      window.addEventListener('scroll', updateGestionMenuPosition, true);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateGestionMenuPosition);
+      window.removeEventListener('scroll', updateGestionMenuPosition, true);
+    };
+  }, [showGestionMenu]);
+
   return (
     <>
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/75 dark:bg-slate-900/70 border-b border-slate-200/60 dark:border-slate-800/60 overflow-visible">
@@ -199,26 +244,19 @@ const NavBar = () => {
             <LayoutDashboard className="h-3.5 w-3.5" /> 
             <span className="hidden lg:inline">Dashboard</span>
           </NavLink>
-          <NavLink to="/centres" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-            <Building2 className="h-3.5 w-3.5" /> 
-            <span className="hidden lg:inline">Centres</span>
-          </NavLink>
-          <NavLink to="/agences" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-            <Building2 className="h-3.5 w-3.5" /> 
-            <span className="hidden lg:inline">Agences</span>
-          </NavLink>
-          <NavLink to="/communes" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-            <MapPin className="h-3.5 w-3.5" /> 
-            <span className="hidden lg:inline">Communes</span>
-          </NavLink>
-          <NavLink to="/users" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-            <Users className="h-3.5 w-3.5" /> 
-            <span className="hidden lg:inline">Utilisateurs</span>
-          </NavLink>
-          <NavLink to="/categories" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-            <FolderOpen className="h-3.5 w-3.5" /> 
-            <span className="hidden lg:inline">Catégories</span>
-          </NavLink>
+          <div className="relative group">
+            <button
+              ref={gestionMenuButtonRef}
+              onClick={() => setShowGestionMenu(!showGestionMenu)}
+              className={`${linkBase} ${showGestionMenu ? linkActive : linkInactive} cursor-pointer`}
+            >
+              <Settings className="h-3.5 w-3.5" /> 
+              <span className="hidden lg:inline">Gestion</span>
+              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${showGestionMenu ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {/* Sous-menu via portal (rendu externe) */}
+          </div>
           <div className="relative group">
             <button
               ref={dataMenuButtonRef}
@@ -232,10 +270,6 @@ const NavBar = () => {
             
             {/* Sous-menu via portal (rendu externe) */}
           </div>
-          <NavLink to="/objectives" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-            <Target className="h-3.5 w-3.5" /> 
-            <span className="hidden lg:inline">Objectifs</span>
-          </NavLink>
         </nav>
 
         <div className="flex items-center gap-1 overflow-visible">
@@ -472,6 +506,67 @@ const NavBar = () => {
           >
             <LogOut className="h-4 w-4 rotate-180 text-slate-500" />
             <span>Changer le mot de passe</span>
+          </NavLink>
+        </div>
+      </div>,
+      document.body
+    )}
+    {showGestionMenu && createPortal(
+      <div
+        ref={gestionMenuRef}
+        className="fixed bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200/70 dark:border-slate-700/60 z-[9999] gestion-menu-dropdown"
+        style={{ top: `${gestionMenuPos.top}px`, left: `${gestionMenuPos.left}px`, minWidth: gestionMenuPos.width }}
+        role="menu"
+        aria-label="Menu Gestion"
+      >
+        <div className="py-2">
+          <NavLink
+            to="/centres"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
+            onClick={() => setShowGestionMenu(false)}
+          >
+            <Building2 className="h-4 w-4 text-slate-500" />
+            <span>Centres</span>
+          </NavLink>
+          <NavLink
+            to="/agences"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
+            onClick={() => setShowGestionMenu(false)}
+          >
+            <Building2 className="h-4 w-4 text-slate-500" />
+            <span>Agences</span>
+          </NavLink>
+          <NavLink
+            to="/communes"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
+            onClick={() => setShowGestionMenu(false)}
+          >
+            <MapPin className="h-4 w-4 text-slate-500" />
+            <span>Communes</span>
+          </NavLink>
+          <NavLink
+            to="/users"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
+            onClick={() => setShowGestionMenu(false)}
+          >
+            <Users className="h-4 w-4 text-slate-500" />
+            <span>Utilisateurs</span>
+          </NavLink>
+          <NavLink
+            to="/categories"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
+            onClick={() => setShowGestionMenu(false)}
+          >
+            <FolderOpen className="h-4 w-4 text-slate-500" />
+            <span>Catégories</span>
+          </NavLink>
+          <NavLink
+            to="/objectives"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
+            onClick={() => setShowGestionMenu(false)}
+          >
+            <Target className="h-4 w-4 text-slate-500" />
+            <span>Objectifs</span>
           </NavLink>
         </div>
       </div>,
