@@ -219,9 +219,9 @@ function BilansDetailles() {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Accès Refusé</h1>
-          <p className="text-gray-600">Vous n'avez pas les permissions nécessaires.</p>
-          <p className="text-sm text-gray-500 mt-2">Veuillez vous connecter avec un compte administrateur.</p>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100 mb-4">Accès Refusé</h1>
+          <p className="text-gray-600 dark:text-slate-300">Vous n'avez pas les permissions nécessaires.</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">Veuillez vous connecter avec un compte administrateur.</p>
         </div>
       </div>
     );
@@ -233,7 +233,7 @@ function BilansDetailles() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement des bilans détaillés...</p>
+            <p className="text-gray-600 dark:text-slate-300">Chargement des bilans détaillés...</p>
           </div>
         </div>
       </div>
@@ -243,9 +243,9 @@ function BilansDetailles() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h3 className="text-red-800 font-medium">Erreur</h3>
-          <p className="text-red-700">{error}</p>
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4">
+          <h3 className="text-red-800 dark:text-red-300 font-medium">Erreur</h3>
+          <p className="text-red-700 dark:text-red-300">{error}</p>
         </div>
       </div>
     );
@@ -260,12 +260,12 @@ function BilansDetailles() {
         className="mb-8"
       >
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-2xl">
-            <FileText className="h-6 w-6 text-blue-600" />
+          <div className="p-3 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-2xl">
+            <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Bilans Liste Détaillés</h1>
-            <p className="text-gray-600">Données détaillées par agence</p>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Bilans Liste Détaillés</h1>
+            <p className="text-gray-600 dark:text-slate-300">Données détaillées par agence</p>
           </div>
         </div>
 
@@ -274,14 +274,14 @@ function BilansDetailles() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="bg-gradient-to-r from-white to-blue-50/30 border border-blue-200/50 rounded-2xl p-6 shadow-lg backdrop-blur-sm mb-6"
+          className="bg-gradient-to-r from-white to-blue-50/30 dark:from-slate-900 dark:to-slate-900 border border-blue-200/50 dark:border-slate-700 rounded-2xl p-6 shadow-lg backdrop-blur-sm mb-6"
         >
           <div className="flex items-center gap-6 mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-xl">
-                <Filter className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                <Filter className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <span className="text-sm font-semibold text-gray-800">Filtre Résumé Global</span>
+              <span className="text-sm font-semibold text-gray-800 dark:text-slate-100">Filtre Résumé Global</span>
             </div>
           </div>
             
@@ -289,19 +289,19 @@ function BilansDetailles() {
             {/* Filtre par date simple (pour le résumé global) */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Calendar className="h-5 w-5 text-blue-500" />
+                <Calendar className="h-5 w-5 text-blue-500 dark:text-blue-400" />
               </div>
               <input
                 type="date"
                 value={filters.date}
                 onChange={(e) => handleFilterChange('date', e.target.value)}
-                className="pl-10 pr-4 py-3 text-sm border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all duration-300 bg-white shadow-sm hover:shadow-md font-medium text-gray-700 w-full"
+                className="pl-10 pr-4 py-3 text-sm border-2 border-blue-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all duration-300 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 shadow-sm hover:shadow-md font-medium w-full"
                 placeholder="Date pour résumé global"
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-full animate-pulse"></div>
               </div>
-              <label className="text-xs text-gray-500 mt-1 block">Résumé Global</label>
+              <label className="text-xs text-gray-500 dark:text-slate-400 mt-1 block">Résumé Global</label>
             </div>
           </div>
         </motion.div>
@@ -312,18 +312,18 @@ function BilansDetailles() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white border-2 border-gray-200/50 rounded-2xl overflow-hidden shadow-lg"
+        className="bg-white dark:bg-slate-900 border-2 border-gray-200/50 dark:border-slate-800 rounded-2xl overflow-hidden shadow-lg"
       >
         {filteredAgences.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50">
-            <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune agence trouvée</h3>
-            <p className="text-gray-500">Aucune agence ne correspond aux critères de filtrage.</p>
+          <div className="text-center py-12 bg-gray-50 dark:bg-slate-900">
+            <Building2 className="h-12 w-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-600 dark:text-slate-300 mb-2">Aucune agence trouvée</h3>
+            <p className="text-gray-500 dark:text-slate-400">Aucune agence ne correspond aux critères de filtrage.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs">
-              <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-700">
+              <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 text-gray-700 dark:text-slate-100">
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold text-xs">Agence</th>
                   <th className="px-4 py-3 text-left font-semibold text-xs">Centre</th>
@@ -339,7 +339,7 @@ function BilansDetailles() {
                   <th className="px-4 py-3 text-center font-semibold text-xs">Taux Encaissement (%)</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="dark:text-slate-100">
                 {filteredAgences.map((agence, index) => (
                   <AgencyRow key={agence.AgenceId} agence={agence} index={index} filters={filters} />
                 ))}
@@ -356,7 +356,7 @@ function BilansDetailles() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50 shadow-xl overflow-hidden"
+          className="mt-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 rounded-2xl border border-blue-200/50 dark:border-slate-700 shadow-xl overflow-hidden"
         >
           <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-8 py-6">
             <motion.h2 
@@ -386,35 +386,35 @@ function BilansDetailles() {
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
               {/* Relances Envoyées */}
-              <div className="bg-white rounded-xl border border-cyan-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-cyan-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-cyan-100 rounded-xl">
-                    <AlertCircle className="h-6 w-6 text-cyan-600" />
+                  <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl">
+                    <AlertCircle className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-cyan-700">{summaryTotals.totalRelancesEnvoyees}</div>
-                    <div className="text-sm text-cyan-600">Relances Envoyées</div>
+                    <div className="text-2xl font-bold text-cyan-700 dark:text-cyan-400">{summaryTotals.totalRelancesEnvoyees}</div>
+                    <div className="text-sm text-cyan-600 dark:text-cyan-400">Relances Envoyées</div>
                   </div>
                 </div>
                 <div className="space-y-2">
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 dark:text-slate-400">
                   Montant: {formatCurrency(summaryTotals.totalMtRelancesEnvoyees)}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Taux:</span>
+                    <span className="text-xs text-gray-500 dark:text-slate-400">Taux:</span>
                     <div className="flex items-center gap-1">
-                      <span className="text-sm font-bold text-cyan-700">{summaryTotals.tauxRelances}%</span>
+                      <span className="text-sm font-bold text-cyan-700 dark:text-cyan-400">{summaryTotals.tauxRelances}%</span>
                       <div className={`w-2 h-2 rounded-full ${summaryTotals.tauxRelances >= 100 ? 'bg-green-500' : summaryTotals.tauxRelances >= 80 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-400 dark:text-slate-500">
                     Objectif: {summaryTotals.totalObjRelances}
                   </div>
                 </div>
               </div>
 
               {/* Relances Encaissées */}
-              <div className="bg-white rounded-xl border border-green-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-green-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-green-100 rounded-xl">
                     <CheckCircle className="h-6 w-6 text-green-600" />
@@ -430,7 +430,7 @@ function BilansDetailles() {
               </div>
 
               {/* Mises en Demeure */}
-              <div className="bg-white rounded-xl border border-yellow-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-yellow-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-yellow-100 rounded-xl">
                     <Shield className="h-6 w-6 text-yellow-600" />
@@ -458,7 +458,7 @@ function BilansDetailles() {
               </div>
 
               {/* Mises en Demeure Encaissées */}
-              <div className="bg-white rounded-xl border border-orange-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-orange-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-orange-100 rounded-xl">
                     <CheckCircle className="h-6 w-6 text-orange-600" />
@@ -474,7 +474,7 @@ function BilansDetailles() {
               </div>
 
               {/* Dossiers Juridiques */}
-              <div className="bg-white rounded-xl border border-orange-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-orange-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-orange-100 rounded-xl">
                     <Users className="h-6 w-6 text-orange-600" />
@@ -502,7 +502,7 @@ function BilansDetailles() {
               </div>
 
               {/* Coupures */}
-              <div className="bg-white rounded-xl border border-red-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-red-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-red-100 rounded-xl">
                     <Zap className="h-6 w-6 text-red-600" />
@@ -530,7 +530,7 @@ function BilansDetailles() {
               </div>
 
               {/* Rétablissements */}
-              <div className="bg-white rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-emerald-100 rounded-xl">
                     <CheckCircle className="h-6 w-6 text-emerald-600" />
@@ -546,7 +546,7 @@ function BilansDetailles() {
               </div>
 
               {/* Compteurs Remplacés */}
-              <div className="bg-white rounded-xl border border-purple-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-purple-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-purple-100 rounded-xl">
                     <Wrench className="h-6 w-6 text-purple-600" />
@@ -571,7 +571,7 @@ function BilansDetailles() {
               </div>
 
               {/* Encaissement Global */}
-              <div className="bg-white rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-emerald-100 rounded-xl">
                     <DollarSign className="h-6 w-6 text-emerald-600" />

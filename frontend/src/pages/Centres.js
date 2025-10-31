@@ -113,7 +113,7 @@ const Centres = () => {
   }
 
   return (
-    <div className="p-6 text-gray-800 w-full min-h-screen">
+    <div className="p-6 text-gray-800 dark:text-slate-100 w-full min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -145,15 +145,15 @@ const Centres = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-xl">
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-xl">
             {error}
           </div>
         )}
 
         {/* Table */}
-        <div className="table-container bg-white shadow-md rounded-xl border border-blue-100 w-full">
+        <div className="table-container bg-white dark:bg-slate-900 shadow-md rounded-xl border border-blue-100 dark:border-slate-800 w-full">
           <table className="w-full border-collapse min-w-full">
-              <thead className="bg-blue-100 text-blue-800">
+              <thead className="bg-blue-100 dark:bg-slate-800 text-blue-800 dark:text-slate-100">
                 <tr>
                   <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Centre</th>
                   <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Agences</th>
@@ -163,7 +163,7 @@ const Centres = () => {
                   <th className="py-3 px-6 text-center font-semibold text-sm">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="dark:text-slate-100">
                 {centres.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center text-water-500 dark:text-water-400">
@@ -174,7 +174,7 @@ const Centres = () => {
                   </tr>
                 ) : (
                   centres.map((centre) => (
-                    <tr key={centre.CentreId} className="border-t hover:bg-blue-50">
+                    <tr key={centre.CentreId} className="border-t border-blue-100 dark:border-slate-800 hover:bg-blue-50 dark:hover:bg-slate-800">
                       <td className="py-2 px-6 whitespace-nowrap text-sm">{centre.Nom_Centre}</td>
                       <td className="py-2 px-6 whitespace-nowrap text-sm">{centre.Nombre_Agences || 0}</td>
                       <td className="py-2 px-6 whitespace-nowrap text-sm">{centre.Adresse}</td>
@@ -185,26 +185,26 @@ const Centres = () => {
                           <>
                             <button
                               title="Modifier"
-                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50"
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-700"
                               onClick={() => handleEdit(centre)}
                             >
-                              <Pencil className="h-3.5 w-3.5 text-blue-600" />
+                              <Pencil className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                             </button>
                             <button
                               title="Supprimer"
-                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50"
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                               onClick={() => askDelete(centre)}
                             >
-                              <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                              <Trash2 className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
                             </button>
                           </>
                         )}
                         <button
                           title="Imprimer"
-                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100"
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"
                           onClick={() => handlePrint(centre)}
                         >
-                          <Printer className="h-3.5 w-3.5 text-gray-700" />
+                          <Printer className="h-3.5 w-3.5 text-gray-700 dark:text-slate-300" />
                         </button>
                       </td>
                     </tr>

@@ -113,8 +113,8 @@ const KpiCard = ({
         ease: "easeOut"
       }}
       className={`
-        relative overflow-hidden rounded-xl border-2 ${colors.border} 
-        bg-gradient-to-br ${colors.bg} shadow-lg hover:shadow-xl 
+        relative overflow-hidden rounded-xl border-2 ${colors.border} dark:border-slate-700
+        bg-gradient-to-br ${colors.bg} dark:from-slate-800 dark:to-slate-800 shadow-lg hover:shadow-xl 
         transition-all duration-300 cursor-pointer group
         ${cardSize}
       `}
@@ -130,14 +130,14 @@ const KpiCard = ({
       <div className="relative z-10 h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
-          <h3 className={`${titleSize} ${colors.text} truncate`}>
+          <h3 className={`${titleSize} ${colors.text} dark:text-slate-200 truncate`}>
             {title}
           </h3>
           {Icon && (
             <motion.div
               whileHover={{ rotate: 5, scale: 1.1 }}
               transition={{ duration: 0.2 }}
-              className={`${colors.icon} opacity-80 group-hover:opacity-100`}
+              className={`${colors.icon} dark:text-slate-300 opacity-80 group-hover:opacity-100`}
             >
               <Icon className="h-4 w-4" />
             </motion.div>
@@ -150,13 +150,13 @@ const KpiCard = ({
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.1, duration: 0.3 }}
-            className={`${valueSize} ${colors.value} mb-1`}
+            className={`${valueSize} ${colors.value} dark:text-slate-100 mb-1`}
           >
             {value}
           </motion.div>
           
           {subtitle && (
-            <div className={`text-xs ${colors.text} opacity-75`}>
+            <div className={`text-xs ${colors.text} dark:text-slate-300 opacity-75`}>
               {subtitle}
             </div>
           )}
@@ -166,10 +166,10 @@ const KpiCard = ({
         {showProgress && percentage !== undefined && (
           <div className="mt-3 space-y-1">
             <div className="flex justify-between text-xs">
-              <span className={colors.text}>Progression</span>
-              <span className={`${colors.text} font-medium`}>{typeof percentage === 'number' ? percentage.toFixed(2).replace('.', ',') : percentage}%</span>
+              <span className={`${colors.text} dark:text-slate-300`}>Progression</span>
+              <span className={`${colors.text} dark:text-slate-300 font-medium`}>{typeof percentage === 'number' ? percentage.toFixed(2).replace('.', ',') : percentage}%</span>
             </div>
-            <div className="w-full bg-white/50 rounded-full h-1.5 overflow-hidden">
+            <div className="w-full bg-white/50 dark:bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(percentage, 100)}%` }}

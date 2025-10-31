@@ -198,14 +198,14 @@ export default function Agences() {
   };
 
   return (
-    <div className="p-6 text-gray-800 w-full min-h-screen">
+    <div className="p-6 text-gray-800 dark:text-slate-100 w-full min-h-screen">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-blue-700">
+          <h1 className="text-2xl font-semibold text-blue-700 dark:text-blue-300">
             Gestion des Agences Commerciales
           </h1>
           {/* Debug info */}
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-500 dark:text-slate-400 mt-1">
             Utilisateur: {user ? `${user.username} (${user.role})` : 'Non connecté'} | 
             Admin: {isAdmin ? 'Oui' : 'Non'} | 
             Agences: {agences.length}
@@ -233,13 +233,13 @@ export default function Agences() {
       {loading && (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Chargement des agences...</span>
+          <span className="ml-3 text-gray-600 dark:text-slate-300">Chargement des agences...</span>
         </div>
       )}
 
       {/* Error State */}
       {error && !loading && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-xl">
+        <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-xl">
           <h3 className="font-semibold mb-2">Erreur de chargement</h3>
           <p>{error}</p>
           <button 
@@ -253,9 +253,9 @@ export default function Agences() {
 
       {/* ✅ Tableau des agences (colonnes dynamiques) */}
       {!loading && !error && (
-        <div className="table-container bg-white shadow-md rounded-xl border border-blue-100 w-full">
+        <div className="table-container bg-white dark:bg-slate-900 shadow-md rounded-xl border border-blue-100 dark:border-slate-800 w-full">
         <table className="w-full border-collapse min-w-full">
-          <thead className="bg-blue-100 text-blue-800">
+          <thead className="bg-blue-100 dark:bg-slate-800 text-blue-800 dark:text-slate-100">
             <tr>
               {columns.map((col) => (
                 <th key={col} className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">{col}</th>
@@ -263,23 +263,23 @@ export default function Agences() {
               <th className="py-3 px-6 text-center font-semibold text-sm">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="dark:text-slate-100">
             {agences.map((row) => (
-              <tr key={row.AgenceId || JSON.stringify(row)} className="border-t hover:bg-blue-50">
+              <tr key={row.AgenceId || JSON.stringify(row)} className="border-t border-blue-100 dark:border-slate-800 hover:bg-blue-50 dark:hover:bg-slate-800">
                 {columns.map((col) => (
                   <td key={col} className="py-2 px-6 whitespace-nowrap text-sm">{String(row[col] ?? '')}</td>
                 ))}
                 <td className="py-2 px-6 text-center space-x-2">
                   {isAdmin && (
                     <>
-                      <button title="Modifier" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50" onClick={() => handleEdit(row)}>
-                        <Pencil className="h-3.5 w-3.5 text-blue-600" />
+                      <button title="Modifier" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-700" onClick={() => handleEdit(row)}>
+                        <Pencil className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                       </button>
-                      <button title="Supprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50" onClick={() => askDelete(row)}>
-                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                      <button title="Supprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => askDelete(row)}>
+                        <Trash2 className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
                       </button>
-                      <button title="Imprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100" onClick={() => window.print()}>
-                        <Printer className="h-3.5 w-3.5 text-gray-700" />
+                      <button title="Imprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700" onClick={() => window.print()}>
+                        <Printer className="h-3.5 w-3.5 text-gray-700 dark:text-slate-300" />
                       </button>
                     </>
                   )}

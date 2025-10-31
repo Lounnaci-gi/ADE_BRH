@@ -438,7 +438,7 @@ function KPI() {
     };
     
     return (
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
         <div 
           className={`h-2 rounded-full ${colorClasses[color]}`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -452,14 +452,14 @@ function KPI() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement des données...</p>
+          <p className="text-gray-600 dark:text-slate-300">Chargement des données...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 dark:bg-slate-950 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
         <motion.div 
@@ -468,10 +468,10 @@ function KPI() {
           transition={{ duration: 0.6 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-400 mb-2">
             Tableau de Bord
           </h1>
-          <p className="text-gray-600 text-lg">Saisie et suivi des indicateurs de performance quotidiens</p>
+          <p className="text-gray-600 dark:text-slate-300 text-lg">Saisie et suivi des indicateurs de performance quotidiens</p>
         </motion.div>
 
         {/* A. Section Objectifs Agence - EN HAUT */}
@@ -480,7 +480,7 @@ function KPI() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50 shadow-xl mb-8 overflow-hidden"
+            className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 rounded-2xl border border-blue-200/50 dark:border-slate-700 shadow-xl mb-8 overflow-hidden"
           >
             <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-8 py-6">
               <motion.h2 
@@ -577,12 +577,12 @@ function KPI() {
         )}
 
         {/* Formulaire de saisie */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 rounded-t-xl border-b border-gray-200">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm mb-8">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 px-6 py-4 rounded-t-xl border-b border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800">📝 Saisie des données</h2>
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-slate-100">📝 Saisie des données</h2>
               {hasExistingData && (
-                <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
                   <CheckCircle className="h-4 w-4" />
                   <span>Mode édition - Données existantes chargées</span>
                 </div>
@@ -594,23 +594,23 @@ function KPI() {
           <form onSubmit={handleSubmit} className="space-y-4">
               {/* Informations de base */}
               <div className="space-y-3">
-              {(() => {
+                {(() => {
                 const user = authService.getCurrentUser();
                 const isAdmin = (user?.role || '').toString() === 'Administrateur';
                 
                 if (isAdmin) {
                   return (
                       <div className="space-y-1">
-                        <label className="flex items-center text-xs font-semibold text-gray-700 mb-1">
-                          <div className="p-1 bg-green-100 rounded mr-2">
-                            <Building2 className="h-3 w-3 text-green-600" />
+                        <label className="flex items-center text-xs font-semibold text-gray-700 dark:text-slate-200 mb-1">
+                          <div className="p-1 bg-green-100 dark:bg-green-900/30 rounded mr-2">
+                            <Building2 className="h-3 w-3 text-green-600 dark:text-green-400" />
                         </div>
                         Agence *
                       </label>
                       <select
                         value={formData.agenceId}
                         onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
-                          className="w-full border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md text-xs max-w-[200px]"
+                          className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md text-xs max-w-[200px]"
                         required
                       >
                         <option value="">Sélectionner une agence</option>
@@ -626,13 +626,13 @@ function KPI() {
                   const userAgence = agences.find(a => Number(a.AgenceId) === Number(formData.agenceId));
                   return (
                       <div className="space-y-1">
-                        <label className="flex items-center text-xs font-semibold text-gray-700 mb-1">
-                          <div className="p-1 bg-green-100 rounded mr-2">
-                            <Building2 className="h-3 w-3 text-green-600" />
+                        <label className="flex items-center text-xs font-semibold text-gray-700 dark:text-slate-200 mb-1">
+                          <div className="p-1 bg-green-100 dark:bg-green-900/30 rounded mr-2">
+                            <Building2 className="h-3 w-3 text-green-600 dark:text-green-400" />
                         </div>
                         Agence assignée
                       </label>
-                        <div className="w-full border border-gray-200 rounded px-2 py-1 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 shadow-sm text-xs max-w-[200px]">
+                        <div className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-800 dark:to-slate-800 text-gray-700 dark:text-slate-200 shadow-sm text-xs max-w-[200px]">
                         {userAgence ? userAgence.Nom_Agence : 'Chargement...'}
                       </div>
                     </div>
@@ -641,9 +641,9 @@ function KPI() {
               })()}
 
                 <div className="space-y-1">
-                  <label className="flex items-center text-xs font-semibold text-gray-700 mb-1">
-                    <div className="p-1 bg-blue-100 rounded mr-2">
-                      <Calendar className="h-3 w-3 text-blue-600" />
+                  <label className="flex items-center text-xs font-semibold text-gray-700 dark:text-slate-200 mb-1">
+                    <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded mr-2">
+                      <Calendar className="h-3 w-3 text-blue-600 dark:text-blue-400" />
             </div>
                     Date *
                   </label>
@@ -660,13 +660,13 @@ function KPI() {
                     {(sortedCategories || []).map((cat, index) => {
                       const e = entriesByCategory[cat.CategorieId] || {};
                       return (
-                    <div key={cat.CategorieId} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 rounded-t-xl border-b border-gray-200 flex items-center justify-between">
-                        <h4 className="text-lg font-semibold text-gray-800">{cat.Libelle}</h4>
+                    <div key={cat.CategorieId} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200">
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-800 dark:to-slate-800 px-6 py-4 rounded-t-xl border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                        <h4 className="text-lg font-semibold text-gray-800 dark:text-slate-100">{cat.Libelle}</h4>
                         <button
                           type="button"
                           onClick={() => setCollapsedByCategory(prev => ({ ...prev, [cat.CategorieId]: !prev[cat.CategorieId] }))}
-                          className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                          className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 transition-colors"
                           aria-expanded={!collapsedByCategory[cat.CategorieId]}
                           aria-controls={`cat-panel-${cat.CategorieId}`}
                         >
@@ -691,51 +691,51 @@ function KPI() {
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-3 h-3 bg-cyan-500 rounded-full"></div>
-                              <h5 className="font-semibold text-cyan-700 text-sm">Relances</h5>
+                              <h5 className="font-semibold text-cyan-700 dark:text-cyan-400 text-sm">Relances</h5>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Envoyées (Nb)</label>
+                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Envoyées (Nb)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="1"
                               value={e.nbRelancesEnvoyees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
                             />
                               </div>
                               <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Envoyées (Mt)</label>
+                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Envoyées (Mt)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="0.01" 
                               value={e.mtRelancesEnvoyees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
                                 />
                               </div>
                               <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Réglées (Nb)</label>
+                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Réglées (Nb)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="1"
                               value={e.nbRelancesReglees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesReglees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
                             />
                               </div>
                               <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Réglées (Mt)</label>
+                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Réglées (Mt)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="0.01" 
                               value={e.mtRelancesReglees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesReglees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
                                 />
                               </div>
                             </div>
@@ -745,51 +745,51 @@ function KPI() {
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                              <h5 className="font-semibold text-yellow-700 text-sm">Mises en demeure</h5>
+                              <h5 className="font-semibold text-yellow-700 dark:text-yellow-400 text-sm">Mises en demeure</h5>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Envoyées (Nb)</label>
+                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Envoyées (Nb)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="1"
                               value={e.nbMisesEnDemeureEnvoyees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
                             />
                               </div>
                               <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Envoyées (Mt)</label>
+                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Envoyées (Mt)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="0.01" 
                               value={e.mtMisesEnDemeureEnvoyees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
                                 />
                               </div>
                               <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Réglées (Nb)</label>
+                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Réglées (Nb)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="1"
                               value={e.nbMisesEnDemeureReglees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureReglees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
                             />
                               </div>
                               <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Réglées (Mt)</label>
+                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Réglées (Mt)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="0.01" 
                               value={e.mtMisesEnDemeureReglees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureReglees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-yellow-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all duration-200" 
                                 />
                               </div>
                             </div>
@@ -799,29 +799,29 @@ function KPI() {
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                              <h5 className="font-semibold text-orange-700 text-sm">Activité Juridique</h5>
+                              <h5 className="font-semibold text-orange-700 dark:text-orange-400 text-sm">Activité Juridique</h5>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Dossiers juridiques (Nb)</label>
+                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Dossiers juridiques (Nb)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="1"
                               value={e.nbDossiersJuridiques || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbDossiersJuridiques: ev.target.value } }))} 
-                                  className="w-full border border-orange-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-orange-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200" 
                             />
                               </div>
                               <div>
-                                <label className="text-xs text-gray-600 mb-1 block">Dossiers juridiques (Mt)</label>
+                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Dossiers juridiques (Mt)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="0.01" 
                               value={e.mtDossiersJuridiques || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtDossiersJuridiques: ev.target.value } }))} 
-                                  className="w-full border border-orange-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-orange-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200" 
                                 />
                               </div>
                             </div>
@@ -831,54 +831,54 @@ function KPI() {
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                              <h5 className="font-semibold text-red-700 text-sm">Activité Coupure & Rétablissement</h5>
+                              <h5 className="font-semibold text-red-700 dark:text-red-400 text-sm">Activité Coupure & Rétablissement</h5>
                             </div>
                             <div className="space-y-3">
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                  <label className="text-xs text-gray-600 mb-1 block">Coupures (Nb)</label>
+                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Coupures (Nb)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="1"
                               value={e.nbCoupures || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbCoupures: ev.target.value } }))} 
-                                    className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-red-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200" 
                             />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-gray-600 mb-1 block">Coupures (Mt)</label>
+                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Coupures (Mt)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="0.01" 
                               value={e.mtCoupures || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtCoupures: ev.target.value } }))} 
-                                    className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-red-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200" 
                                   />
                                 </div>
                               </div>
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                  <label className="text-xs text-gray-600 mb-1 block">Rétablissements (Nb)</label>
+                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Rétablissements (Nb)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="1"
                               value={e.nbRetablissements || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRetablissements: ev.target.value } }))} 
-                                    className="w-full border border-green-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-green-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" 
                             />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-gray-600 mb-1 block">Rétablissements (Mt)</label>
+                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Rétablissements (Mt)</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="0.01" 
                               value={e.mtRetablissements || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRetablissements: ev.target.value } }))} 
-                                    className="w-full border border-green-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-green-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" 
                                   />
                                 </div>
                               </div>
@@ -889,43 +889,43 @@ function KPI() {
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                              <h5 className="font-semibold text-purple-700 text-sm">Gestion des Compteurs</h5>
+                              <h5 className="font-semibold text-purple-700 dark:text-purple-400 text-sm">Gestion des Compteurs</h5>
                             </div>
                             <div className="space-y-3">
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                  <label className="text-xs text-gray-600 mb-1 block">Branchements</label>
+                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Branchements</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="1"
                               value={e.nbBranchements || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbBranchements: ev.target.value } }))} 
-                                    className="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-blue-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-gray-600 mb-1 block">Compteurs remplacés</label>
+                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Compteurs remplacés</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="1"
                               value={e.nbCompteursRemplaces || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbCompteursRemplaces: ev.target.value } }))} 
-                                    className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-purple-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200" 
                                   />
                                 </div>
                               </div>
                               <div className="grid grid-cols-1 gap-3">
                                 <div>
-                                  <label className="text-xs text-gray-600 mb-1 block">Contrôles</label>
+                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Contrôles</label>
                             <input 
                               type="number" 
                               min="0" 
                               step="1"
                               value={e.nbControles || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbControles: ev.target.value } }))} 
-                                    className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-indigo-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200" 
                                   />
                                 </div>
                               </div>
@@ -933,21 +933,21 @@ function KPI() {
                           </div>
 
                           {/* Champ Observation par catégorie */}
-                          <div className="mt-4 pt-4 border-t border-gray-100">
+                          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
                             <div className="flex items-center gap-2 mb-2">
-                              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                              <h6 className="font-medium text-gray-600 text-xs">Observation</h6>
+                              <div className="w-2 h-2 bg-gray-400 dark:bg-slate-500 rounded-full"></div>
+                              <h6 className="font-medium text-gray-600 dark:text-slate-300 text-xs">Observation</h6>
                             </div>
                             <textarea
                               value={e.observation || ''}
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], observation: ev.target.value } }))}
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent transition-all duration-200 resize-none"
+                              className="w-full border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent transition-all duration-200 resize-none"
                               rows="2"
                               placeholder="Ajoutez une observation pour cette catégorie..."
                               maxLength="200"
                             />
                             <div className="text-right mt-1">
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-gray-400 dark:text-slate-400">
                                 {(e.observation || '').length}/200 caractères
                               </span>
                             </div>
@@ -960,11 +960,11 @@ function KPI() {
             </div>
 
               {/* Encaissement Journalier Global */}
-            <div className="border-t border-gray-200 pt-6">
+            <div className="border-t border-gray-200 dark:border-slate-700 pt-6">
               <div className="space-y-2">
-                <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
-                  <div className="p-2 bg-emerald-100 rounded-lg mr-3">
-                      <DollarSign className="h-4 w-4 text-emerald-600" />
+                <label className="flex items-center text-sm font-semibold text-gray-700 dark:text-slate-200 mb-3">
+                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg mr-3">
+                      <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
                     Encaissement Journalier Global
                 </label>
@@ -975,7 +975,7 @@ function KPI() {
                   step="0.01"
                   value={formData.encaissementJournalierGlobal}
                   onChange={(e) => setFormData({ ...formData, encaissementJournalierGlobal: e.target.value })}
-                      className="w-64 border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                      className="w-64 border-2 border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md"
                   placeholder="Montant de l'encaissement journalier global..."
                 />
               </div>
@@ -997,11 +997,11 @@ function KPI() {
 
         {/* B. Section Résumé Détaillé des Données - EN BAS */}
         {summary && (
-          <motion.div
+            <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-gradient-to-br from-slate-50 via-green-50 to-emerald-50 rounded-2xl border border-green-200/50 shadow-xl overflow-hidden"
+            className="bg-gradient-to-br from-slate-50 via-green-50 to-emerald-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 rounded-2xl border border-green-200/50 dark:border-slate-700 shadow-xl overflow-hidden"
           >
             <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 px-8 py-6">
               <motion.h2 
@@ -1026,7 +1026,7 @@ function KPI() {
                   </div>
                 )}
                 {isReset && (
-                  <div className="flex items-center space-x-2 px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm font-medium">
+                  <div className="flex items-center space-x-2 px-3 py-1 bg-green-500/20 dark:bg-green-900/30 text-green-300 dark:text-green-400 rounded-full text-sm font-medium">
                     <CheckCircle className="h-4 w-4" />
                     <span>Formulaire réinitialisé</span>
                   </div>
@@ -1159,11 +1159,11 @@ function KPI() {
         
         {/* Message d'état vide */}
         {!summary && formData.dateKey && formData.agenceId && (
-          <motion.div
+            <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-gradient-to-br from-slate-50 via-yellow-50 to-orange-50 rounded-2xl border border-yellow-200/50 shadow-xl overflow-hidden"
+            className="bg-gradient-to-br from-slate-50 via-yellow-50 to-orange-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 rounded-2xl border border-yellow-200/50 dark:border-slate-700 shadow-xl overflow-hidden"
           >
             <div className="bg-gradient-to-r from-yellow-600 via-orange-600 to-red-600 px-8 py-6">
               <motion.h2 
@@ -1179,11 +1179,11 @@ function KPI() {
             <div className="p-8 text-center">
               <div className="flex flex-col items-center justify-center py-12">
                 <AlertCircle className="h-16 w-16 text-yellow-500 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Aucune donnée disponible</h3>
-                <p className="text-gray-600 mb-4">
+                <h3 className="text-xl font-semibold text-gray-800 dark:text-slate-100 mb-2">Aucune donnée disponible</h3>
+                <p className="text-gray-600 dark:text-slate-300 mb-4">
                   Aucune donnée KPI n'a été trouvée pour cette date et cette agence.
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-slate-400">
                   Remplissez le formulaire ci-dessus pour enregistrer des données.
                 </p>
               </div>

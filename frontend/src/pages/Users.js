@@ -182,7 +182,7 @@ function Users() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">
           {isAdmin ? '👥 Gestion des utilisateurs' : '👤 Mon profil'}
         </h1>
         {isAdmin && (
@@ -200,9 +200,9 @@ function Users() {
       {isAdmin ? (
         // Interface Admin - Liste des utilisateurs
         <>
-          <div className="table-container bg-white shadow-md rounded-xl border border-blue-100 w-full">
+          <div className="table-container bg-white dark:bg-slate-900 shadow-md rounded-xl border border-blue-100 dark:border-slate-800 w-full">
             <table className="w-full border-collapse min-w-full">
-              <thead className="bg-blue-100 text-blue-800">
+              <thead className="bg-blue-100 dark:bg-slate-800 text-blue-800 dark:text-slate-100">
                 <tr>
                   <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Nom d'utilisateur</th>
                   <th className="py-3 px-6 text-left whitespace-nowrap font-semibold text-sm">Rôle</th>
@@ -211,25 +211,25 @@ function Users() {
                   <th className="py-3 px-6 text-center font-semibold text-sm">Actions</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="dark:text-slate-100">
           {loading && (
                 <tr><td className="py-2 px-6 text-sm" colSpan="5">Chargement…</td></tr>
           )}
           {!loading && users.map((u, i) => (
-                <tr key={i} className="border-t hover:bg-blue-50">
+                <tr key={i} className="border-t border-blue-100 dark:border-slate-800 hover:bg-blue-50 dark:hover:bg-slate-800">
                   <td className="py-2 px-6 whitespace-nowrap text-sm">{u.username}</td>
                   <td className="py-2 px-6 whitespace-nowrap text-sm">{u.role}</td>
                   <td className="py-2 px-6 whitespace-nowrap text-sm">{u.email}</td>
                   <td className="py-2 px-6 whitespace-nowrap text-sm">{u.agence || '-'}</td>
                   <td className="py-2 px-6 text-center space-x-2">
-                    <button title="Modifier" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50" onClick={() => handleEditClick(u)}>
-                      <Pencil className="h-3.5 w-3.5 text-blue-600" />
+                    <button title="Modifier" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-700" onClick={() => handleEditClick(u)}>
+                      <Pencil className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                     </button>
-                    <button title="Supprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50" onClick={() => askDelete(u)}>
-                      <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                    <button title="Supprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => askDelete(u)}>
+                      <Trash2 className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
                     </button>
-                    <button title="Imprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100" onClick={() => window.print()}>
-                      <Printer className="h-3.5 w-3.5 text-gray-700" />
+                    <button title="Imprimer" className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700" onClick={() => window.print()}>
+                      <Printer className="h-3.5 w-3.5 text-gray-700 dark:text-slate-300" />
                     </button>
                   </td>
             </tr>
@@ -258,31 +258,31 @@ function Users() {
       ) : (
         // Interface Standard - Formulaire de profil élégant et professionnel
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-3xl shadow-xl p-8 border border-blue-100/50 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 dark:from-slate-900 dark:via-slate-900/60 dark:to-slate-900 rounded-3xl shadow-xl p-8 border border-blue-100/50 dark:border-slate-800 backdrop-blur-sm">
             {/* En-tête du formulaire */}
             <div className="flex items-center gap-4 mb-8">
               <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
                 <User className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Mon Profil</h2>
-                <p className="text-sm text-gray-600">Gérez vos informations personnelles et votre sécurité</p>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Mon Profil</h2>
+                <p className="text-sm text-gray-600 dark:text-slate-300">Gérez vos informations personnelles et votre sécurité</p>
               </div>
             </div>
 
             <form onSubmit={handleProfileUpdate} className="space-y-8">
               {/* Section Informations personnelles */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <User className="h-5 w-5 text-blue-600" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-800">Informations personnelles</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100">Informations personnelles</h3>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                    <label className="flex items-center text-sm font-semibold text-gray-700 dark:text-slate-200 mb-3">
                       <div className="p-2 bg-blue-100 rounded-lg mr-3">
                         <User className="h-4 w-4 text-blue-600" />
                       </div>
@@ -292,14 +292,14 @@ function Users() {
                       type="text"
                       value={profileForm.username}
                       onChange={(e) => setProfileForm(prev => ({ ...prev, username: e.target.value }))}
-                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                      className="w-full border-2 border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md"
                       placeholder="Entrez votre nom d'utilisateur"
                       required
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                    <label className="flex items-center text-sm font-semibold text-gray-700 dark:text-slate-200 mb-3">
                       <div className="p-2 bg-green-100 rounded-lg mr-3">
                         <Mail className="h-4 w-4 text-green-600" />
                       </div>
@@ -309,7 +309,7 @@ function Users() {
                       type="email"
                       value={profileForm.email}
                       onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                      className="w-full border-2 border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md"
                       placeholder="votre.email@exemple.com"
                       required
                     />
@@ -318,20 +318,20 @@ function Users() {
               </div>
 
               {/* Section Sécurité */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-orange-100 rounded-lg">
                     <Lock className="h-5 w-5 text-orange-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Sécurité du compte</h3>
-                    <p className="text-sm text-gray-500">Modifiez votre mot de passe pour renforcer la sécurité</p>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100">Sécurité du compte</h3>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">Modifiez votre mot de passe pour renforcer la sécurité</p>
                   </div>
                 </div>
                 
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                    <label className="flex items-center text-sm font-semibold text-gray-700 dark:text-slate-200 mb-3">
                       <div className="p-2 bg-gray-100 rounded-lg mr-3">
                         <Lock className="h-4 w-4 text-gray-600" />
                       </div>
@@ -341,14 +341,14 @@ function Users() {
                       type="password"
                       value={profileForm.currentPassword}
                       onChange={(e) => setProfileForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                      className="w-full border-2 border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md"
                       placeholder="Entrez votre mot de passe actuel"
                     />
                   </div>
                   
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                      <label className="flex items-center text-sm font-semibold text-gray-700 dark:text-slate-200 mb-3">
                         <div className="p-2 bg-purple-100 rounded-lg mr-3">
                           <Lock className="h-4 w-4 text-purple-600" />
                         </div>
@@ -358,13 +358,13 @@ function Users() {
                         type="password"
                         value={profileForm.newPassword}
                         onChange={(e) => setProfileForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                        className="w-full border-2 border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md"
                         placeholder="Entrez votre nouveau mot de passe"
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
+                      <label className="flex items-center text-sm font-semibold text-gray-700 dark:text-slate-200 mb-3">
                         <div className="p-2 bg-red-100 rounded-lg mr-3">
                           <Lock className="h-4 w-4 text-red-600" />
                         </div>
@@ -374,21 +374,21 @@ function Users() {
                         type="password"
                         value={profileForm.confirmPassword}
                         onChange={(e) => setProfileForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                        className="w-full border-2 border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md"
                         placeholder="Confirmez votre nouveau mot de passe"
                       />
                     </div>
                   </div>
                   
                   {/* Note informative */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <div className="bg-blue-50 dark:bg-slate-800/60 border border-blue-200 dark:border-slate-700 rounded-xl p-4">
                     <div className="flex items-start gap-3">
-                      <div className="p-1 bg-blue-100 rounded-lg">
-                        <Lock className="h-4 w-4 text-blue-600" />
+                      <div className="p-1 bg-blue-100 dark:bg-slate-700 rounded-lg">
+                        <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-blue-800 mb-1">Conseils de sécurité</h4>
-                        <p className="text-sm text-blue-700">
+                        <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">Conseils de sécurité</h4>
+                        <p className="text-sm text-blue-700 dark:text-blue-200/90">
                           Utilisez un mot de passe fort avec au moins 8 caractères, incluant des majuscules, des minuscules, des chiffres et des symboles.
                         </p>
                       </div>
@@ -402,7 +402,7 @@ function Users() {
                 <button
                   type="button"
                   onClick={handleProfileCancel}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm transform hover:scale-105"
+                  className="bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 px-8 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm transform hover:scale-105"
                 >
                   <span>Annuler</span>
                 </button>

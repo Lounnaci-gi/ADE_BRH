@@ -156,44 +156,44 @@ const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une da
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400 transition-all duration-300 bg-white shadow-sm hover:shadow-md text-left flex items-center justify-between font-medium text-gray-700"
+        className="w-full border-2 border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400 transition-all duration-300 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 shadow-sm hover:shadow-md text-left flex items-center justify-between font-medium"
       >
-        <span className={selectedDate ? 'text-gray-900' : 'text-gray-500'}>
+        <span className={selectedDate ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-400'}>
           {formatDisplayDate(value)}
         </span>
-        <Calendar className="h-4 w-4 text-gray-400" />
+        <Calendar className="h-4 w-4 text-gray-400 dark:text-slate-400" />
       </button>
 
       {/* Calendar dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 bg-white border-2 border-gray-200 rounded-2xl shadow-xl z-50 p-4 min-w-[300px]">
+        <div className="absolute top-full left-0 mt-2 bg-white dark:bg-slate-900 border-2 border-gray-200 dark:border-slate-700 rounded-2xl shadow-xl z-50 p-4 min-w-[300px]">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
               onClick={() => navigateMonth('prev')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:scale-105"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 hover:scale-105"
             >
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
+              <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-slate-300" />
             </button>
             
-            <h3 className="text-base font-bold text-gray-800">
+            <h3 className="text-base font-bold text-gray-800 dark:text-slate-100">
               {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </h3>
             
             <button
               type="button"
               onClick={() => navigateMonth('next')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:scale-105"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 hover:scale-105"
             >
-              <ChevronRight className="h-5 w-5 text-gray-600" />
+              <ChevronRight className="h-5 w-5 text-gray-600 dark:text-slate-300" />
             </button>
           </div>
 
           {/* Days of week */}
           <div className="grid grid-cols-7 gap-1 mb-3">
             {daysOfWeek.map(day => (
-              <div key={day} className="text-xs font-semibold text-gray-600 text-center py-2">
+              <div key={day} className="text-xs font-semibold text-gray-600 dark:text-slate-300 text-center py-2">
                 {day}
               </div>
             ))}
@@ -218,8 +218,8 @@ const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une da
                     isSelectedDay
                       ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-md'
                       : isCurrentDay
-                      ? 'bg-blue-100 text-blue-800 hover:bg-blue-200 font-bold'
-                      : 'text-gray-700 hover:bg-gray-100 hover:shadow-sm'
+                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 font-bold'
+                      : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:shadow-sm'
                   }`}
                 >
                   {day.getDate()}
@@ -229,11 +229,11 @@ const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une da
           </div>
 
           {/* Today button */}
-          <div className="mt-4 pt-3 border-t border-gray-200">
+          <div className="mt-4 pt-3 border-t border-gray-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => handleDateSelect(new Date())}
-              className="w-full text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-2 rounded-lg transition-all duration-200 font-medium"
+              className="w-full text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded-lg transition-all duration-200 font-medium"
             >
               Aujourd'hui
             </button>
