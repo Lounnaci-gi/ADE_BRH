@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Eye, Wrench, DollarSign, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import kpiService from '../services/kpiService';
@@ -10,12 +10,16 @@ function BilansDetailles() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [summaryTotals, setSummaryTotals] = useState(null);
+  const [encaissementRates, setEncaissementRates] = useState([]); // { agenceId, nom, rate }
+  const [ratesLoading, setRatesLoading] = useState(false);
   const [filters, setFilters] = useState({
     date: new Date().toISOString().split('T')[0],
     startDate: '',
     endDate: '',
     selectedAgence: ''
   });
+  const [compactMode, setCompactMode] = useState(false);
+  const chartRef = useRef(null);
 
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
@@ -121,6 +125,61 @@ function BilansDetailles() {
     }
   };
 
+  const ensureHtml2Canvas = () => new Promise((resolve, reject) => {
+    if (window.html2canvas) return resolve(window.html2canvas);
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    script.async = true;
+    script.onload = () => resolve(window.html2canvas);
+    script.onerror = () => reject(new Error('Impossible de charger html2canvas'));
+    document.body.appendChild(script);
+  });
+
+  const handleExportPng = async () => {
+    try {
+      const html2canvas = await ensureHtml2Canvas();
+      if (!chartRef.current) return;
+      const canvas = await html2canvas(chartRef.current, { scale: 2, backgroundColor: '#ffffff' });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `taux-encaissement-${filters.date}.png`;
+      link.click();
+    } catch (e) {
+      console.error('Erreur export PNG:', e);
+      alert("Erreur lors de l'export PNG. Réessayez.");
+    }
+  };
+
+  // Charger les taux d'encaissement par agence (pour le graphique)
+  const loadEncaissementRates = async () => {
+    try {
+      setRatesLoading(true);
+      const dateStr = filters.date;
+      const dateKey = parseInt(dateStr.replace(/-/g, ''));
+      const agenciesToFetch = filteredAgences.length > 0 ? filteredAgences : agences;
+      const results = await Promise.all(
+        agenciesToFetch.map(async (a) => {
+          try {
+            const data = await kpiService.getSummary(a.AgenceId, dateKey);
+            const rate = data?.daily?.TauxEncaissementGlobal ?? 0;
+            return { agenceId: a.AgenceId, nom: a.Nom_Agence, rate: Number(rate) };
+          } catch (e) {
+            return { agenceId: a.AgenceId, nom: a.Nom_Agence, rate: 0 };
+          }
+        })
+      );
+      // Trier par taux décroissant
+      results.sort((a, b) => b.rate - a.rate);
+      setEncaissementRates(results);
+    } catch (e) {
+      console.error('Erreur lors du chargement des taux par agence:', e);
+      setEncaissementRates([]);
+    } finally {
+      setRatesLoading(false);
+    }
+  };
+
 
   // Gestion des changements de filtre
   const handleFilterChange = (field, value) => {
@@ -148,6 +207,13 @@ function BilansDetailles() {
       calculateSummaryTotals();
     }
   }, [filteredAgences, filters.date]);
+
+  // Recharger les taux quand la liste affichée ou la date change
+  useEffect(() => {
+    if ((filteredAgences.length > 0 || agences.length > 0) && filters.date) {
+      loadEncaissementRates();
+    }
+  }, [filteredAgences, agences, filters.date]);
 
   if (!isAdmin) {
     return (
@@ -532,6 +598,65 @@ function BilansDetailles() {
           </div>
         </motion.div>
       )}
+
+      {/* Graphique: Taux d'encaissement global par agence */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="mt-8"
+      >
+        <div className="bg-white border border-blue-200/50 rounded-2xl shadow-xl overflow-hidden">
+          <div className="px-6 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-white" />
+            <h3 className="text-white font-semibold">Taux d'encaissement global par agence</h3>
+            <span className="text-blue-200 text-xs ml-auto">{filters.date}</span>
+            <div className="flex items-center gap-3 ml-4">
+              <label className="flex items-center gap-2 text-xs text-blue-100">
+                <input type="checkbox" className="accent-blue-300" checked={compactMode} onChange={(e) => setCompactMode(e.target.checked)} />
+                Mode compact
+              </label>
+              <button onClick={handleExportPng} className="px-2 py-1 rounded-md text-xs bg-white/15 text-white hover:bg-white/25 transition">
+                Exporter PNG
+              </button>
+            </div>
+          </div>
+          <div className="p-6" ref={chartRef}>
+            {ratesLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : encaissementRates.length === 0 ? (
+              <div className="text-center py-10 text-gray-500 text-sm">Aucune donnée de taux disponible.</div>
+            ) : (
+              <div className={compactMode ? 'space-y-2' : 'space-y-3'}>
+                {(() => {
+                  const maxRate = Math.max(100, ...encaissementRates.map(r => r.rate || 0));
+                  return encaissementRates.map((r, idx) => {
+                    const widthPct = Math.max(0, Math.min(100, Math.round((r.rate / maxRate) * 100)));
+                    return (
+                      <div key={r.agenceId} className={compactMode ? 'grid grid-cols-12 items-center gap-2' : 'grid grid-cols-12 items-center gap-3'}>
+                        <div className="col-span-3 md:col-span-2 lg:col-span-2 truncate text-[11px] md:text-xs font-medium text-gray-700" title={r.nom}>{r.nom}</div>
+                        <div className="col-span-7 md:col-span-8 lg:col-span-9">
+                          <div className={compactMode ? 'h-2.5 w-full rounded-full bg-slate-100 overflow-hidden' : 'h-3.5 w-full rounded-full bg-slate-100 overflow-hidden'}>
+                            <div
+                              className={`h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500`}
+                              style={{ width: `${widthPct}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className={compactMode ? 'col-span-2 md:col-span-2 lg:col-span-1 text-right text-[11px] md:text-xs font-semibold text-gray-800' : 'col-span-2 md:col-span-2 lg:col-span-1 text-right text-xs font-semibold text-gray-800'}>
+                          {r.rate?.toFixed ? r.rate.toFixed(2) : Number(r.rate || 0).toFixed(2)}%
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
