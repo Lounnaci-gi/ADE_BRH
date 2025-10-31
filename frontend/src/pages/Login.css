@@ -161,3 +161,37 @@
         font-size: 22px;
     }
 }
+
+/* Dark theme overrides to ensure full-site consistency */
+.dark .login-header h1 {
+    color: #e5e7eb; /* slate-200 */
+}
+
+.dark .login-header p {
+    color: #94a3b8; /* slate-400 */
+}
+
+.dark .form-group label {
+    color: #e2e8f0; /* slate-200 */
+}
+
+.dark .form-group input {
+    background-color: #0f172a; /* slate-900 */
+    color: #e5e7eb; /* slate-200 */
+    border-color: #334155; /* slate-700 */
+}
+
+.dark .form-group input:focus {
+    border-color: #0284c7; /* water-600 */
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25);
+}
+
+.dark .error-message {
+    background-color: rgba(239, 68, 68, 0.15); /* red-500 @ 15% */
+    color: #fca5a5; /* red-300 */
+    border-left-color: #ef4444; /* red-500 */
+}
+
+.dark .login-footer p {
+    color: #94a3b8; /* slate-400 */
+}

@@ -183,14 +183,14 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 text-gray-800 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 dark:from-slate-900 dark:to-slate-950 text-gray-800 dark:text-slate-100 font-sans">
       {/* === Main content === */}
       <div className="w-full">
         {/* Navbar */}
-        <header className="flex items-center justify-between bg-gradient-to-r from-white/70 to-sky-50/70 backdrop-blur-md shadow-sm px-6 py-4 border-b border-blue-100">
-          <h2 className="text-lg font-semibold text-sky-700">Tableau de bord</h2>
+        <header className="flex items-center justify-between bg-gradient-to-r from-white/70 to-sky-50/70 dark:from-slate-900/70 dark:to-slate-900/40 backdrop-blur-md shadow-sm px-6 py-4 border-b border-blue-100 dark:border-slate-800">
+          <h2 className="text-lg font-semibold text-sky-700 dark:text-water-300">Tableau de bord</h2>
           <div className="flex items-center space-x-4">
-            <span className="text-gray-700 font-medium">{user?.username}</span>
+            <span className="text-gray-700 dark:text-slate-200 font-medium">{user?.username}</span>
             <img
               src={`https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=38bdf8&color=fff`}
               alt="avatar"
@@ -203,7 +203,7 @@ const Dashboard = () => {
         <main className="p-6 fade-in space-y-6">
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {/* Carte Taux moyen le plus fort depuis le début du mois (Agence) - GOLD */}
-          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
                 <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Agence du mois courant</p>
@@ -242,7 +242,7 @@ const Dashboard = () => {
           </div>
 
           {/* Carte Taux moyen centre le plus élevé (Mois en cours) */}
-          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-indigo-500 via-sky-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-indigo-500 via-sky-600 to-cyan-600 dark:from-indigo-700 dark:via-sky-800 dark:to-cyan-800 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
                 <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Centre du Mois courant</p>
@@ -281,7 +281,7 @@ const Dashboard = () => {
           </div>
 
           {/* Carte Taux le plus élevé (Agence) - journée */}
-          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 dark:from-emerald-700 dark:via-teal-800 dark:to-cyan-800 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
                 <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Agence du Jour</p>
@@ -320,7 +320,7 @@ const Dashboard = () => {
           </div>
 
           {/* Carte Taux le plus élevé (Centre) - journée */}
-          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 dark:from-emerald-700 dark:via-teal-800 dark:to-cyan-800 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
                 <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Centre du Jour</p>
@@ -362,91 +362,91 @@ const Dashboard = () => {
           {/* Cartes KPI interactives */}
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div 
-              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:from-emerald-800 dark:via-sky-900 dark:to-cyan-900 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/users')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90">Utilisateurs</p>
-                  <p className="mt-1 text-3xl font-bold text-gray-900">
+                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90 dark:text-slate-200">Utilisateurs</p>
+                  <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
                     {stats.loading ? '...' : stats.users}
                   </p>
                 </div>
-                <div className="bg-sky-300/60 rounded-full p-3 flex items-center justify-center">
+                <div className="bg-sky-300/60 dark:bg-sky-700/60 rounded-full p-3 flex items-center justify-center">
                   <Users className="w-7 h-7 text-white" />
                 </div>
               </div>
-              <div className="mt-3 text-xs text-gray-600/90 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-gray-600/90 dark:text-slate-300 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Actifs'}
               </div>
-              <div className="mt-3 text-xs text-sky-700 font-medium">Cliquez pour gérer →</div>
+              <div className="mt-3 text-xs text-sky-700 dark:text-sky-300 font-medium">Cliquez pour gérer →</div>
             </div>
 
             <div 
-              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:from-emerald-800 dark:via-sky-900 dark:to-cyan-900 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/centres')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90">Centres</p>
-                  <p className="mt-1 text-3xl font-bold text-gray-900">
+                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90 dark:text-slate-200">Centres</p>
+                  <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
                     {stats.loading ? '...' : stats.centres}
                   </p>
                 </div>
-                <div className="bg-sky-300/60 rounded-full p-3 flex items-center justify-center">
+                <div className="bg-sky-300/60 dark:bg-sky-700/60 rounded-full p-3 flex items-center justify-center">
                   <Building2 className="w-7 h-7 text-white" />
                 </div>
               </div>
-              <div className="mt-3 text-xs text-gray-600/90 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-gray-600/90 dark:text-slate-300 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Opérationnels'}
               </div>
-              <div className="mt-3 text-xs text-sky-700 font-medium">Cliquez pour gérer →</div>
+              <div className="mt-3 text-xs text-sky-700 dark:text-sky-300 font-medium">Cliquez pour gérer →</div>
             </div>
 
             <div 
-              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:from-emerald-800 dark:via-sky-900 dark:to-cyan-900 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/agences')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90">Agences</p>
-                  <p className="mt-1 text-3xl font-bold text-gray-900">
+                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90 dark:text-slate-200">Agences</p>
+                  <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
                     {stats.loading ? '...' : stats.agences}
                   </p>
                 </div>
-                <div className="bg-sky-300/60 rounded-full p-3 flex items-center justify-center">
+                <div className="bg-sky-300/60 dark:bg-sky-700/60 rounded-full p-3 flex items-center justify-center">
                   <Building2 className="w-7 h-7 text-white" />
                 </div>
               </div>
-              <div className="mt-3 text-xs text-gray-600/90 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-gray-600/90 dark:text-slate-300 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'En service'}
               </div>
-              <div className="mt-3 text-xs text-sky-700 font-medium">Cliquez pour gérer →</div>
+              <div className="mt-3 text-xs text-sky-700 dark:text-sky-300 font-medium">Cliquez pour gérer →</div>
             </div>
 
             <div 
-              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:from-emerald-800 dark:via-sky-900 dark:to-cyan-900 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/communes')}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90">Communes</p>
-                  <p className="mt-1 text-3xl font-bold text-gray-900">
+                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90 dark:text-slate-200">Communes</p>
+                  <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
                     {stats.loading ? '...' : stats.communes}
                   </p>
                 </div>
-                <div className="bg-sky-300/60 rounded-full p-3 flex items-center justify-center">
+                <div className="bg-sky-300/60 dark:bg-sky-700/60 rounded-full p-3 flex items-center justify-center">
                   <MapPin className="w-7 h-7 text-white" />
                 </div>
               </div>
-              <div className="mt-3 text-xs text-gray-600/90 inline-flex items-center gap-1">
+              <div className="mt-3 text-xs text-gray-600/90 dark:text-slate-300 inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
                 {stats.loading ? 'Chargement...' : 'Couvrent'}
               </div>
-              <div className="mt-3 text-xs text-sky-700 font-medium">Cliquez pour gérer →</div>
+              <div className="mt-3 text-xs text-sky-700 dark:text-sky-300 font-medium">Cliquez pour gérer →</div>
             </div>
           </div>
         </main>
