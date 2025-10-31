@@ -15,6 +15,10 @@ const NavBar = () => {
   const dataMenuButtonRef = React.useRef(null);
   const dataMenuRef = React.useRef(null);
   const [dataMenuPos, setDataMenuPos] = React.useState({ top: 0, left: 0, width: 0 });
+  const [showUserMenu, setShowUserMenu] = React.useState(false);
+  const userMenuButtonRef = React.useRef(null);
+  const userMenuRef = React.useRef(null);
+  const [userMenuPos, setUserMenuPos] = React.useState({ top: 0, left: 0, width: 0 });
   const navigate = useNavigate();
 
   const linkBase = "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors duration-200 relative group";
@@ -67,6 +71,9 @@ const NavBar = () => {
       if (showDataMenu && !event.target.closest('.data-menu-dropdown')) {
         setShowDataMenu(false);
       }
+      if (showUserMenu && !event.target.closest('.user-menu-dropdown')) {
+        setShowUserMenu(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -74,6 +81,7 @@ const NavBar = () => {
       if (e.key === 'Escape') {
         if (showAgenciesStatus) setShowAgenciesStatus(false);
         if (showDataMenu) setShowDataMenu(false);
+        if (showUserMenu) setShowUserMenu(false);
       }
     };
     document.addEventListener('keydown', handleKey);
@@ -81,7 +89,7 @@ const NavBar = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKey);
     };
-  }, [showAgenciesStatus, showDataMenu]);
+  }, [showAgenciesStatus, showDataMenu, showUserMenu]);
 
   // Calculer la position du sous-menu "Saisie des Données" pour l'afficher en dehors du navbar
   React.useEffect(() => {
@@ -121,6 +129,43 @@ const NavBar = () => {
       window.removeEventListener('scroll', updatePosition, true);
     };
   }, [showDataMenu]);
+
+  // Positionnement du menu utilisateur
+  React.useEffect(() => {
+    const updateUserMenuPosition = () => {
+      const buttonEl = userMenuButtonRef.current;
+      const menuEl = userMenuRef.current;
+      if (!buttonEl) return;
+      const rect = buttonEl.getBoundingClientRect();
+      const viewportPadding = 8;
+
+      const desiredWidth = Math.max(220, Math.round(rect.width));
+      const maxLeft = window.innerWidth - desiredWidth - viewportPadding;
+      const left = Math.min(Math.max(Math.round(rect.left), viewportPadding), Math.max(maxLeft, viewportPadding));
+
+      let top = Math.round(rect.bottom + 8);
+      if (menuEl) {
+        const menuHeight = menuEl.offsetHeight || 0;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < menuHeight + 16) {
+          top = Math.max(viewportPadding, Math.round(rect.top - menuHeight - 8));
+        }
+      }
+
+      setUserMenuPos({ top, left, width: desiredWidth });
+    };
+
+    if (showUserMenu) {
+      updateUserMenuPosition();
+      window.addEventListener('resize', updateUserMenuPosition);
+      window.addEventListener('scroll', updateUserMenuPosition, true);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateUserMenuPosition);
+      window.removeEventListener('scroll', updateUserMenuPosition, true);
+    };
+  }, [showUserMenu]);
 
   return (
     <>
@@ -286,7 +331,13 @@ const NavBar = () => {
 
           {/* User info and logout */}
           <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1.5 px-1.5 py-1 rounded-md border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/60">
+            <button
+              ref={userMenuButtonRef}
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center gap-1.5 px-1.5 py-1 rounded-md border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/60 hover:bg-slate-50/70 dark:hover:bg-slate-700/50 transition-colors"
+              aria-haspopup="menu"
+              aria-expanded={showUserMenu}
+            >
               <div className="h-7 w-7 rounded-md bg-slate-900/80 text-white grid place-items-center font-bold text-[10px]">
                 {initials}
               </div>
@@ -299,7 +350,7 @@ const NavBar = () => {
                   </div>
                 )}
               </div>
-            </div>
+            </button>
             
             {user ? (
               <button
@@ -392,6 +443,35 @@ const NavBar = () => {
           >
                     <Building2 className="h-4 w-4 text-slate-500" />
             <span>Details Agence</span>
+          </NavLink>
+        </div>
+      </div>,
+      document.body
+    )}
+    {showUserMenu && createPortal(
+      <div
+        ref={userMenuRef}
+        className="fixed bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200/70 dark:border-slate-700/60 z-[9999] user-menu-dropdown"
+        style={{ top: `${userMenuPos.top}px`, left: `${userMenuPos.left}px`, minWidth: userMenuPos.width }}
+        role="menu"
+        aria-label="Menu utilisateur"
+      >
+        <div className="py-2">
+          <NavLink
+            to="/profile"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
+            onClick={() => setShowUserMenu(false)}
+          >
+            <Users className="h-4 w-4 text-slate-500" />
+            <span>Mon profil</span>
+          </NavLink>
+          <NavLink
+            to="/settings"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
+            onClick={() => setShowUserMenu(false)}
+          >
+            <LogOut className="h-4 w-4 rotate-180 text-slate-500" />
+            <span>Changer le mot de passe</span>
           </NavLink>
         </div>
       </div>,

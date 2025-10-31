@@ -206,7 +206,7 @@ const Dashboard = () => {
           <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
-                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux Moyen (Mois en cours)</p>
+                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Agence du mois courant</p>
                 {highestMonthlyAvgRate.loading ? (
                   <p className="text-3xl font-bold text-white mb-1">...</p>
                 ) : highestMonthlyAvgRate.taux !== null ? (
@@ -245,7 +245,7 @@ const Dashboard = () => {
           <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-indigo-500 via-sky-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
-                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux Moyen Centre (Mois en cours)</p>
+                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Centre du Mois courant</p>
                 {highestMonthlyCentreAvgRate.loading ? (
                   <p className="text-3xl font-bold text-white mb-1">...</p>
                 ) : highestMonthlyCentreAvgRate.taux !== null ? (
@@ -284,7 +284,7 @@ const Dashboard = () => {
           <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
-                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux du Jour</p>
+                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Agence du Jour</p>
                 {highestDailyRate.loading ? (
                   <p className="text-3xl font-bold text-white mb-1">...</p>
                 ) : highestDailyRate.taux !== null ? (
@@ -323,7 +323,7 @@ const Dashboard = () => {
           <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-2xl shadow-xl border-4 border-white hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
-                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Taux Centre du Jour</p>
+                <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Centre du Jour</p>
                 {highestCentreDailyRate.loading ? (
                   <p className="text-3xl font-bold text-white mb-1">...</p>
                 ) : highestCentreDailyRate.taux !== null ? (
