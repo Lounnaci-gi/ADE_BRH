@@ -263,12 +263,12 @@ function BilansDetailles() {
                   <th className="px-4 py-3 text-left font-semibold text-xs">Centre</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Relances Envoyées</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Relances Encaissées</th>
-                  <th className="px-4 py-3 text-center font-semibold text-xs">Mises en Demeure</th>
+                  <th className="px-4 py-3 text-center font-semibold text-xs">Mises en Demeure Envoyées</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Mises en Demeure Encaissées</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Dossiers Juridiques</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Coupures</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Rétablissements</th>
-                  <th className="px-4 py-3 text-center font-semibold text-xs">Compteurs</th>
+                  <th className="px-4 py-3 text-center font-semibold text-xs">Compteurs Remplacés</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Encaissement Global</th>
                   <th className="px-4 py-3 text-center font-semibold text-xs">Taux Encaissement (%)</th>
                 </tr>

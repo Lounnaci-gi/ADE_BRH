@@ -161,7 +161,7 @@ const NavBar = () => {
                     onClick={() => setShowDataMenu(false)}
                   >
                     <Building2 className="h-4 w-4 text-green-600" />
-                    <span>Detailed Data by Agency</span>
+                    <span>Details Agence</span>
                   </NavLink>
                 </div>
               </div>
