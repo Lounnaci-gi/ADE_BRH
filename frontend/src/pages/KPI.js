@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Calendar, Building2, Save, Target, TrendingUp, DollarSign, BarChart3, CheckCircle, AlertCircle, Zap, Shield, Users, Wrench, Eye } from 'lucide-react';
+import { Calendar, Building2, Save, Target, TrendingUp, DollarSign, BarChart3, CheckCircle, AlertCircle, Zap, Shield, Users, Wrench, Eye, ChevronDown, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
@@ -14,6 +14,7 @@ function KPI() {
   const [categories, setCategories] = useState([]);
   const [sortedCategories, setSortedCategories] = useState([]);
   const [entriesByCategory, setEntriesByCategory] = useState({});
+  const [collapsedByCategory, setCollapsedByCategory] = useState({});
   const [objectives, setObjectives] = useState(null);
   const [allObjectives, setAllObjectives] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -81,6 +82,13 @@ function KPI() {
         return acc;
       }, {});
       setEntriesByCategory(init);
+
+      // Par défaut: catégories dépliées
+      const initCollapsed = (categoriesData || []).reduce((acc, cat) => {
+        acc[cat.CategorieId] = false;
+        return acc;
+      }, {});
+      setCollapsedByCategory(initCollapsed);
     } catch (e) {
       console.error(e);
       await swalError('Erreur lors du chargement des données');
@@ -653,11 +661,30 @@ function KPI() {
                       const e = entriesByCategory[cat.CategorieId] || {};
                       return (
                     <div key={cat.CategorieId} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 rounded-t-xl border-b border-gray-200">
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 rounded-t-xl border-b border-gray-200 flex items-center justify-between">
                         <h4 className="text-lg font-semibold text-gray-800">{cat.Libelle}</h4>
+                        <button
+                          type="button"
+                          onClick={() => setCollapsedByCategory(prev => ({ ...prev, [cat.CategorieId]: !prev[cat.CategorieId] }))}
+                          className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                          aria-expanded={!collapsedByCategory[cat.CategorieId]}
+                          aria-controls={`cat-panel-${cat.CategorieId}`}
+                        >
+                          {collapsedByCategory[cat.CategorieId] ? (
+                            <>
+                              <ChevronRight className="h-4 w-4" />
+                              Déplier
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4" />
+                              Plier
+                            </>
+                          )}
+                        </button>
                       </div>
                       
-                      <div className="p-6">
+                      <div id={`cat-panel-${cat.CategorieId}`} className={collapsedByCategory[cat.CategorieId] ? 'hidden' : 'p-6'}>
                         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                           
                           {/* Section Relances */}
