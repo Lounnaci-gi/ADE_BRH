@@ -3,6 +3,7 @@ import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
 import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
 import categoriesService from '../services/categoriesService';
 import authService from '../services/authService';
+import './Login.css';
 
 function Categories() {
   const [categories, setCategories] = useState([]);
@@ -204,91 +205,88 @@ function Categories() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border dark:border-slate-700">
-            {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b dark:border-slate-700">
-              <h3 className="text-lg font-semibold text-water-800 dark:text-water-200">
-                {editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
-              </h3>
-              <button
-                onClick={handleCloseModal}
-                className="p-1 text-water-600 dark:text-slate-300 hover:bg-water-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="login-card" style={{ maxWidth: '450px', width: '100%', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            {/* Header avec style login */}
+            <div className="login-header">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 style={{ fontSize: '20px', marginBottom: '4px' }}>
+                    {editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+                  </h1>
+                  <p style={{ fontSize: '12px', margin: 0 }}>
+                    {editingCategory ? 'Mise à jour des informations' : 'Création d\'une nouvelle catégorie'}
+                  </p>
+                </div>
+                <button 
+                  onClick={handleCloseModal} 
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors duration-200"
+                  aria-label="Fermer"
+                  style={{ color: 'inherit' }}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="p-3 space-y-3">
-              <div>
-                <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                  Code catégorie *
-                </label>
-                <input
-                  type="text"
-                  value={formData.codeCategorie}
-                  onChange={(e) => setFormData({ ...formData, codeCategorie: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-                  maxLength={50}
-                  required
-                />
-                <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-                  {formData.codeCategorie.length}/50 caractères
-                </p>
-              </div>
+            {/* Form avec style login */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
+              <form onSubmit={handleSubmit} className="login-form" style={{ gap: '12px' }}>
+                {/* Code catégorie */}
+                <div className="form-group">
+                  <label htmlFor="codeCategorie">Code catégorie</label>
+                  <input
+                    type="text"
+                    id="codeCategorie"
+                    value={formData.codeCategorie}
+                    onChange={(e) => setFormData({ ...formData, codeCategorie: e.target.value })}
+                    placeholder="Entrez le code catégorie"
+                    maxLength={50}
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                  Libellé *
-                </label>
-                <input
-                  type="text"
-                  value={formData.libelle}
-                  onChange={(e) => setFormData({ ...formData, libelle: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-                  maxLength={100}
-                  required
-                />
-                <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-                  {formData.libelle.length}/100 caractères
-                </p>
-              </div>
+                {/* Libellé */}
+                <div className="form-group">
+                  <label htmlFor="libelle">Libellé</label>
+                  <input
+                    type="text"
+                    id="libelle"
+                    value={formData.libelle}
+                    onChange={(e) => setFormData({ ...formData, libelle: e.target.value })}
+                    placeholder="Entrez le libellé"
+                    maxLength={100}
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 resize-none border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-                  rows="3"
-                  maxLength={250}
-                />
-                <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-                  {formData.description.length}/250 caractères
-                </p>
-              </div>
+                {/* Description */}
+                <div className="form-group">
+                  <label htmlFor="description">Description</label>
+                  <textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Entrez la description (optionnel)"
+                    rows={3}
+                    maxLength={250}
+                  />
+                </div>
 
-              {/* Actions */}
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-water-200 dark:border-water-700">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 text-water-600 hover:bg-water-50 dark:hover:bg-water-700 rounded-xl transition-colors"
+                {/* Bouton de soumission */}
+                <button 
+                  type="submit" 
+                  className="login-button"
                 >
-                  Annuler
+                  {editingCategory ? 'Modifier' : 'Créer la catégorie'}
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-water-600 hover:bg-water-700 text-white rounded-xl transition-colors inline-flex items-center gap-2"
-                >
-                  <Save className="h-4 w-4" />
-                  {editingCategory ? 'Modifier' : 'Créer'}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
+
+            {/* Footer avec style login */}
+            <div className="login-footer">
+              <p>Remplissez tous les champs requis (*)</p>
+            </div>
           </div>
         </div>
       )}

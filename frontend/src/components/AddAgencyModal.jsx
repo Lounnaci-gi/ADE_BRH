@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Building2, MapPin, Phone, Mail, FileText } from 'lucide-react';
 import agenceService from '../services/agenceService';
+import '../pages/Login.css';
 
 export default function AddAgencyModal({ open, onClose, onSubmit, initialValues }) {
   const [formData, setFormData] = useState({
@@ -117,215 +118,169 @@ export default function AddAgencyModal({ open, onClose, onSubmit, initialValues 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
-      <div className="bg-white dark:bg-water-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-water-200 dark:border-water-700">
-          <div className="flex items-center space-x-3">
-            <div className="p-1.5 bg-water-600 rounded-lg">
-              <Building2 className="h-5 w-5 text-white" />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="login-card" style={{ maxWidth: '500px', width: '100%', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {/* Header avec style login */}
+        <div className="login-header">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 style={{ fontSize: '20px', marginBottom: '4px' }}>
+                {initialValues ? 'Modifier l\'Agence' : 'Nouvelle Agence'}
+              </h1>
+              <p style={{ fontSize: '12px', margin: 0 }}>
+                {initialValues ? 'Mise à jour des informations' : 'Création d\'une nouvelle agence'}
+              </p>
             </div>
-            <h2 className="text-xl font-bold text-water-900 dark:text-white">
-              {initialValues ? 'Modifier l\'Agence' : 'Nouvelle Agence'}
-            </h2>
+            <button 
+              onClick={onClose} 
+              className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors duration-200"
+              aria-label="Fermer"
+              style={{ color: 'inherit' }}
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-water-500 hover:text-water-700 dark:text-water-400 dark:hover:text-water-200 hover:bg-water-100 dark:hover:bg-water-700 rounded-lg transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-3 space-y-3">
-          {/* Centre */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <Building2 className="inline h-4 w-4 mr-2" />
-              Centre *
-            </label>
-            <select
-              name="FK_Centre"
-              value={formData.FK_Centre}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                errors.FK_Centre
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-              required
-              disabled={loading}
+        {/* Scrollable Form Container */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
+          <form onSubmit={handleSubmit} className="login-form" style={{ gap: '12px' }}>
+            {/* Centre */}
+            <div className="form-group">
+              <label htmlFor="FK_Centre">Centre</label>
+              <select
+                id="FK_Centre"
+                name="FK_Centre"
+                value={formData.FK_Centre}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                className={errors.FK_Centre ? 'error-input' : ''}
+              >
+                <option value="">Sélectionnez un centre</option>
+                {centres.map((centre) => (
+                  <option key={centre.CentreId} value={centre.CentreId}>
+                    {centre.Nom_Centre}
+                  </option>
+                ))}
+              </select>
+              {errors.FK_Centre && (
+                <div className="error-message">{errors.FK_Centre}</div>
+              )}
+              {loading && (
+                <p style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+                  Chargement des centres...
+                </p>
+              )}
+            </div>
+
+            {/* Nom de l'Agence */}
+            <div className="form-group">
+              <label htmlFor="Nom_Agence">Nom de l'Agence</label>
+              <input
+                type="text"
+                id="Nom_Agence"
+                name="Nom_Agence"
+                value={formData.Nom_Agence}
+                onChange={handleChange}
+                placeholder="Entrez le nom de l'agence"
+                maxLength={200}
+                className={errors.Nom_Agence ? 'error-input' : ''}
+              />
+              {errors.Nom_Agence && (
+                <div className="error-message">{errors.Nom_Agence}</div>
+              )}
+            </div>
+
+            {/* Adresse */}
+            <div className="form-group">
+              <label htmlFor="Adresse">Adresse</label>
+              <textarea
+                id="Adresse"
+                name="Adresse"
+                value={formData.Adresse}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Entrez l'adresse complète de l'agence"
+                maxLength={400}
+                className={errors.Adresse ? 'error-input' : ''}
+              />
+              {errors.Adresse && (
+                <div className="error-message">{errors.Adresse}</div>
+              )}
+            </div>
+
+            {/* Téléphone et Fax sur la même ligne */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {/* Téléphone */}
+              <div className="form-group">
+                <label htmlFor="Telephone">Téléphone</label>
+                <input
+                  type="tel"
+                  id="Telephone"
+                  name="Telephone"
+                  value={formData.Telephone}
+                  onChange={handleChange}
+                  placeholder="Téléphone principal"
+                  maxLength={50}
+                  className={errors.Telephone ? 'error-input' : ''}
+                />
+                {errors.Telephone && (
+                  <div className="error-message" style={{ fontSize: '11px' }}>{errors.Telephone}</div>
+                )}
+              </div>
+
+              {/* Fax */}
+              <div className="form-group">
+                <label htmlFor="Fax">Fax</label>
+                <input
+                  type="tel"
+                  id="Fax"
+                  name="Fax"
+                  value={formData.Fax}
+                  onChange={handleChange}
+                  placeholder="Numéro de fax"
+                  maxLength={50}
+                  className={errors.Fax ? 'error-input' : ''}
+                />
+                {errors.Fax && (
+                  <div className="error-message" style={{ fontSize: '11px' }}>{errors.Fax}</div>
+                )}
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="form-group">
+              <label htmlFor="Email">Email</label>
+              <input
+                type="email"
+                id="Email"
+                name="Email"
+                value={formData.Email}
+                onChange={handleChange}
+                placeholder="email@exemple.com"
+                maxLength={200}
+                className={errors.Email ? 'error-input' : ''}
+              />
+              {errors.Email && (
+                <div className="error-message">{errors.Email}</div>
+              )}
+            </div>
+
+            {/* Bouton de soumission */}
+            <button 
+              type="submit" 
+              className="login-button"
             >
-              <option value="">Sélectionnez un centre</option>
-              {centres.map((centre) => (
-                <option key={centre.CentreId} value={centre.CentreId}>
-                  {centre.Nom_Centre}
-                </option>
-              ))}
-            </select>
-            {errors.FK_Centre && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.FK_Centre}</p>
-            )}
-            {loading && (
-              <p className="mt-1 text-sm text-water-500 dark:text-water-400">
-                Chargement des centres...
-              </p>
-            )}
-          </div>
-
-          {/* Nom de l'Agence */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <Building2 className="inline h-4 w-4 mr-2" />
-              Nom de l'Agence *
-            </label>
-            <input
-              type="text"
-              name="Nom_Agence"
-              value={formData.Nom_Agence}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                errors.Nom_Agence
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-              placeholder="Entrez le nom de l'agence"
-              maxLength={80}
-            />
-            {errors.Nom_Agence && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Nom_Agence}</p>
-            )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Nom_Agence.length}/80 caractères
-            </p>
-          </div>
-
-          {/* Adresse */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <MapPin className="inline h-4 w-4 mr-2" />
-              Adresse *
-            </label>
-            <textarea
-              name="Adresse"
-              value={formData.Adresse}
-              onChange={handleChange}
-              rows={2}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 resize-none ${
-                errors.Adresse
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-              placeholder="Entrez l'adresse complète de l'agence"
-              maxLength={200}
-            />
-            {errors.Adresse && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Adresse}</p>
-            )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Adresse.length}/200 caractères
-            </p>
-          </div>
-
-          {/* Téléphone */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <Phone className="inline h-4 w-4 mr-2" />
-              Téléphone *
-            </label>
-            <input
-              type="tel"
-              name="Telephone"
-              value={formData.Telephone}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                errors.Telephone
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-              placeholder="Entrez le numéro de téléphone"
-              maxLength={10}
-            />
-            {errors.Telephone && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Telephone}</p>
-            )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Telephone.length}/10 caractères
-            </p>
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <Mail className="inline h-4 w-4 mr-2" />
-              Email
-            </label>
-            <input
-              type="email"
-              name="Email"
-              value={formData.Email}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                errors.Email
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-              placeholder="Entrez l'adresse email (optionnel)"
-              maxLength={80}
-            />
-            {errors.Email && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Email}</p>
-            )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Email.length}/80 caractères
-            </p>
-          </div>
-
-          {/* Fax */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <FileText className="inline h-4 w-4 mr-2" />
-              Fax
-            </label>
-            <input
-              type="tel"
-              name="Fax"
-              value={formData.Fax}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                errors.Fax
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-              placeholder="Entrez le numéro de fax (optionnel)"
-              maxLength={50}
-            />
-            {errors.Fax && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.Fax}</p>
-            )}
-            <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-              {formData.Fax.length}/50 caractères
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-water-200 dark:border-water-700">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 text-water-600 dark:text-water-400 hover:bg-water-100 dark:hover:bg-water-700 rounded-xl transition-colors font-semibold"
-            >
-              Annuler
+              {initialValues ? 'Modifier' : 'Créer l\'agence'}
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-water-600 hover:bg-water-700 text-white rounded-xl transition-colors font-semibold shadow-lg hover:shadow-xl"
-            >
-              {initialValues ? 'Modifier' : 'Créer'}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
+
+        {/* Footer avec style login */}
+        <div className="login-footer">
+          <p>Remplissez tous les champs requis (*)</p>
+        </div>
       </div>
     </div>
   );
