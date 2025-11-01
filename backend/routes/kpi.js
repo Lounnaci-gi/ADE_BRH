@@ -7,6 +7,12 @@ const router = express.Router();
 
 // GET /api/kpi - liste des KPIs avec jointures (refactor db.query)
 router.get('/', async (req, res) => {
+  // SÉCURITÉ: Vérifier l'authentification
+  const role = (req.headers['x-role'] || '').toString().trim();
+  if (!role || (role !== 'Administrateur' && role !== 'Standard')) {
+    return res.status(401).json({ message: 'Authentification requise' });
+  }
+
   try {
     // D'abord vérifier si la table existe et a des données
     const countQuery = `SELECT COUNT(*) as count FROM dbo.FAIT_KPI_ADE`;
@@ -33,8 +39,8 @@ router.get('/', async (req, res) => {
     res.json(rows || []);
   } catch (err) {
     console.error('Erreur GET /kpi:', err);
-    console.error('Stack trace:', err.stack);
-    res.status(500).json({ message: 'Erreur lors de la lecture des KPIs', error: err.message });
+    // SÉCURITÉ: Ne pas exposer les détails d'erreur (err.message) aux clients
+    res.status(500).json({ message: 'Erreur lors de la lecture des KPIs' });
   }
 });
 
@@ -353,8 +359,8 @@ router.get('/existing', async (req, res) => {
     res.json(results);
   } catch (err) {
     console.error('Erreur GET /kpi/existing:', err);
-    console.error('Stack trace:', err.stack);
-    res.status(500).json({ message: 'Erreur lors de la récupération des données existantes', error: err.message });
+    // SÉCURITÉ: Ne pas exposer les détails d'erreur
+    res.status(500).json({ message: 'Erreur lors de la récupération des données existantes' });
   }
 });
 
@@ -389,7 +395,8 @@ router.get('/agences', async (req, res) => {
     res.json(results || []);
   } catch (err) {
     console.error('Erreur GET /kpi/agences:', err);
-    res.status(500).json({ message: 'Erreur lors de la lecture des agences', error: err.message });
+    // SÉCURITÉ: Ne pas exposer les détails d'erreur
+    res.status(500).json({ message: 'Erreur lors de la lecture des agences' });
   }
 });
 

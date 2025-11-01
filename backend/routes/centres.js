@@ -4,18 +4,19 @@ const db = require('../utils/db');
 const router = express.Router();
 
 // Configuration de la base de données
+// SÉCURITÉ: Ne plus exposer de mots de passe en dur
 const getConfig = () => ({
   server: process.env.DB_SERVER || 'localhost',
   authentication: {
     type: 'default',
     options: {
-      userName: process.env.DB_USER || 'lounnaci',
-      password: process.env.DB_PASSWORD || 'lounnaci'
+      userName: process.env.DB_USER,
+      password: process.env.DB_PASSWORD
     }
   },
   options: {
-    encrypt: false,
-    database: process.env.DB_NAME || 'ADE_KPI',
+    encrypt: false, // SÉCURITÉ: Activer en production avec encrypt: true
+    database: process.env.DB_DATABASE || process.env.DB_NAME || 'ADE_KPI',
     trustServerCertificate: true
   }
 });
@@ -182,10 +183,20 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/centres/:id - Supprimer un centre
 router.delete('/:id', async (req, res) => {
   const role = getRole(req);
+  // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
+  if (!role) {
+    return res.status(401).json({ message: 'Authentification requise' });
+  }
   if (role !== 'Administrateur') {
     return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent supprimer les centres.' });
   }
+  
+  // SÉCURITÉ: Valider l'ID
   const { id } = req.params;
+  const idNum = parseInt(id, 10);
+  if (isNaN(idNum) || idNum <= 0) {
+    return res.status(400).json({ message: 'ID invalide' });
+  }
   try {
     // Vérifier s'il existe des agences liées à ce centre
     const dependants = await db.query(

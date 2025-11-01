@@ -190,8 +190,13 @@ const login = (req, res) => {
 };
 
 // Fonction pour créer/mettre à jour le hash du mot de passe admin
+// SÉCURITÉ: Ne plus exposer de mot de passe en dur - doit être passé en paramètre sécurisé
 const updateAdminPassword = (req, res) => {
-    const password = 'admin123'; // Mot de passe à hasher
+    // SÉCURITÉ: Require authentication and validate input
+    const { password } = req.body;
+    if (!password || typeof password !== 'string' || password.length < 8) {
+        return res.status(400).json({ error: 'Mot de passe requis (minimum 8 caractères)' });
+    }
 
     bcrypt.hash(password, 10, (err, hash) => {
         if (err) {
@@ -236,10 +241,24 @@ const updateAdminPassword = (req, res) => {
 
 
 // Fonction pour créer l'utilisateur admin initial
+// SÉCURITÉ: Ne plus exposer de mots de passe en dur
 const createAdmin = (req, res) => {
-    const username = 'admin';
-    const password = 'admin123';
-    const email = 'admin@ade.dz';
+    // SÉCURITÉ: Permettre de définir les credentials via body ou utiliser des valeurs par défaut sécurisées uniquement en environnement de dev
+    const username = req.body?.username || 'admin';
+    const password = req.body?.password;
+    const email = req.body?.email || 'admin@ade.dz';
+    
+    // SÉCURITÉ: En production, exiger un mot de passe fort
+    if (!password || typeof password !== 'string') {
+        return res.status(400).json({ 
+            error: 'Mot de passe requis pour créer l\'administrateur',
+            message: 'Fournissez un mot de passe sécurisé dans le body de la requête'
+        });
+    }
+    
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères' });
+    }
 
     bcrypt.hash(password, 10, (err, hash) => {
         if (err) {
@@ -282,11 +301,12 @@ const createAdmin = (req, res) => {
                     return res.status(500).json({ error: err.message });
                 }
 
+                // SÉCURITÉ: Ne jamais retourner le mot de passe en réponse
                 return res.json({
                     success: true,
                     message: 'Utilisateur admin créé/mis à jour avec succès',
                     username: username,
-                    password: password,
+                    // password: password, // SÉCURITÉ: Retiré - ne jamais exposer le mot de passe
                     result: result
                 });
             });

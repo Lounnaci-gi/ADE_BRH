@@ -24,8 +24,13 @@ const getConfig = () => ({
 
 // GET /api/users - liste des utilisateurs
 router.get('/', (req, res) => {
-  const roleHeader = (req.headers['x-role'] || '').toString();
+  const roleHeader = (req.headers['x-role'] || '').toString().trim();
   const userIdHeader = req.headers['x-user-id'] || null;
+  
+  // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
+  if (!roleHeader || (roleHeader !== 'Administrateur' && roleHeader !== 'Standard')) {
+    return res.status(401).json({ message: 'Authentification requise' });
+  }
 
   const connection = new Connection(getConfig());
 
@@ -96,9 +101,13 @@ router.get('/', (req, res) => {
 
 // POST /api/users - créer un utilisateur
 router.post('/', (req, res) => {
-  const roleHeader = (req.headers['x-role'] || '').toString();
+  const roleHeader = (req.headers['x-role'] || '').toString().trim();
+  // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
+  if (!roleHeader) {
+    return res.status(401).json({ message: 'Authentification requise' });
+  }
   if (roleHeader !== 'Administrateur') {
-    return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+    return res.status(403).json({ message: 'Accès refusé: droits administrateur requis' });
   }
   const { username, email, role: roleRaw = 'Standard', password, agenceId } = req.body || {};
 
@@ -193,9 +202,13 @@ router.post('/', (req, res) => {
 
 // PUT /api/users/:id - modifier un utilisateur (email, role, agence)
 router.put('/:id', (req, res) => {
-  const roleHeader = (req.headers['x-role'] || '').toString();
+  const roleHeader = (req.headers['x-role'] || '').toString().trim();
+  // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
+  if (!roleHeader) {
+    return res.status(401).json({ message: 'Authentification requise' });
+  }
   if (roleHeader !== 'Administrateur') {
-    return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+    return res.status(403).json({ message: 'Accès refusé: droits administrateur requis' });
   }
   const { id } = req.params;
   const { email, role, agenceId } = req.body || {};
@@ -234,9 +247,13 @@ router.put('/:id', (req, res) => {
 
 // DELETE /api/users/:id - désactiver un utilisateur
 router.delete('/:id', (req, res) => {
-  const roleHeader = (req.headers['x-role'] || '').toString();
+  const roleHeader = (req.headers['x-role'] || '').toString().trim();
+  // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
+  if (!roleHeader) {
+    return res.status(401).json({ message: 'Authentification requise' });
+  }
   if (roleHeader !== 'Administrateur') {
-    return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+    return res.status(403).json({ message: 'Accès refusé: droits administrateur requis' });
   }
   const { id } = req.params;
 
@@ -265,8 +282,13 @@ router.delete('/:id', (req, res) => {
 
 // PUT /api/users/profile - modifier son propre profil (Standard users)
 router.put('/profile', (req, res) => {
-  const roleHeader = (req.headers['x-role'] || '').toString();
+  const roleHeader = (req.headers['x-role'] || '').toString().trim();
   const userIdHeader = req.headers['x-user-id'] || null;
+  
+  // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
+  if (!roleHeader || (roleHeader !== 'Administrateur' && roleHeader !== 'Standard')) {
+    return res.status(401).json({ message: 'Authentification requise' });
+  }
   const { username, email, currentPassword, newPassword } = req.body || {};
 
   if (!userIdHeader) {

@@ -156,11 +156,18 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 
 // GET /api/communes/agences - Récupérer la liste des agences
 router.get('/agences', async (req, res) => {
+  // SÉCURITÉ: Vérifier l'authentification
+  const role = getRole(req);
+  if (!role || (role !== 'Administrateur' && role !== 'Standard')) {
+    return res.status(401).json({ message: 'Authentification requise' });
+  }
+
   try {
     const rows = await db.query('SELECT AgenceId, Nom_Agence FROM DIM_AGENCE ORDER BY Nom_Agence');
     res.json(rows);
   } catch (err) {
     console.error('Erreur GET /communes/agences:', err);
+    // SÉCURITÉ: Ne pas exposer les détails d'erreur
     res.status(500).json({ message: 'Erreur lors de la récupération des agences' });
   }
 });

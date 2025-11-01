@@ -1,6 +1,8 @@
 const express = require('express');
 const { Connection, Request } = require('tedious');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const { login, updateAdminPassword, createAdmin } = require('./routes/auth');
 const agenceRoutes = require('./routes/agence.js');
@@ -17,16 +19,64 @@ const { sqlInjectionDetection } = require('./middleware/security');
 const app = express();
 const PORT = 5000;
 
-// Middleware
+// SÉCURITÉ: Headers de sécurité HTTP avec Helmet
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:"],
+        },
+    },
+    crossOriginEmbedderPolicy: false, // Peut être nécessaire pour certaines API
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    }
+}));
+
+// SÉCURITÉ: Rate limiting global pour prévenir les attaques DoS
+const globalRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limiter à 100 requêtes par IP toutes les 15 minutes
+    message: {
+        error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.',
+        retryAfter: '15 minutes'
+    },
+    standardHeaders: true, // Retourner les infos de rate limit dans les headers `RateLimit-*`
+    legacyHeaders: false, // Désactiver les headers `X-RateLimit-*`
+});
+
+// SÉCURITÉ: Rate limiting plus strict pour les routes d'authentification
+const authRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limiter à 5 tentatives de connexion par IP toutes les 15 minutes
+    message: {
+        error: 'Trop de tentatives de connexion, veuillez réessayer plus tard.',
+        retryAfter: '15 minutes'
+    },
+    skipSuccessfulRequests: true, // Ne pas compter les requêtes réussies
+});
+
+// Ensure correct client IP detection behind proxies (doit être avant rate limiting)
+app.set('trust proxy', true);
+
+// Appliquer le rate limiting global à toutes les routes
+app.use('/api/', globalRateLimiter);
+
+// Middleware CORS
 app.use(cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     methods: ['GET','POST','PUT','DELETE','OPTIONS'],
     allowedHeaders: ['Content-Type', 'X-Role', 'X-User-Agence', 'X-User-Id'],
     credentials: false
 }));
-app.use(express.json());
-// Ensure correct client IP detection behind proxies
-app.set('trust proxy', true);
+
+// SÉCURITÉ: Limiter la taille du body JSON pour prévenir les attaques DoS
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Middleware de sécurité SQL injection (appliqué à toutes les routes)
 app.use(sqlInjectionDetection);
@@ -94,8 +144,25 @@ app.get('/api/test', (req, res) => {
 });
 
 // Routes
-app.post('/api/login', login);
-app.get('/api/setup-admin', createAdmin);
+// SÉCURITÉ: Rate limiting strict pour les routes d'authentification
+app.post('/api/login', authRateLimiter, login);
+// SÉCURITÉ: Route setup-admin sensible - devrait être protégée ou accessible uniquement en environnement de développement
+// Pour production, retirer cette route ou la protéger avec une clé secrète
+if (process.env.NODE_ENV !== 'production') {
+    app.get('/api/setup-admin', authRateLimiter, createAdmin);
+} else {
+    // En production, cette route doit être protégée par une clé secrète
+    app.get('/api/setup-admin', (req, res) => {
+        const secretKey = req.query?.secret || req.headers['x-admin-secret'];
+        if (secretKey !== process.env.ADMIN_SETUP_SECRET) {
+            return res.status(403).json({ 
+                error: 'Accès refusé',
+                message: 'Cette route nécessite une clé secrète en production'
+            });
+        }
+        authRateLimiter(req, res, () => createAdmin(req, res));
+    });
+}
 app.use("/api/agences", agenceRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/notifications", notificationsRoutes);

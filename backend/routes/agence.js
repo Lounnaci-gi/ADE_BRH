@@ -37,9 +37,9 @@ function getUserAgenceId(req) {
 router.get('/', async (req, res) => {
     const role = getRole(req);
     
-    // Permettre la lecture pour tous les utilisateurs connectés (Administrateur et Standard)
+    // SÉCURITÉ: Vérification stricte de l'authentification
     if (!role || (role !== 'Administrateur' && role !== 'Standard')) {
-        return res.status(403).json({ message: 'Accès refusé. Connexion requise.' });
+        return res.status(401).json({ message: 'Authentification requise. Connexion nécessaire.' });
     }
 
     try {
@@ -76,9 +76,13 @@ router.get('/', async (req, res) => {
 
 // ✅ Ajouter une nouvelle agence
 router.post('/', async (req, res) => {
-    const roleHeader = (req.headers['x-role'] || '').toString();
+    const roleHeader = (req.headers['x-role'] || '').toString().trim();
+    // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
+    if (!roleHeader) {
+        return res.status(401).json({ message: 'Authentification requise' });
+    }
     if (roleHeader !== 'Administrateur') {
-        return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+        return res.status(403).json({ message: 'Accès refusé: droits administrateur requis' });
     }
     const { 
         FK_Centre,
@@ -131,9 +135,13 @@ router.post('/', async (req, res) => {
 
 // ✅ Modifier une agence existante
 router.put('/:id', (req, res) => {
-    const roleHeader = (req.headers['x-role'] || '').toString();
+    const roleHeader = (req.headers['x-role'] || '').toString().trim();
+    // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
+    if (!roleHeader) {
+        return res.status(401).json({ message: 'Authentification requise' });
+    }
     if (roleHeader !== 'Administrateur') {
-        return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+        return res.status(403).json({ message: 'Accès refusé: droits administrateur requis' });
     }
     const { id } = req.params;
     const { 
@@ -235,9 +243,13 @@ router.get('/centres', async (req, res) => {
 
 // ✅ Supprimer une agence (admin uniquement) avec vérification des dépendances
 router.delete('/:id', async (req, res) => {
-    const roleHeader = (req.headers['x-role'] || '').toString();
+    const roleHeader = (req.headers['x-role'] || '').toString().trim();
+    // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
+    if (!roleHeader) {
+        return res.status(401).json({ message: 'Authentification requise' });
+    }
     if (roleHeader !== 'Administrateur') {
-        return res.status(403).json({ message: 'Accès refusé: droits insuffisants' });
+        return res.status(403).json({ message: 'Accès refusé: droits administrateur requis' });
     }
     const { id } = req.params;
 
@@ -332,9 +344,9 @@ router.delete('/:id', async (req, res) => {
 router.get('/count', async (req, res) => {
   const role = getRole(req);
   
-  // Permettre la lecture pour tous les utilisateurs connectés (Administrateur et Standard)
+  // SÉCURITÉ: Vérification stricte de l'authentification
   if (!role || (role !== 'Administrateur' && role !== 'Standard')) {
-    return res.status(403).json({ message: 'Accès refusé. Connexion requise.' });
+    return res.status(401).json({ message: 'Authentification requise. Connexion nécessaire.' });
   }
 
   try {
