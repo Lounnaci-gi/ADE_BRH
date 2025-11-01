@@ -139,7 +139,10 @@ function BilansDetailles() {
     try {
       const html2canvas = await ensureHtml2Canvas();
       if (!chartRef.current) return;
-      const canvas = await html2canvas(chartRef.current, { scale: 2, backgroundColor: '#ffffff' });
+      // Détecter si le thème dark est activé
+      const isDark = document.documentElement.classList.contains('dark');
+      const backgroundColor = isDark ? '#1e293b' : '#ffffff'; // slate-800 pour dark, blanc pour light
+      const canvas = await html2canvas(chartRef.current, { scale: 2, backgroundColor });
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.href = dataUrl;
@@ -606,7 +609,7 @@ function BilansDetailles() {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="mt-8"
       >
-        <div className="bg-white border border-blue-200/50 rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 border border-blue-200/50 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden">
           <div className="px-6 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-white" />
             <h3 className="text-white font-semibold">Taux d'encaissement global par agence</h3>
@@ -621,13 +624,13 @@ function BilansDetailles() {
               </button>
             </div>
           </div>
-          <div className="p-6" ref={chartRef}>
+          <div className="p-6 dark:bg-slate-800" ref={chartRef}>
             {ratesLoading ? (
               <div className="flex items-center justify-center py-10">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
               </div>
             ) : encaissementRates.length === 0 ? (
-              <div className="text-center py-10 text-gray-500 text-sm">Aucune donnée de taux disponible.</div>
+              <div className="text-center py-10 text-gray-500 dark:text-slate-400 text-sm">Aucune donnée de taux disponible.</div>
             ) : (
               <div className={compactMode ? 'space-y-2' : 'space-y-3'}>
                 {(() => {
@@ -636,16 +639,16 @@ function BilansDetailles() {
                     const widthPct = Math.max(0, Math.min(100, Math.round((r.rate / maxRate) * 100)));
                     return (
                       <div key={r.agenceId} className={compactMode ? 'grid grid-cols-12 items-center gap-2' : 'grid grid-cols-12 items-center gap-3'}>
-                        <div className="col-span-3 md:col-span-2 lg:col-span-2 truncate text-[11px] md:text-xs font-medium text-gray-700" title={r.nom}>{r.nom}</div>
+                        <div className="col-span-3 md:col-span-2 lg:col-span-2 truncate text-[11px] md:text-xs font-medium text-gray-700 dark:text-slate-200" title={r.nom}>{r.nom}</div>
                         <div className="col-span-7 md:col-span-8 lg:col-span-9">
-                          <div className={compactMode ? 'h-2.5 w-full rounded-full bg-slate-100 overflow-hidden' : 'h-3.5 w-full rounded-full bg-slate-100 overflow-hidden'}>
+                          <div className={compactMode ? 'h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden' : 'h-3.5 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden'}>
                             <div
                               className={`h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500`}
                               style={{ width: `${widthPct}%` }}
                             />
                           </div>
                         </div>
-                        <div className={compactMode ? 'col-span-2 md:col-span-2 lg:col-span-1 text-right text-[11px] md:text-xs font-semibold text-gray-800' : 'col-span-2 md:col-span-2 lg:col-span-1 text-right text-xs font-semibold text-gray-800'}>
+                        <div className={compactMode ? 'col-span-2 md:col-span-2 lg:col-span-1 text-right text-[11px] md:text-xs font-semibold text-gray-800 dark:text-slate-100' : 'col-span-2 md:col-span-2 lg:col-span-1 text-right text-xs font-semibold text-gray-800 dark:text-slate-100'}>
                           {r.rate?.toFixed ? r.rate.toFixed(2) : Number(r.rate || 0).toFixed(2)}%
                         </div>
                       </div>

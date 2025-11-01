@@ -203,7 +203,7 @@ const Dashboard = () => {
         <main className="p-6 fade-in space-y-6">
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {/* Carte Taux moyen le plus fort depuis le début du mois (Agence) - GOLD */}
-          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 dark:!bg-slate-800 dark:[background-image:none] dark:border-yellow-500/50 rounded-2xl shadow-xl border-4 border-white dark:border-2 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
                 <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Agence du mois courant</p>
@@ -229,7 +229,7 @@ const Dashboard = () => {
                   </>
                 )}
               </div>
-              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+              <div className="bg-white/20 dark:bg-yellow-500/20 rounded-full p-3 flex items-center justify-center">
                 <Trophy className="w-7 h-7 text-white" />
               </div>
             </div>
@@ -242,7 +242,7 @@ const Dashboard = () => {
           </div>
 
           {/* Carte Taux moyen centre le plus élevé (Mois en cours) */}
-          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-indigo-500 via-sky-600 to-cyan-600 dark:from-indigo-700 dark:via-sky-800 dark:to-cyan-800 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-indigo-500 via-sky-600 to-cyan-600 dark:!bg-slate-800 dark:[background-image:none] dark:border-indigo-500/50 rounded-2xl shadow-xl border-4 border-white dark:border-2 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
                 <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Centre du Mois courant</p>
@@ -268,7 +268,7 @@ const Dashboard = () => {
                   </>
                 )}
               </div>
-              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+              <div className="bg-white/20 dark:bg-indigo-500/20 rounded-full p-3 flex items-center justify-center">
                 <Trophy className="w-7 h-7 text-white" />
               </div>
             </div>
@@ -281,7 +281,7 @@ const Dashboard = () => {
           </div>
 
           {/* Carte Taux le plus élevé (Agence) - journée */}
-          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 dark:from-emerald-700 dark:via-teal-800 dark:to-cyan-800 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 dark:!bg-slate-800 dark:[background-image:none] dark:border-emerald-500/50 rounded-2xl shadow-xl border-4 border-white dark:border-2 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
                 <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Agence du Jour</p>
@@ -307,7 +307,7 @@ const Dashboard = () => {
                   </>
                 )}
               </div>
-              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+              <div className="bg-white/20 dark:bg-emerald-500/20 rounded-full p-3 flex items-center justify-center">
                 <Trophy className="w-7 h-7 text-white" />
               </div>
             </div>
@@ -320,7 +320,7 @@ const Dashboard = () => {
           </div>
 
           {/* Carte Taux le plus élevé (Centre) - journée */}
-          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 dark:from-emerald-700 dark:via-teal-800 dark:to-cyan-800 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+          <div className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 dark:!bg-slate-800 dark:[background-image:none] dark:border-emerald-500/50 rounded-2xl shadow-xl border-4 border-white dark:border-2 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
             <div className="flex items-center justify-between w-full">
               <div>
                 <p className="text-white/90 text-xs uppercase tracking-wide font-semibold mb-1">Meilleur Centre du Jour</p>
@@ -346,7 +346,7 @@ const Dashboard = () => {
                   </>
                 )}
               </div>
-              <div className="bg-white/20 rounded-full p-3 flex items-center justify-center">
+              <div className="bg-white/20 dark:bg-emerald-500/20 rounded-full p-3 flex items-center justify-center">
                 <Trophy className="w-7 h-7 text-white" />
               </div>
             </div>
@@ -362,7 +362,7 @@ const Dashboard = () => {
           {/* Cartes KPI interactives */}
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div 
-              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:from-emerald-800 dark:via-sky-900 dark:to-cyan-900 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:!bg-slate-800 dark:[background-image:none] dark:border-sky-500/50 rounded-2xl shadow-xl border-4 border-white dark:border-2 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/users')}
             >
               <div className="flex items-center justify-between">
@@ -384,7 +384,7 @@ const Dashboard = () => {
             </div>
 
             <div 
-              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:from-emerald-800 dark:via-sky-900 dark:to-cyan-900 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:!bg-slate-800 dark:[background-image:none] dark:border-sky-500/50 rounded-2xl shadow-xl border-4 border-white dark:border-2 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/centres')}
             >
               <div className="flex items-center justify-between">
@@ -406,7 +406,7 @@ const Dashboard = () => {
             </div>
 
             <div 
-              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:from-emerald-800 dark:via-sky-900 dark:to-cyan-900 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:!bg-slate-800 dark:[background-image:none] dark:border-sky-500/50 rounded-2xl shadow-xl border-4 border-white dark:border-2 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/agences')}
             >
               <div className="flex items-center justify-between">
@@ -428,7 +428,7 @@ const Dashboard = () => {
             </div>
 
             <div 
-              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:from-emerald-800 dark:via-sky-900 dark:to-cyan-900 rounded-2xl shadow-xl border-4 border-white dark:border-slate-800 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:!bg-slate-800 dark:[background-image:none] dark:border-sky-500/50 rounded-2xl shadow-xl border-4 border-white dark:border-2 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between cursor-pointer"
               onClick={() => navigate('/communes')}
             >
               <div className="flex items-center justify-between">
