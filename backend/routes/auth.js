@@ -1,5 +1,6 @@
 const { Connection, Request, TYPES } = require('tedious');
 const bcrypt = require('bcryptjs');
+const { validateUsername, validatePassword } = require('../middleware/security');
 
 // Basic in-memory rate limiter for login attempts per user+IP
 const loginAttempts = new Map();
@@ -76,12 +77,21 @@ const getConfig = () => ({
 
 // Route de login
 const login = (req, res) => {
-    const { username, password } = req.body;
+    const { username: usernameRaw, password: passwordRaw } = req.body;
     const clientIp = getClientIp(req);
 
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Username et password requis' });
+    // Validation et sanitization des entrées
+    const usernameValidation = validateUsername(usernameRaw);
+    if (!usernameValidation.valid) {
+        return res.status(400).json({ error: usernameValidation.error });
     }
+    const username = usernameValidation.sanitized;
+
+    const passwordValidation = validatePassword(passwordRaw);
+    if (!passwordValidation.valid) {
+        return res.status(400).json({ error: passwordValidation.error });
+    }
+    const password = passwordValidation.sanitized;
 
     // Check lockout state before hitting DB
     const { entry } = getAttempts(username, clientIp);

@@ -12,6 +12,7 @@ const kpiRoutes = require('./routes/kpi.js');
 const objectivesRoutes = require('./routes/objectives.js');
 const centresRoutes = require('./routes/centres.js');
 const communesRoutes = require('./routes/communes.js');
+const { sqlInjectionDetection } = require('./middleware/security');
 
 const app = express();
 const PORT = 5000;
@@ -26,6 +27,9 @@ app.use(cors({
 app.use(express.json());
 // Ensure correct client IP detection behind proxies
 app.set('trust proxy', true);
+
+// Middleware de sécurité SQL injection (appliqué à toutes les routes)
+app.use(sqlInjectionDetection);
 
 // Configuration SQL Server
 const config = {

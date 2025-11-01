@@ -69,15 +69,43 @@ router.get('/', async (req, res) => {
     // Récupérer les paramètres de filtrage
     const { annee, mois } = req.query;
     
+    // Valider et convertir les paramètres numériques
+    let anneeParam = null;
+    let moisParam = null;
+    
+    if (annee) {
+      const anneeNum = parseInt(annee, 10);
+      if (isNaN(anneeNum) || anneeNum < 1900 || anneeNum > 2100) {
+        return res.status(400).json({ message: 'Année invalide' });
+      }
+      anneeParam = anneeNum;
+    }
+    
+    if (mois) {
+      const moisNum = parseInt(mois, 10);
+      if (isNaN(moisNum) || moisNum < 1 || moisNum > 12) {
+        return res.status(400).json({ message: 'Mois invalide (doit être entre 1 et 12)' });
+      }
+      moisParam = moisNum;
+    }
+    
+    // Construire la requête avec des paramètres sécurisés
     let whereClause = `WHERE o.IsActive = 1`;
+    const params = [];
     
     // Ajouter le filtrage par année et mois si spécifiés
-    if (annee && mois) {
-      whereClause += ` AND YEAR(o.DateDebut) = ${parseInt(annee)} AND MONTH(o.DateDebut) = ${parseInt(mois)}`;
-    } else if (annee) {
-      whereClause += ` AND YEAR(o.DateDebut) = ${parseInt(annee)}`;
-    } else if (mois) {
-      whereClause += ` AND MONTH(o.DateDebut) = ${parseInt(mois)}`;
+    if (anneeParam && moisParam) {
+      whereClause += ` AND YEAR(o.DateDebut) = @annee AND MONTH(o.DateDebut) = @mois`;
+      params.push(
+        { name: 'annee', type: TYPES.Int, value: anneeParam },
+        { name: 'mois', type: TYPES.Int, value: moisParam }
+      );
+    } else if (anneeParam) {
+      whereClause += ` AND YEAR(o.DateDebut) = @annee`;
+      params.push({ name: 'annee', type: TYPES.Int, value: anneeParam });
+    } else if (moisParam) {
+      whereClause += ` AND MONTH(o.DateDebut) = @mois`;
+      params.push({ name: 'mois', type: TYPES.Int, value: moisParam });
     }
 
     const query = `
@@ -106,7 +134,7 @@ router.get('/', async (req, res) => {
       ORDER BY o.DateDebut DESC, a.Nom_Agence
     `;
 
-    const results = await db.query(query);
+    const results = await db.query(query, params);
     res.json(results);
   } catch (err) {
     console.error('Erreur GET /objectives:', err);
