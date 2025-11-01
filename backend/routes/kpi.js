@@ -1214,4 +1214,112 @@ router.get('/highest-monthly-average-rate', async (req, res) => {
   }
 });
 
+// GET /api/kpi/top-3-agences-month - Top 3 des agences avec le meilleur taux d'encaissement du mois courant
+// Calcul: Taux = (Somme Encaissement_Journalier_Global) / (Somme Objectifs pour tous les jours du mois)
+router.get('/top-3-agences-month', async (req, res) => {
+  try {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    const query = `
+      WITH MonthDays AS (
+        SELECT @monthStart AS d
+        UNION ALL
+        SELECT DATEADD(DAY, 1, d) FROM MonthDays WHERE d < @monthEnd
+      ),
+      -- Encaissement total réel (somme des jours avec données KPI)
+      AgencyEnc AS (
+        SELECT a.AgenceId, a.Nom_Agence,
+               SUM(ISNULL(k.Encaissement_Journalier_Global, 0)) AS Encaissement_Total
+        FROM dbo.DIM_AGENCE a
+        INNER JOIN dbo.FAIT_KPI_ADE k ON a.AgenceId = k.AgenceId
+          AND k.DateKPI >= @monthStart 
+          AND k.DateKPI <= @today
+          AND YEAR(k.DateKPI) = YEAR(@today)
+          AND MONTH(k.DateKPI) = MONTH(@today)
+        GROUP BY a.AgenceId, a.Nom_Agence
+        HAVING SUM(ISNULL(k.Encaissement_Journalier_Global, 0)) > 0
+      ),
+      -- Objectif total pour TOUS les jours du mois (même ceux sans données KPI)
+      AgencyObj AS (
+        SELECT a.AgenceId,
+               SUM(ISNULL(o.Obj_Encaissement, 0)) AS Obj_Total_Mois
+        FROM dbo.DIM_AGENCE a
+        INNER JOIN AgencyEnc ae ON a.AgenceId = ae.AgenceId
+        CROSS JOIN MonthDays md
+        LEFT JOIN dbo.DIM_OBJECTIF o ON a.AgenceId = o.FK_Agence
+          AND o.IsActive = 1
+          AND o.DateDebut <= md.d 
+          AND o.DateFin >= md.d
+        GROUP BY a.AgenceId
+        HAVING SUM(ISNULL(o.Obj_Encaissement, 0)) > 0
+      ),
+      -- Calcul du taux mensuel
+      Final AS (
+        SELECT e.AgenceId, 
+               e.Nom_Agence,
+               e.Encaissement_Total,
+               o.Obj_Total_Mois,
+               CASE 
+                 WHEN o.Obj_Total_Mois > 0 
+                 THEN ROUND((e.Encaissement_Total * 100.0) / o.Obj_Total_Mois, 2)
+                 ELSE 0 
+               END AS Taux_Mensuel
+        FROM AgencyEnc e
+        INNER JOIN AgencyObj o ON o.AgenceId = e.AgenceId
+        WHERE e.Encaissement_Total > 0 
+          AND o.Obj_Total_Mois > 0
+      )
+      SELECT TOP 3 
+        AgenceId, 
+        Nom_Agence, 
+        Encaissement_Total, 
+        Obj_Total_Mois, 
+        Taux_Mensuel
+      FROM Final
+      WHERE Taux_Mensuel > 0
+      ORDER BY Taux_Mensuel DESC
+      OPTION (MAXRECURSION 1000);
+    `;
+
+    const params = [
+      { name: 'monthStart', type: TYPES.Date, value: monthStart },
+      { name: 'monthEnd', type: TYPES.Date, value: monthEnd },
+      { name: 'today', type: TYPES.Date, value: today }
+    ];
+
+    console.log('🔍 DEBUG /kpi/top-3-agences-month - Période:', { 
+      monthStart, 
+      monthEnd, 
+      today,
+      year: today.getFullYear(),
+      month: today.getMonth() + 1
+    });
+
+    const results = await db.query(query, params);
+
+    console.log('🔍 DEBUG /kpi/top-3-agences-month - Résultats:', results);
+
+    if (results && results.length > 0) {
+      const mappedResults = results.map(row => ({
+        AgenceId: row.AgenceId,
+        Nom_Agence: row.Nom_Agence,
+        Taux_Mensuel: row.Taux_Mensuel || 0,
+        Encaissement_Total: row.Encaissement_Total || 0,
+        Obj_Total_Mois: row.Obj_Total_Mois || 0
+      }));
+      console.log('✅ DEBUG /kpi/top-3-agences-month - Données mappées:', mappedResults);
+      res.json(mappedResults);
+    } else {
+      console.log('⚠️ DEBUG /kpi/top-3-agences-month - Aucune donnée trouvée pour le mois en cours');
+      res.json([]);
+    }
+  } catch (err) {
+    console.error('❌ Erreur GET /kpi/top-3-agences-month:', err);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ message: 'Erreur lors de la récupération du top 3 des agences', error: err.message });
+  }
+});
+
 module.exports = router;
