@@ -999,38 +999,54 @@ router.get('/highest-monthly-average-rate-centre', async (req, res) => {
         SELECT a.AgenceId, a.FK_Centre AS CentreId,
                SUM(k.Encaissement_Journalier_Global) AS Encaissement_Total
         FROM dbo.DIM_AGENCE a
-        LEFT JOIN dbo.FAIT_KPI_ADE k ON a.AgenceId = k.AgenceId
-          AND k.DateKPI >= @monthStart AND k.DateKPI <= @today
+        INNER JOIN dbo.FAIT_KPI_ADE k ON a.AgenceId = k.AgenceId
+          AND k.DateKPI >= @monthStart 
+          AND k.DateKPI <= @today
+          AND YEAR(k.DateKPI) = YEAR(@today)
+          AND MONTH(k.DateKPI) = MONTH(@today)
         GROUP BY a.AgenceId, a.FK_Centre
+        HAVING SUM(k.Encaissement_Journalier_Global) > 0
+          AND COUNT(k.DateKPI) > 0
       ),
       -- Objectif total du mois par agence (01 -> fin du mois)
       AgencyObj AS (
         SELECT a.AgenceId,
                SUM(ISNULL(o.Obj_Encaissement, 0)) AS Obj_Total_Mois
         FROM dbo.DIM_AGENCE a
+        INNER JOIN AgencyEnc ae ON a.AgenceId = ae.AgenceId
         INNER JOIN MonthDays md ON 1 = 1
         LEFT JOIN dbo.DIM_OBJECTIF o ON a.AgenceId = o.FK_Agence
           AND o.IsActive = 1
           AND o.DateDebut <= md.d AND o.DateFin >= md.d
         GROUP BY a.AgenceId
+        HAVING SUM(ISNULL(o.Obj_Encaissement, 0)) > 0
       ),
       -- Agrégation au niveau centre: somme des encaissements et somme des objectifs
       CentreAgg AS (
         SELECT e.CentreId,
-               SUM(ISNULL(e.Encaissement_Total, 0)) AS Encaissement_Total_Centre,
-               SUM(ISNULL(o.Obj_Total_Mois, 0)) AS Obj_Total_Mois_Centre
+               SUM(e.Encaissement_Total) AS Encaissement_Total_Centre,
+               SUM(o.Obj_Total_Mois) AS Obj_Total_Mois_Centre
         FROM AgencyEnc e
         INNER JOIN AgencyObj o ON o.AgenceId = e.AgenceId
         GROUP BY e.CentreId
+        HAVING SUM(e.Encaissement_Total) > 0 AND SUM(o.Obj_Total_Mois) > 0
+      ),
+      CentreFinal AS (
+        SELECT 
+          c.CentreId, 
+          c.Nom_Centre,
+          CASE WHEN ca.Obj_Total_Mois_Centre > 0
+               THEN ROUND(ca.Encaissement_Total_Centre * 100.0 / ca.Obj_Total_Mois_Centre, 2)
+               ELSE 0 END AS Taux_Mensuel_Centre
+        FROM CentreAgg ca
+        INNER JOIN dbo.DIM_CENTRE c ON c.CentreId = ca.CentreId
       )
-      -- Taux centre = somme encaissements / somme objectifs
-      SELECT TOP 1 c.CentreId, c.Nom_Centre,
-             CASE WHEN ca.Obj_Total_Mois_Centre > 0
-                  THEN ROUND(ca.Encaissement_Total_Centre * 100.0 / ca.Obj_Total_Mois_Centre, 2)
-                  ELSE 0 END AS Taux_Mensuel_Centre
-      FROM CentreAgg ca
-      INNER JOIN dbo.DIM_CENTRE c ON c.CentreId = ca.CentreId
-      WHERE ca.Obj_Total_Mois_Centre > 0
+      SELECT TOP 1 
+        CentreId, 
+        Nom_Centre,
+        Taux_Mensuel_Centre
+      FROM CentreFinal
+      WHERE Taux_Mensuel_Centre > 0
       ORDER BY Taux_Mensuel_Centre DESC
       OPTION (MAXRECURSION 1000);
     `;
@@ -1070,35 +1086,52 @@ router.get('/highest-monthly-average-rate', async (req, res) => {
       ),
       AgencyEnc AS (
         SELECT a.AgenceId, a.Nom_Agence,
-               SUM(k.Encaissement_Journalier_Global) AS Encaissement_Total
+               SUM(k.Encaissement_Journalier_Global) AS Encaissement_Total,
+               MIN(k.DateKPI) AS PremiereDateKPI,
+               MAX(k.DateKPI) AS DerniereDateKPI
         FROM dbo.DIM_AGENCE a
-        LEFT JOIN dbo.FAIT_KPI_ADE k ON a.AgenceId = k.AgenceId
-          AND k.DateKPI >= @monthStart AND k.DateKPI <= @today
+        INNER JOIN dbo.FAIT_KPI_ADE k ON a.AgenceId = k.AgenceId
+          AND k.DateKPI >= @monthStart 
+          AND k.DateKPI <= @today
+          AND YEAR(k.DateKPI) = YEAR(@today)
+          AND MONTH(k.DateKPI) = MONTH(@today)
         GROUP BY a.AgenceId, a.Nom_Agence
+        HAVING SUM(k.Encaissement_Journalier_Global) > 0
+          AND COUNT(k.DateKPI) > 0
       ),
       AgencyObj AS (
         SELECT a.AgenceId,
                SUM(ISNULL(o.Obj_Encaissement, 0)) AS Obj_Total_Mois
         FROM dbo.DIM_AGENCE a
+        INNER JOIN AgencyEnc ae ON a.AgenceId = ae.AgenceId
         INNER JOIN MonthDays md ON 1 = 1
         LEFT JOIN dbo.DIM_OBJECTIF o ON a.AgenceId = o.FK_Agence
           AND o.IsActive = 1
           AND o.DateDebut <= md.d AND o.DateFin >= md.d
         GROUP BY a.AgenceId
+        HAVING SUM(ISNULL(o.Obj_Encaissement, 0)) > 0
       ),
       Final AS (
         SELECT e.AgenceId, e.Nom_Agence,
-               ISNULL(e.Encaissement_Total, 0) AS Encaissement_Total,
-               ISNULL(o.Obj_Total_Mois, 0) AS Obj_Total_Mois,
-               CASE WHEN ISNULL(o.Obj_Total_Mois, 0) > 0
-                    THEN ROUND(ISNULL(e.Encaissement_Total, 0) * 100.0 / o.Obj_Total_Mois, 2)
+               e.Encaissement_Total,
+               o.Obj_Total_Mois,
+               CASE WHEN o.Obj_Total_Mois > 0
+                    THEN ROUND(e.Encaissement_Total * 100.0 / o.Obj_Total_Mois, 2)
                     ELSE 0 END AS Taux_Mensuel
         FROM AgencyEnc e
         INNER JOIN AgencyObj o ON o.AgenceId = e.AgenceId
       )
-      SELECT TOP 1 AgenceId, Nom_Agence, Encaissement_Total, Obj_Total_Mois, Taux_Mensuel
+      SELECT TOP 1 
+        AgenceId, 
+        Nom_Agence, 
+        Encaissement_Total, 
+        Obj_Total_Mois, 
+        Taux_Mensuel
       FROM Final
-      WHERE Obj_Total_Mois > 0
+      WHERE Obj_Total_Mois > 0 
+        AND Encaissement_Total > 0 
+        AND Taux_Mensuel > 0
+        AND Encaissement_Total IS NOT NULL
       ORDER BY Taux_Mensuel DESC
       OPTION (MAXRECURSION 1000);
     `;
@@ -1109,12 +1142,27 @@ router.get('/highest-monthly-average-rate', async (req, res) => {
       { name: 'today', type: TYPES.Date, value: today }
     ];
 
-    console.log('🔍 DEBUG /kpi/highest-monthly-average-rate - Période:', { monthStart, monthEnd, today });
+    console.log('🔍 DEBUG /kpi/highest-monthly-average-rate - Période:', { 
+      monthStart, 
+      monthEnd, 
+      today,
+      year: today.getFullYear(),
+      month: today.getMonth() + 1
+    });
 
     const results = await db.query(query, params);
 
+    console.log('🔍 DEBUG /kpi/highest-monthly-average-rate - Résultats:', results);
+
     if (results && results.length > 0) {
       const row = results[0];
+      console.log('✅ DEBUG /kpi/highest-monthly-average-rate - Données trouvées:', {
+        AgenceId: row.AgenceId,
+        Nom_Agence: row.Nom_Agence,
+        Taux_Mensuel: row.Taux_Mensuel,
+        Encaissement_Total: row.Encaissement_Total,
+        Obj_Total_Mois: row.Obj_Total_Mois
+      });
       res.json({
         AgenceId: row.AgenceId,
         Nom_Agence: row.Nom_Agence,
@@ -1126,6 +1174,7 @@ router.get('/highest-monthly-average-rate', async (req, res) => {
         Today: today
       });
     } else {
+      console.log('⚠️ DEBUG /kpi/highest-monthly-average-rate - Aucune donnée trouvée pour le mois en cours');
       res.json(null);
     }
   } catch (err) {
