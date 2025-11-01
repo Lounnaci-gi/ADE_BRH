@@ -83,6 +83,37 @@ router.post('/', async (req, res) => {
     const month1 = parseInt(dateKey.toString().substring(4, 6));
     const day1 = parseInt(dateKey.toString().substring(6, 8));
     const dateValue = parseDateStringForSQLServer(`${year1}-${month1.toString().padStart(2, '0')}-${day1.toString().padStart(2, '0')}`);
+    
+    // Vérification des dates futures : empêcher l'insertion de données pour des dates futures
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0); // Réinitialiser l'heure à minuit pour la comparaison
+    const dateValueObj = new Date(year1, month1 - 1, day1);
+    
+    if (dateValueObj > currentDate) {
+      return res.status(400).json({ 
+        message: 'Impossible d\'insérer des données pour des dates futures',
+        details: {
+          dateDemandee: dateValueObj.toLocaleDateString('fr-FR'),
+          dateActuelle: currentDate.toLocaleDateString('fr-FR')
+        }
+      });
+    }
+    
+    // Vérification du vendredi pour les utilisateurs Administrateur et Standard
+    const userRole = (req.headers['x-role'] || '').toString();
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = dimanche, 1 = lundi, ..., 5 = vendredi, 6 = samedi
+    const isFriday = dayOfWeek === 5;
+    
+    if (isFriday && (userRole === 'Administrateur' || userRole === 'Standard')) {
+      return res.status(403).json({ 
+        message: 'Les utilisateurs avec le rôle "' + userRole + '" ne peuvent pas insérer des données dans FAIT_KPI_ADE les vendredis',
+        details: {
+          role: userRole,
+          jourSemaine: 'Vendredi'
+        }
+      });
+    }
 
     // D'abord vérifier si l'enregistrement existe
     const checkQuery = `
