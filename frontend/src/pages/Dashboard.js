@@ -383,11 +383,11 @@ const Dashboard = () => {
           {/* Grille 3 lignes × 4 colonnes */}
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {/* Podium Top 3 Agences - Carte agrandie (2 colonnes) */}
-            <div className="w-full col-span-1 sm:col-span-2 lg:col-span-2 min-h-[160px] p-5 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:!bg-slate-800 dark:[background-image:none] dark:border-sky-500/50 rounded-2xl shadow-xl border-4 border-white dark:border-2 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
+            <div className="w-full col-span-1 sm:col-span-2 lg:col-span-2 min-h-[160px] p-1 bg-gradient-to-br from-emerald-400 via-sky-200 to-cyan-100 dark:!bg-slate-800 dark:[background-image:none] dark:border-sky-500/50 rounded-2xl shadow-xl border-4 border-white dark:border-2 hover:shadow-2xl hover:scale-105 transition-all duration-200 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90 dark:text-slate-200">Top 3 Agences</p>
-                  <p className="mt-1 text-xs font-medium text-gray-600/90 dark:text-slate-300">
+                  <p className="text-xs uppercase tracking-wide font-semibold text-gray-700/90 dark:text-slate-200 p-1">Top 3 Agences</p>
+                  <p className="mt-1 text-xs font-medium text-gray-600/90 dark:text-slate-300 p-1">
                     {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
@@ -455,7 +455,7 @@ const Dashboard = () => {
                     </div>
                     {top3Agences.data[2] ? (
                       <>
-                        <div className="text-sm font-semibold text-amber-100 dark:text-amber-200 text-center px-1 max-w-[120px] truncate">
+                        <div className="text-sm font-semibold text-amber-10 dark:text-amber-200 text-center px-1 max-w-[120px] truncate">
                           {top3Agences.data[2].Nom_Agence || 'N/A'}
                         </div>
                         <div className="text-base font-bold text-amber-700 dark:text-amber-400">
