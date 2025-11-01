@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, Crown, Sparkles, FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText, Settings } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, Crown, Sparkles, FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText, Settings, TrendingUp } from 'lucide-react';
 import notificationsService from '../services/notificationsService';
 import ThemeToggle from './ThemeToggle';
 import authService from '../services/authService';
@@ -244,6 +244,10 @@ const NavBar = () => {
             <LayoutDashboard className="h-3.5 w-3.5" /> 
             <span className="hidden lg:inline">Dashboard</span>
           </NavLink>
+          <NavLink to="/statistiques" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+            <TrendingUp className="h-3.5 w-3.5" /> 
+            <span className="hidden lg:inline">Statistiques</span>
+          </NavLink>
           <div className="relative group">
             <button
               ref={gestionMenuButtonRef}
@@ -413,6 +417,9 @@ const NavBar = () => {
           <div className="flex flex-col gap-1 pt-2">
             <NavLink onClick={() => setOpen(false)} to="/dashboard" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
               <LayoutDashboard className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Dashboard
+            </NavLink>
+            <NavLink onClick={() => setOpen(false)} to="/statistiques" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+              <TrendingUp className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Statistiques
             </NavLink>
             <NavLink onClick={() => setOpen(false)} to="/centres" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
               <Building2 className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Centres

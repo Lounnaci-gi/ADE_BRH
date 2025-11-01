@@ -20,6 +20,7 @@ import BilansDetailles from './pages/BilansDetailles';
 import DetailedDataByAgency from './pages/DetailedDataByAgency';
 import Centres from './pages/Centres';
 import Communes from './pages/Communes';
+import Statistiques from './pages/Statistiques';
 
 // 🔒 Composant de route protégée
 const PrivateRoute = ({ children }) => {
@@ -158,6 +159,16 @@ function App() {
           element={
             <PrivateRoute>
               <Communes />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 📈 Statistiques */}
+        <Route
+          path="/statistiques"
+          element={
+            <PrivateRoute>
+              <Statistiques />
             </PrivateRoute>
           }
         />
