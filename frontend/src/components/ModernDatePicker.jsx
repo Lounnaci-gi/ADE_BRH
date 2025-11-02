@@ -49,14 +49,6 @@ const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une da
     const day = String(date.getDate()).padStart(2, '0');
     const localDateString = `${year}-${month}-${day}`;
     
-    console.log('🔍 DEBUG ModernDatePicker - Date sélectionnée:', {
-      date,
-      year,
-      month,
-      day,
-      localDateString
-    });
-    
     onChange(localDateString);
     setIsOpen(false);
   };
@@ -84,16 +76,6 @@ const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une da
         const day = parseInt(parts[2]);
         const date = new Date(year, month, day, 12, 0, 0, 0);
         const formatted = date.toLocaleDateString('fr-FR');
-        
-        console.log('🔍 DEBUG formatDisplayDate:', {
-          dateString,
-          parts,
-          year,
-          month: month + 1,
-          day,
-          date,
-          formatted
-        });
         
         return formatted;
       }

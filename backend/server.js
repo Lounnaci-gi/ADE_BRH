@@ -38,9 +38,11 @@ app.use(helmet({
 }));
 
 // SÉCURITÉ: Rate limiting global pour prévenir les attaques DoS
+// En développement, limite plus élevée pour permettre le développement
+const isDevelopment = process.env.NODE_ENV !== 'production';
 const globalRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limiter à 100 requêtes par IP toutes les 15 minutes
+    max: isDevelopment ? 1000 : 100, // 1000 requêtes en dev, 100 en production
     message: {
         error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.',
         retryAfter: '15 minutes'
@@ -63,16 +65,25 @@ const authRateLimiter = rateLimit({
 // Ensure correct client IP detection behind proxies (doit être avant rate limiting)
 app.set('trust proxy', true);
 
-// Appliquer le rate limiting global à toutes les routes
-app.use('/api/', globalRateLimiter);
-
-// Middleware CORS
+// Middleware CORS - DOIT être avant le rate limiting pour gérer les requêtes OPTIONS
 app.use(cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     methods: ['GET','POST','PUT','DELETE','OPTIONS'],
     allowedHeaders: ['Content-Type', 'X-Role', 'X-User-Agence', 'X-User-Id'],
     credentials: false
 }));
+
+// Rate limiting global pour prévenir les attaques DoS
+// Skip les requêtes OPTIONS (preflight CORS) car elles ne doivent pas compter dans la limite
+const rateLimitedMiddleware = (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+        return next(); // Skip rate limiting for preflight requests
+    }
+    return globalRateLimiter(req, res, next);
+};
+
+// Appliquer le rate limiting global à toutes les routes (sauf OPTIONS)
+app.use('/api/', rateLimitedMiddleware);
 
 // SÉCURITÉ: Limiter la taille du body JSON pour prévenir les attaques DoS
 app.use(express.json({ limit: '10mb' }));

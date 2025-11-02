@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Eye, Wrench, DollarSign, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import kpiService from '../services/kpiService';
@@ -61,14 +61,14 @@ function BilansDetailles() {
   };
 
   // Filtrer les agences
-  const filterAgences = () => {
+  const filterAgences = useCallback(() => {
     // Pour l'instant, on retourne toutes les agences
     // Plus tard, on pourra ajouter des filtres par date
     setFilteredAgences(agences);
-  };
+  }, [agences]);
 
   // Calculer les totaux pour le résumé
-  const calculateSummaryTotals = async () => {
+  const calculateSummaryTotals = useCallback(async () => {
     try {
       const dateStr = filters.date;
       const dateKey = parseInt(
@@ -123,7 +123,7 @@ function BilansDetailles() {
       console.error('Erreur lors du calcul des totaux:', err);
       setSummaryTotals(null);
     }
-  };
+  }, [filters.date]);
 
   const ensureHtml2Canvas = () => new Promise((resolve, reject) => {
     if (window.html2canvas) return resolve(window.html2canvas);
@@ -155,7 +155,7 @@ function BilansDetailles() {
   };
 
   // Charger les taux d'encaissement par agence (pour le graphique)
-  const loadEncaissementRates = async () => {
+  const loadEncaissementRates = useCallback(async () => {
     try {
       setRatesLoading(true);
       const dateStr = filters.date;
@@ -181,7 +181,7 @@ function BilansDetailles() {
     } finally {
       setRatesLoading(false);
     }
-  };
+  }, [filters.date, filteredAgences, agences]);
 
 
   // Gestion des changements de filtre
@@ -202,21 +202,21 @@ function BilansDetailles() {
   // Re-filtrer quand les filtres changent
   useEffect(() => {
     filterAgences();
-  }, [filters, agences]);
+  }, [filterAgences]);
 
   // Calculer les totaux quand les agences filtrées changent
   useEffect(() => {
     if (filteredAgences.length > 0) {
       calculateSummaryTotals();
     }
-  }, [filteredAgences, filters.date]);
+  }, [filteredAgences, calculateSummaryTotals]);
 
   // Recharger les taux quand la liste affichée ou la date change
   useEffect(() => {
     if ((filteredAgences.length > 0 || agences.length > 0) && filters.date) {
       loadEncaissementRates();
     }
-  }, [filteredAgences, agences, filters.date]);
+  }, [loadEncaissementRates, filteredAgences, agences, filters.date]);
 
   if (!isAdmin) {
     return (
@@ -672,8 +672,6 @@ const AgencyRow = ({ agence, index, filters }) => {
   const loadDetails = async () => {
     setLoading(true);
     try {
-      console.log('🔍 DEBUG loadDetails - Filtres reçus:', filters);
-      
       // Utiliser les filtres de date sélectionnés
       let dateKey;
       
@@ -685,7 +683,6 @@ const AgencyRow = ({ agence, index, filters }) => {
           String(date.getMonth() + 1).padStart(2, '0') + 
           String(date.getDate()).padStart(2, '0')
         );
-        console.log('🔍 DEBUG loadDetails - Date spécifique:', { filtersDate: filters.date, date, dateKey });
       } else if (filters.mois && filters.annee) {
         // Pour un mois spécifique, utiliser le premier jour du mois
         const date = new Date(filters.annee, filters.mois - 1, 1);
@@ -694,7 +691,6 @@ const AgencyRow = ({ agence, index, filters }) => {
           String(date.getMonth() + 1).padStart(2, '0') + 
           String(date.getDate()).padStart(2, '0')
         );
-        console.log('🔍 DEBUG loadDetails - Mois spécifique:', { mois: filters.mois, annee: filters.annee, date, dateKey });
       } else if (filters.annee) {
         // Pour une année spécifique, utiliser le premier jour de l'année
         const date = new Date(filters.annee, 0, 1);
@@ -703,7 +699,6 @@ const AgencyRow = ({ agence, index, filters }) => {
           String(date.getMonth() + 1).padStart(2, '0') + 
           String(date.getDate()).padStart(2, '0')
         );
-        console.log('🔍 DEBUG loadDetails - Année spécifique:', { annee: filters.annee, date, dateKey });
       } else {
         // Par défaut, utiliser la date d'aujourd'hui
         const today = new Date();
@@ -712,25 +707,19 @@ const AgencyRow = ({ agence, index, filters }) => {
           String(today.getMonth() + 1).padStart(2, '0') + 
           String(today.getDate()).padStart(2, '0')
         );
-        console.log('🔍 DEBUG loadDetails - Date par défaut:', { today, dateKey });
       }
       
-      console.log('🔍 DEBUG loadDetails - Appel API avec:', { agenceId: agence.AgenceId, dateKey });
       const summaryData = await kpiService.getSummary(agence.AgenceId, dateKey);
-      console.log('📊 DEBUG loadDetails - Données reçues:', summaryData);
       
       // Vérifier si on a des données valides
       if (summaryData && summaryData.daily) {
         const hasData = Object.values(summaryData.daily).some(val => val !== null && val !== undefined && val !== 0);
         if (hasData) {
-          console.log('✅ Données trouvées pour l\'agence', agence.AgenceId);
           setDetails(summaryData);
         } else {
-          console.log('⚠️ Aucune donnée trouvée pour l\'agence', agence.AgenceId);
           setDetails(null);
         }
       } else {
-        console.log('⚠️ Réponse API vide pour l\'agence', agence.AgenceId);
         setDetails(null);
       }
     } catch (err) {

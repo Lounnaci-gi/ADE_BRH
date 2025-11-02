@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Building2, Target, Calendar, DollarSign, Zap, Wrench, FileText, AlertTriangle, RotateCcw, CheckCircle, Hash } from 'lucide-react';
 import ModernDatePicker from './ModernDatePicker';
+import { swalError } from '../utils/swal';
 import '../pages/Login.css';
 
 export default function ObjectivesModal({ open, onClose, onSubmit, initialValues, agences = [] }) {
@@ -134,10 +135,11 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
         }
 
         await onSubmit(payload);
-      onClose();
+        onClose();
     } catch (err) {
       const msg = err?.response?.data?.message || 'Erreur lors de l\'enregistrement';
       setError(msg);
+      await swalError(msg, 'Erreur d\'enregistrement');
     } finally {
       setLoading(false);
     }

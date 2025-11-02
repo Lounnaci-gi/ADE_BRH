@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import objectivesService from '../services/objectivesService';
 import authService from '../services/authService';
 import ObjectivesModal from '../components/ObjectivesModal';
+import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
 
 function Objectives() {
   const [objectives, setObjectives] = useState([]);
@@ -110,25 +111,49 @@ function Objectives() {
 
   const handleSubmitModal = async (payload) => {
     try {
-      if (!editing || !editing.ObjectifId) {
+      const isEditing = editing && editing.ObjectifId;
+      if (!isEditing) {
         await objectivesService.save(payload);
+        await swalSuccess(
+          'L\'objectif a été créé avec succès',
+          'Succès'
+        );
       } else {
         await objectivesService.update(payload);
+        await swalSuccess(
+          'L\'objectif a été modifié avec succès',
+          'Succès'
+        );
       }
       await loadData();
     } catch (error) {
+      const errorMessage = error?.response?.data?.message || 
+        (payload.objectifId ? 'Erreur lors de la modification de l\'objectif' : 'Erreur lors de la création de l\'objectif');
+      await swalError(errorMessage, 'Erreur');
       throw error;
     }
   };
 
   const handleDelete = async (objective) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer cet objectif pour ${objective.Nom_Agence} ?`)) {
+    const result = await swalConfirmDelete({
+      title: 'Confirmer la suppression',
+      text: `Êtes-vous sûr de vouloir supprimer l'objectif "${objective.Titre}" pour ${objective.Nom_Agence} ? Cette action est irréversible.`,
+      confirmText: 'Oui, supprimer',
+      cancelText: 'Annuler'
+    });
+
+    if (result.isConfirmed) {
       try {
         await objectivesService.remove({ objectifId: objective.ObjectifId });
+        await swalSuccess(
+          'L\'objectif a été supprimé avec succès',
+          'Suppression réussie'
+        );
         await loadData();
       } catch (error) {
         console.error('Erreur lors de la suppression:', error);
-        alert('Erreur lors de la suppression de l\'objectif');
+        const errorMessage = error?.response?.data?.message || 'Erreur lors de la suppression de l\'objectif';
+        await swalError(errorMessage, 'Erreur de suppression');
       }
     }
   };
@@ -584,7 +609,7 @@ function Objectives() {
                                       <motion.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
-                                    onClick={() => handleDelete(obj.ObjectifId)}
+                                    onClick={() => handleDelete(obj)}
                                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
                                     title="Supprimer"
                                   >
