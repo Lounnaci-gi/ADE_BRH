@@ -251,39 +251,6 @@ router.post('/', async (req, res) => {
 
     const result = await db.query(query, params);
     
-    // ✅ VÉRIFIER CE QUI EST RÉELLEMENT STOCKÉ DANS LA BDD
-    const verifyQuery = `
-      SELECT TOP 1 DateKPI, AgenceId, CategorieId, CreatedAt 
-      FROM dbo.FAIT_KPI_ADE 
-      WHERE AgenceId = @agenceId AND CategorieId = @categorieId 
-      ORDER BY CreatedAt DESC
-    `;
-    
-    const verifyParams = [
-      { name: 'agenceId', type: TYPES.Int, value: agenceIdInt },
-      { name: 'categorieId', type: TYPES.Int, value: categorieIdInt }
-    ];
-    
-    const verifyResult = await db.query(verifyQuery, verifyParams);
-    
-    console.log('✅ KPI sauvegardé avec succès:', {
-      dateKey: dateValue,
-      dateKeyISO: dateValue.toISOString(),
-      dateKeyLocal: dateValue.toLocaleDateString('fr-FR'),
-      agenceId: agenceIdInt,
-      categorieId: categorieIdInt,
-      operation: exists ? 'UPDATE' : 'INSERT'
-    });
-    
-    if (verifyResult && verifyResult.length > 0) {
-      console.log('🔍 VÉRIFICATION BDD - Date réellement stockée:', {
-        DateKPI: verifyResult[0].DateKPI,
-        AgenceId: verifyResult[0].AgenceId,
-        CategorieId: verifyResult[0].CategorieId,
-        CreatedAt: verifyResult[0].CreatedAt
-      });
-    }
-    
     res.status(200).json({ 
       message: 'KPI sauvegardé avec succès',
       operation: exists ? 'updated' : 'created',
@@ -605,24 +572,16 @@ router.get('/summary', async (req, res) => {
       { name: 'dateValue', type: TYPES.Date, value: dateValue }
     ];
 
-    console.log('🔍 DEBUG /kpi/summary - Paramètres:', { agenceId, dateKey, dateValue });
-    console.log('🔍 DEBUG /kpi/summary - Daily params:', dailyParams);
-    console.log('🔍 DEBUG /kpi/summary - Objectives params:', objectivesParams);
-
     const [dailyResults, objectivesResults] = await Promise.all([
       db.query(dailyQuery, dailyParams),
       db.query(objectivesQuery, objectivesParams)
     ]);
-
-    console.log('🔍 DEBUG /kpi/summary - Daily results:', dailyResults);
-    console.log('🔍 DEBUG /kpi/summary - Objectives results:', objectivesResults);
 
     const response = {
       daily: dailyResults[0] || null,
       objectives: objectivesResults[0] || null
     };
 
-    console.log('🔍 DEBUG /kpi/summary - Final response:', response);
     res.json(response);
   } catch (err) {
     console.error('Erreur GET /kpi/summary:', err);
@@ -793,11 +752,7 @@ router.get('/global-summary', async (req, res) => {
       { name: 'dateKey', type: TYPES.Date, value: dateValue }
     ];
 
-    console.log('🔍 DEBUG /kpi/global-summary - Paramètres:', { dateKey, dateValue });
-
     const results = await db.query(globalQuery, params);
-    
-    console.log('🔍 DEBUG /kpi/global-summary - Résultats:', results);
 
     const response = {
       global: results[0] || null,
@@ -805,7 +760,6 @@ router.get('/global-summary', async (req, res) => {
       dateValue: dateValue
     };
 
-    console.log('🔍 DEBUG /kpi/global-summary - Réponse finale:', response);
     res.json(response);
   } catch (err) {
     console.error('Erreur GET /kpi/global-summary:', err);
@@ -889,11 +843,7 @@ router.get('/detailed-data', async (req, res) => {
       { name: 'endDate', type: TYPES.Date, value: endDateObj }
     ];
 
-    console.log('🔍 DEBUG /kpi/detailed-data - Paramètres:', { agenceId, startDate, endDate });
-
     const results = await db.query(detailedQuery, params);
-    
-    console.log('🔍 DEBUG /kpi/detailed-data - Résultats:', results.length, 'enregistrements trouvés');
 
     const response = {
       data: results || [],
@@ -903,7 +853,6 @@ router.get('/detailed-data', async (req, res) => {
       totalRecords: results.length
     };
 
-    console.log('🔍 DEBUG /kpi/detailed-data - Réponse finale:', response);
     res.json(response);
   } catch (err) {
     console.error('Erreur GET /kpi/detailed-data:', err);
@@ -923,8 +872,6 @@ router.get('/highest-daily-rate', async (req, res) => {
     const month = targetDate.getMonth() + 1;
     const day = targetDate.getDate();
     const dateKey = year * 10000 + month * 100 + day;
-    
-    console.log('🔍 DEBUG /kpi/highest-daily-rate - Paramètres:', { date, year, month, day, dateKey });
     
     const dateValue = convertDateKeyToSQLServer(dateKey);
 
@@ -968,17 +915,11 @@ router.get('/highest-daily-rate', async (req, res) => {
       { name: 'dateKey', type: TYPES.Date, value: dateValue }
     ];
 
-    console.log('🔍 DEBUG /kpi/highest-daily-rate - Paramètres SQL:', params);
-
     const results = await db.query(query, params);
     
-    console.log('🔍 DEBUG /kpi/highest-daily-rate - Résultats:', results);
-    
     if (results && results.length > 0) {
-      console.log('✅ /kpi/highest-daily-rate - Meilleur taux trouvé:', results[0]);
       res.json(results[0]);
     } else {
-      console.log('⚠️ /kpi/highest-daily-rate - Aucun taux trouvé pour la date:', dateKey);
       res.json(null);
     }
   } catch (err) {
@@ -1208,27 +1149,10 @@ router.get('/highest-monthly-average-rate', async (req, res) => {
       { name: 'today', type: TYPES.Date, value: today }
     ];
 
-    console.log('🔍 DEBUG /kpi/highest-monthly-average-rate - Période:', { 
-      monthStart, 
-      monthEnd, 
-      today,
-      year: today.getFullYear(),
-      month: today.getMonth() + 1
-    });
-
     const results = await db.query(query, params);
-
-    console.log('🔍 DEBUG /kpi/highest-monthly-average-rate - Résultats:', results);
 
     if (results && results.length > 0) {
       const row = results[0];
-      console.log('✅ DEBUG /kpi/highest-monthly-average-rate - Données trouvées:', {
-        AgenceId: row.AgenceId,
-        Nom_Agence: row.Nom_Agence,
-        Taux_Mensuel: row.Taux_Mensuel,
-        Encaissement_Total: row.Encaissement_Total,
-        Obj_Total_Mois: row.Obj_Total_Mois
-      });
       res.json({
         AgenceId: row.AgenceId,
         Nom_Agence: row.Nom_Agence,
@@ -1240,7 +1164,6 @@ router.get('/highest-monthly-average-rate', async (req, res) => {
         Today: today
       });
     } else {
-      console.log('⚠️ DEBUG /kpi/highest-monthly-average-rate - Aucune donnée trouvée pour le mois en cours');
       res.json(null);
     }
   } catch (err) {
@@ -1324,17 +1247,7 @@ router.get('/top-3-agences-month', async (req, res) => {
       { name: 'today', type: TYPES.Date, value: today }
     ];
 
-    console.log('🔍 DEBUG /kpi/top-3-agences-month - Période:', { 
-      monthStart, 
-      monthEnd, 
-      today,
-      year: today.getFullYear(),
-      month: today.getMonth() + 1
-    });
-
     const results = await db.query(query, params);
-
-    console.log('🔍 DEBUG /kpi/top-3-agences-month - Résultats:', results);
 
     if (results && results.length > 0) {
       const mappedResults = results.map(row => ({
@@ -1344,10 +1257,8 @@ router.get('/top-3-agences-month', async (req, res) => {
         Encaissement_Total: row.Encaissement_Total || 0,
         Obj_Total_Mois: row.Obj_Total_Mois || 0
       }));
-      console.log('✅ DEBUG /kpi/top-3-agences-month - Données mappées:', mappedResults);
       res.json(mappedResults);
     } else {
-      console.log('⚠️ DEBUG /kpi/top-3-agences-month - Aucune donnée trouvée pour le mois en cours');
       res.json([]);
     }
   } catch (err) {
@@ -1443,17 +1354,7 @@ router.get('/top-3-centres-month', async (req, res) => {
       { name: 'today', type: TYPES.Date, value: today }
     ];
 
-    console.log('🔍 DEBUG /kpi/top-3-centres-month - Période:', { 
-      monthStart, 
-      monthEnd, 
-      today,
-      year: today.getFullYear(),
-      month: today.getMonth() + 1
-    });
-
     const results = await db.query(query, params);
-
-    console.log('🔍 DEBUG /kpi/top-3-centres-month - Résultats:', results);
 
     if (results && results.length > 0) {
       const mappedResults = results.map(row => ({
@@ -1463,10 +1364,8 @@ router.get('/top-3-centres-month', async (req, res) => {
         Encaissement_Total_Centre: row.Encaissement_Total_Centre || 0,
         Obj_Total_Mois_Centre: row.Obj_Total_Mois_Centre || 0
       }));
-      console.log('✅ DEBUG /kpi/top-3-centres-month - Données mappées:', mappedResults);
       res.json(mappedResults);
     } else {
-      console.log('⚠️ DEBUG /kpi/top-3-centres-month - Aucune donnée trouvée pour le mois en cours');
       res.json([]);
     }
   } catch (err) {

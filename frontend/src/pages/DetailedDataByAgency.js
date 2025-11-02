@@ -70,7 +70,6 @@ function DetailedDataByAgency() {
       setError(null);
       
       const agencesData = await kpiService.getAgences();
-      console.log('📊 Agences chargées:', agencesData);
       
       setAgences(agencesData);
     } catch (err) {
@@ -709,7 +708,7 @@ function DetailedDataByAgency() {
                 {Object.entries({
                   relancesEnvoyees: { label: 'Relances Envoyées', color: '#3b82f6' },
                   relancesEncaissees: { label: 'Relances Encaissées', color: '#10b981' },
-                  misesEnDemeureEnvoyees: { label: 'Mises en Demeure', color: '#f59e0b' },
+                  misesEnDemeureEnvoyees: { label: 'MD Envoyées', color: '#f59e0b' },
                   misesEnDemeureEncaisses: { label: 'MD Encaissées', color: '#ef4444' },
                   dossiersJuridiques: { label: 'Dossiers Juridiques', color: '#8b5cf6' },
                   coupures: { label: 'Coupures', color: '#ec4899' },
@@ -719,7 +718,7 @@ function DetailedDataByAgency() {
                   <button
                     key={key}
                     onClick={() => toggleMetric(key)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border-2 ${
+                    className={`px-2 py-1 rounded text-[0.7rem] font-medium transition-all duration-200 border-2 ${
                       selectedMetrics[key]
                         ? 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 border-current shadow-sm'
                         : 'bg-gray-100 dark:bg-slate-600 text-gray-500 dark:text-gray-400 border-transparent'
@@ -729,9 +728,9 @@ function DetailedDataByAgency() {
                       color: color 
                     } : {}}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       <div 
-                        className="w-2 h-2 rounded-full" 
+                        className="w-1.5 h-1.5 rounded-full" 
                         style={{ backgroundColor: selectedMetrics[key] ? color : '#9ca3af' }}
                       />
                       {label}
@@ -808,7 +807,7 @@ function DetailedDataByAgency() {
                       dataKey="misesEnDemeureEnvoyees" 
                       stroke="#f59e0b" 
                       strokeWidth={2}
-                      name="Mises en Demeure"
+                      name="MD Envoyées"
                       dot={{ r: 3 }}
                       activeDot={{ r: 5 }}
                     />

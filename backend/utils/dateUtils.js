@@ -9,8 +9,6 @@
  * @returns {Date} Date JavaScript correctement formatée
  */
 const convertDateKeyToSQLServer = (dateKey) => {
-  console.log('🔍 DEBUG convertDateKeyToSQLServer - DateKey d\'entrée:', dateKey);
-  
   if (typeof dateKey !== 'number') {
     throw new Error('dateKey doit être un nombre au format YYYYMMDD');
   }
@@ -28,15 +26,6 @@ const convertDateKeyToSQLServer = (dateKey) => {
   // Utiliser Date.UTC() pour créer une date UTC pure qui ne subira pas de décalage
   const result = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
   
-  console.log('🔍 DEBUG convertDateKeyToSQLServer - Conversion UTC:', { 
-    dateKey, 
-    year, 
-    month, 
-    day, 
-    result,
-    resultISO: result.toISOString(),
-    resultLocal: result.toLocaleDateString('fr-FR')
-  });
   return result;
 };
 
@@ -91,8 +80,6 @@ const formatDateKeyForDisplay = (dateKey) => {
  * @returns {Date} Date JavaScript correctement formatée pour SQL Server
  */
 const parseDateStringForSQLServer = (dateString) => {
-  console.log('🔍 DEBUG parseDateStringForSQLServer - DateString d\'entrée:', dateString);
-  
   if (!dateString || typeof dateString !== 'string') {
     throw new Error('dateString doit être une chaîne au format "YYYY-MM-DD"');
   }
@@ -122,16 +109,6 @@ const parseDateStringForSQLServer = (dateString) => {
   // ✅ CRÉER UNE DATE UTC À MINUIT POUR ÉVITER LES DÉCALAGES
   // Utiliser Date.UTC() pour créer une date UTC pure qui ne subira pas de décalage
   const result = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-  
-  console.log('🔍 DEBUG parseDateStringForSQLServer - Conversion UTC:', { 
-    dateString, 
-    year, 
-    month, 
-    day, 
-    result,
-    resultISO: result.toISOString(),
-    resultLocal: result.toLocaleDateString('fr-FR')
-  });
   
   return result;
 };

@@ -120,8 +120,6 @@ app.get('/api/test', (req, res) => {
             console.error('❌ Erreur de connexion:', err.message);
             res.status(500).json({ error: err.message });
         } else {
-            console.log('✅ Connexion réussie !');
-            
             let result = [];
             
             const request = new Request('SELECT DB_NAME() as DatabaseName', (err, rowCount) => {
