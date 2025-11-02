@@ -1329,4 +1329,123 @@ router.get('/top-3-agences-month', async (req, res) => {
   }
 });
 
+// GET /api/kpi/top-3-centres-month - Top 3 des centres avec le meilleur taux d'encaissement du mois courant
+// Calcul: Taux = (Somme Encaissement_Journalier_Global par centre) / (Somme Objectifs pour tous les jours du mois par centre)
+router.get('/top-3-centres-month', async (req, res) => {
+  try {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    const query = `
+      WITH MonthDays AS (
+        SELECT @monthStart AS d
+        UNION ALL
+        SELECT DATEADD(DAY, 1, d) FROM MonthDays WHERE d < @monthEnd
+      ),
+      -- Encaissement total réel par agence (somme des jours avec données KPI)
+      AgencyEnc AS (
+        SELECT a.AgenceId, a.FK_Centre AS CentreId,
+               SUM(ISNULL(k.Encaissement_Journalier_Global, 0)) AS Encaissement_Total
+        FROM dbo.DIM_AGENCE a
+        INNER JOIN dbo.FAIT_KPI_ADE k ON a.AgenceId = k.AgenceId
+          AND k.DateKPI >= @monthStart 
+          AND k.DateKPI <= @today
+          AND YEAR(k.DateKPI) = YEAR(@today)
+          AND MONTH(k.DateKPI) = MONTH(@today)
+        GROUP BY a.AgenceId, a.FK_Centre
+        HAVING SUM(ISNULL(k.Encaissement_Journalier_Global, 0)) > 0
+      ),
+      -- Objectif total pour TOUS les jours du mois par agence (même ceux sans données KPI)
+      AgencyObj AS (
+        SELECT a.AgenceId,
+               SUM(ISNULL(o.Obj_Encaissement, 0)) AS Obj_Total_Mois
+        FROM dbo.DIM_AGENCE a
+        INNER JOIN AgencyEnc ae ON a.AgenceId = ae.AgenceId
+        CROSS JOIN MonthDays md
+        LEFT JOIN dbo.DIM_OBJECTIF o ON a.AgenceId = o.FK_Agence
+          AND o.IsActive = 1
+          AND o.DateDebut <= md.d 
+          AND o.DateFin >= md.d
+        GROUP BY a.AgenceId
+        HAVING SUM(ISNULL(o.Obj_Encaissement, 0)) > 0
+      ),
+      -- Agrégation au niveau centre: somme des encaissements et somme des objectifs
+      CentreAgg AS (
+        SELECT e.CentreId,
+               SUM(e.Encaissement_Total) AS Encaissement_Total_Centre,
+               SUM(o.Obj_Total_Mois) AS Obj_Total_Mois_Centre
+        FROM AgencyEnc e
+        INNER JOIN AgencyObj o ON o.AgenceId = e.AgenceId
+        GROUP BY e.CentreId
+        HAVING SUM(e.Encaissement_Total) > 0 AND SUM(o.Obj_Total_Mois) > 0
+      ),
+      -- Calcul du taux mensuel par centre
+      CentreFinal AS (
+        SELECT 
+          c.CentreId, 
+          c.Nom_Centre,
+          ca.Encaissement_Total_Centre,
+          ca.Obj_Total_Mois_Centre,
+          CASE 
+            WHEN ca.Obj_Total_Mois_Centre > 0 
+            THEN ROUND((ca.Encaissement_Total_Centre * 100.0) / ca.Obj_Total_Mois_Centre, 2)
+            ELSE 0 
+          END AS Taux_Mensuel
+        FROM CentreAgg ca
+        INNER JOIN dbo.DIM_CENTRE c ON c.CentreId = ca.CentreId
+        WHERE ca.Encaissement_Total_Centre > 0 
+          AND ca.Obj_Total_Mois_Centre > 0
+      )
+      SELECT TOP 3 
+        CentreId, 
+        Nom_Centre, 
+        Encaissement_Total_Centre, 
+        Obj_Total_Mois_Centre, 
+        Taux_Mensuel
+      FROM CentreFinal
+      WHERE Taux_Mensuel > 0
+      ORDER BY Taux_Mensuel DESC
+      OPTION (MAXRECURSION 1000);
+    `;
+
+    const params = [
+      { name: 'monthStart', type: TYPES.Date, value: monthStart },
+      { name: 'monthEnd', type: TYPES.Date, value: monthEnd },
+      { name: 'today', type: TYPES.Date, value: today }
+    ];
+
+    console.log('🔍 DEBUG /kpi/top-3-centres-month - Période:', { 
+      monthStart, 
+      monthEnd, 
+      today,
+      year: today.getFullYear(),
+      month: today.getMonth() + 1
+    });
+
+    const results = await db.query(query, params);
+
+    console.log('🔍 DEBUG /kpi/top-3-centres-month - Résultats:', results);
+
+    if (results && results.length > 0) {
+      const mappedResults = results.map(row => ({
+        CentreId: row.CentreId,
+        Nom_Centre: row.Nom_Centre,
+        Taux_Mensuel: row.Taux_Mensuel || 0,
+        Encaissement_Total_Centre: row.Encaissement_Total_Centre || 0,
+        Obj_Total_Mois_Centre: row.Obj_Total_Mois_Centre || 0
+      }));
+      console.log('✅ DEBUG /kpi/top-3-centres-month - Données mappées:', mappedResults);
+      res.json(mappedResults);
+    } else {
+      console.log('⚠️ DEBUG /kpi/top-3-centres-month - Aucune donnée trouvée pour le mois en cours');
+      res.json([]);
+    }
+  } catch (err) {
+    console.error('❌ Erreur GET /kpi/top-3-centres-month:', err);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ message: 'Erreur lors de la récupération du top 3 des centres', error: err.message });
+  }
+});
+
 module.exports = router;

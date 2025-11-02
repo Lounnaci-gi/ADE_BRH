@@ -74,6 +74,11 @@ const kpiService = {
   async getTop3AgencesMonth() {
     const res = await api.get('/kpi/top-3-agences-month');
     return res.data;
+  },
+
+  async getTop3CentresMonth() {
+    const res = await api.get('/kpi/top-3-centres-month');
+    return res.data;
   }
 };
 

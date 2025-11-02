@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Building2, Target, Calendar, DollarSign, Zap, Wrench, FileText, AlertTriangle, RotateCcw, CheckCircle, Hash } from 'lucide-react';
 import ModernDatePicker from './ModernDatePicker';
+import '../pages/Login.css';
 
 export default function ObjectivesModal({ open, onClose, onSubmit, initialValues, agences = [] }) {
   const [formData, setFormData] = useState({
@@ -153,277 +154,271 @@ export default function ObjectivesModal({ open, onClose, onSubmit, initialValues
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
-      <div className="bg-white dark:bg-water-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="login-card" style={{ maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-water-200 dark:border-water-700">
-          <div className="flex items-center space-x-3">
-            <div className="p-1.5 bg-water-600 rounded-lg">
-              <Target className="h-5 w-5 text-white" />
+        <div className="login-header">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <h1>{initialValues ? 'Modifier l\'Objectif' : 'Nouvel Objectif'}</h1>
             </div>
-            <h2 className="text-xl font-bold text-water-900 dark:text-white">
-              {initialValues ? 'Modifier l\'Objectif' : 'Nouvel Objectif'}
-            </h2>
+            <button
+              onClick={onClose}
+              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              type="button"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-water-500 hover:text-water-700 dark:text-water-400 dark:hover:text-water-200 hover:bg-water-100 dark:hover:bg-water-700 rounded-lg transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <p>Remplissez les informations ci-dessous</p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="m-4 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="error-message">
             {error}
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-3 space-y-3">
+        <form onSubmit={handleSubmit} className="login-form">
           {/* Agence */}
-            <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <Building2 className="inline h-4 w-4 mr-2" />
+          <div className="form-group">
+            <label htmlFor="agenceId">
+              <Building2 className="inline h-4 w-4 mr-1" />
               Agence *
             </label>
-              <select
+            <select
+              id="agenceId"
               name="agenceId"
-                value={formData.agenceId}
+              value={formData.agenceId}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                errors.agenceId
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-              }`}
-                required
-              >
+              className={errors.agenceId ? 'error-input' : ''}
+              required
+            >
               <option value="">Sélectionnez une agence</option>
-                {agences.map((a) => (
-                  <option key={a.AgenceId} value={a.AgenceId}>{a.Nom_Agence}</option>
-                ))}
-              </select>
+              {agences.map((a) => (
+                <option key={a.AgenceId} value={a.AgenceId}>{a.Nom_Agence}</option>
+              ))}
+            </select>
             {errors.agenceId && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.agenceId}</p>
             )}
-            </div>
-
-          {/* Titre et Description */}
-          <div className="grid grid-cols-1 gap-3">
-              <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <Target className="inline h-4 w-4 mr-2" />
-                Titre de l'objectif *
-              </label>
-              <input
-                type="text"
-                name="titre"
-                value={formData.titre}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 ${
-                  errors.titre
-                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                    : 'border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white'
-                }`}
-                placeholder="Ex: Objectifs mensuels - Janvier 2025"
-                  required
-              />
-              {errors.titre && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.titre}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <FileText className="inline h-4 w-4 mr-2" />
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={2}
-                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 resize-none border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-                placeholder="Description détaillée de l'objectif..."
-                maxLength={500}
-              />
-              <p className="mt-1 text-xs text-water-500 dark:text-water-400">
-                {formData.description.length}/500 caractères
-              </p>
-            </div>
           </div>
 
-          {/* Période */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <Calendar className="inline h-4 w-4 mr-2" />
+          {/* Titre et Description */}
+          <div className="form-group">
+            <label htmlFor="titre">
+              <Target className="inline h-4 w-4 mr-1" />
+              Titre de l'objectif *
+            </label>
+            <input
+              type="text"
+              id="titre"
+              name="titre"
+              value={formData.titre}
+              onChange={handleChange}
+              className={errors.titre ? 'error-input' : ''}
+              placeholder="Ex: Objectifs mensuels - Janvier 2025"
+              required
+            />
+            {errors.titre && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.titre}</p>
+            )}
+          </div>
+          <div className="form-group">
+            <label htmlFor="description">
+              <FileText className="inline h-4 w-4 mr-1" />
+              Description
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={2}
+              placeholder="Description détaillée de l'objectif..."
+              maxLength={500}
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {formData.description.length}/500 caractères
+            </p>
+          </div>
+
+          {/* Période - Date de début et Date de fin sur la même ligne */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>
+                <Calendar className="inline h-4 w-4 mr-1" />
                 Date de début *
               </label>
-              <ModernDatePicker
-                value={formData.dateDebut}
-                onChange={(date) => setFormData(prev => ({ ...prev, dateDebut: date }))}
-                placeholder="Sélectionner la date de début"
-              />
+              <div className={errors.dateDebut ? 'error-input' : ''} style={{ border: 'none', padding: 0 }}>
+                <ModernDatePicker
+                  value={formData.dateDebut}
+                  onChange={(date) => setFormData(prev => ({ ...prev, dateDebut: date }))}
+                  placeholder="Sélectionner la date de début"
+                />
+              </div>
               {errors.dateDebut && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dateDebut}</p>
               )}
-              </div>
-              <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <Calendar className="inline h-4 w-4 mr-2" />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>
+                <Calendar className="inline h-4 w-4 mr-1" />
                 Date de fin *
               </label>
-              <ModernDatePicker
-                value={formData.dateFin}
-                onChange={(date) => setFormData(prev => ({ ...prev, dateFin: date }))}
-                placeholder="Sélectionner la date de fin"
-              />
+              <div className={errors.dateFin ? 'error-input' : ''} style={{ border: 'none', padding: 0 }}>
+                <ModernDatePicker
+                  value={formData.dateFin}
+                  onChange={(date) => setFormData(prev => ({ ...prev, dateFin: date }))}
+                  placeholder="Sélectionner la date de fin"
+                />
+              </div>
               {errors.dateFin && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dateFin}</p>
               )}
-              </div>
+            </div>
           </div>
 
           {/* Objectifs financiers */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <DollarSign className="inline h-4 w-4 mr-2" />
-                Encaissement (DZD)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                name="obj_Encaissement"
-                value={formData.obj_Encaissement}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-                placeholder="Montant d'encaissement"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <Zap className="inline h-4 w-4 mr-2" />
+          <div className="form-group">
+            <label htmlFor="obj_Encaissement">
+              <DollarSign className="inline h-4 w-4 mr-1" />
+              Encaissement (DZD)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              id="obj_Encaissement"
+              name="obj_Encaissement"
+              value={formData.obj_Encaissement}
+              onChange={handleChange}
+              placeholder="Montant d'encaissement"
+            />
+          </div>
+          {/* Coupures et Contrôles sur la même ligne */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="obj_Coupures">
+                <Zap className="inline h-4 w-4 mr-1" />
                 Coupures
               </label>
               <input
                 type="number"
+                id="obj_Coupures"
                 name="obj_Coupures"
                 value={formData.obj_Coupures}
                 onChange={handleChange}
                 step="1"
                 min="0"
-                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
                 placeholder="Nombre de coupures"
               />
             </div>
-          </div>
-
-
-          {/* Objectifs juridiques et administratifs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <FileText className="inline h-4 w-4 mr-2" />
-                Dossiers Juridiques
-              </label>
-              <input
-                type="number"
-                name="obj_Dossiers_Juridiques"
-                value={formData.obj_Dossiers_Juridiques}
-                onChange={handleChange}
-                step="1"
-                min="0"
-                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-                placeholder="Nombre de dossiers"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <AlertTriangle className="inline h-4 w-4 mr-2" />
-                Mises en Demeure
-              </label>
-              <input
-                type="number"
-                name="obj_MisesEnDemeure"
-                value={formData.obj_MisesEnDemeure}
-                onChange={handleChange}
-                step="1"
-                min="0"
-                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-                placeholder="Nombre de mises en demeure"
-              />
-            </div>
-            </div>
-
-          {/* Objectifs de suivi */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <CheckCircle className="inline h-4 w-4 mr-2" />
-                Relances
-              </label>
-              <input
-                type="number"
-                name="obj_Relances"
-                value={formData.obj_Relances}
-                onChange={handleChange}
-                step="1"
-                min="0"
-                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-                placeholder="Nombre de relances"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-                <CheckCircle className="inline h-4 w-4 mr-2" />
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="obj_Controles">
+                <CheckCircle className="inline h-4 w-4 mr-1" />
                 Contrôles
               </label>
               <input
                 type="number"
+                id="obj_Controles"
                 name="obj_Controles"
                 value={formData.obj_Controles}
                 onChange={handleChange}
                 step="1"
                 min="0"
-                className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
                 placeholder="Nombre de contrôles"
               />
             </div>
           </div>
 
-          {/* Compteurs */}
-          <div>
-            <label className="block text-sm font-semibold text-water-700 dark:text-water-300 mb-2">
-              <Wrench className="inline h-4 w-4 mr-2" />
-              Compteurs Remplacés
-            </label>
-            <input
-              type="number"
-              name="obj_Compteurs_Remplaces"
-              value={formData.obj_Compteurs_Remplaces}
-              onChange={handleChange}
-              step="1"
-              min="0"
-              className="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-water-500 focus:border-transparent transition-all duration-200 border-water-300 dark:border-water-600 bg-white dark:bg-water-700 text-water-900 dark:text-white"
-              placeholder="Nombre de compteurs remplacés"
-            />
+          {/* Mises en Demeure et Relances sur la même ligne */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="obj_MisesEnDemeure">
+                <AlertTriangle className="inline h-4 w-4 mr-1" />
+                Mises en Demeure
+              </label>
+              <input
+                type="number"
+                id="obj_MisesEnDemeure"
+                name="obj_MisesEnDemeure"
+                value={formData.obj_MisesEnDemeure}
+                onChange={handleChange}
+                step="1"
+                min="0"
+                placeholder="Nombre de mises en demeure"
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="obj_Relances">
+                <CheckCircle className="inline h-4 w-4 mr-1" />
+                Relances
+              </label>
+              <input
+                type="number"
+                id="obj_Relances"
+                name="obj_Relances"
+                value={formData.obj_Relances}
+                onChange={handleChange}
+                step="1"
+                min="0"
+                placeholder="Nombre de relances"
+              />
+            </div>
+          </div>
+
+          {/* Dossiers Juridiques et Compteurs Remplacés sur la même ligne */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="obj_Dossiers_Juridiques">
+                <FileText className="inline h-4 w-4 mr-1" />
+                Dossiers Juridiques
+              </label>
+              <input
+                type="number"
+                id="obj_Dossiers_Juridiques"
+                name="obj_Dossiers_Juridiques"
+                value={formData.obj_Dossiers_Juridiques}
+                onChange={handleChange}
+                step="1"
+                min="0"
+                placeholder="Nombre de dossiers"
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="obj_Compteurs_Remplaces">
+                <Wrench className="inline h-4 w-4 mr-1" />
+                Compteurs Remplacés
+              </label>
+              <input
+                type="number"
+                id="obj_Compteurs_Remplaces"
+                name="obj_Compteurs_Remplaces"
+                value={formData.obj_Compteurs_Remplaces}
+                onChange={handleChange}
+                step="1"
+                min="0"
+                placeholder="Nombre de compteurs remplacés"
+              />
+            </div>
           </div>
 
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-water-200 dark:border-water-700">
+          <div className="flex items-center justify-end space-x-3 pt-2">
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 text-water-600 dark:text-water-400 hover:bg-water-100 dark:hover:bg-water-700 rounded-xl transition-colors font-semibold"
+              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors font-semibold"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-water-600 hover:bg-water-700 text-white rounded-xl transition-colors font-semibold shadow-lg hover:shadow-xl disabled:opacity-50"
+              className="login-button"
             >
               {loading ? 'Enregistrement...' : (initialValues ? 'Modifier' : 'Créer')}
             </button>
