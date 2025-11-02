@@ -21,6 +21,7 @@ import DetailedDataByAgency from './pages/DetailedDataByAgency';
 import Centres from './pages/Centres';
 import Communes from './pages/Communes';
 import Statistiques from './pages/Statistiques';
+import DataEntryReminder from './components/DataEntryReminder';
 
 // 🔒 Composant de route protégée
 const PrivateRoute = ({ children }) => {
@@ -32,6 +33,8 @@ function App() {
     <Router>
       <div className="min-h-screen water-surface">
         <NavBar />
+        {/* Composant global de rappel de saisie des données */}
+        <DataEntryReminder />
         <div className="mx-auto max-w-7xl px-4 pb-8 pt-4">
           <Routes>
         {/* 🧠 Page de connexion */}

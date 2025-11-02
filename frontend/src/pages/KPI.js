@@ -3,7 +3,7 @@ import { Calendar, Building2, Save, Target, TrendingUp, DollarSign, BarChart3, C
 import { motion } from 'framer-motion';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
-import { swalSuccess, swalError } from '../utils/swal';
+import { swalSuccess, swalError, swal } from '../utils/swal';
 import { convertDateToYYYYMMDD, convertDateToSQLServer, formatDateForDisplay } from '../utils/dateUtils';
 import ModernDatePicker from '../components/ModernDatePicker';
 import KpiCard from '../components/KpiCard';
@@ -398,6 +398,21 @@ function KPI() {
       }
 
       await Promise.all(requests);
+      
+      // Vérifier si les données sauvegardées sont pour aujourd'hui
+      const user = authService.getCurrentUser();
+      const isAdmin = (user?.role || '').toString() === 'Administrateur';
+      if (!isAdmin) {
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const savedDateStr = formData.dateKey;
+        
+        // Si on a sauvegardé les données du jour, fermer l'alerte si elle est ouverte
+        if (savedDateStr === todayStr && swal.isVisible()) {
+          swal.close();
+        }
+      }
+      
       await swalSuccess('Données enregistrées avec succès !');
       
       // ✅ RÉINITIALISATION COMPLÈTE APRÈS ENREGISTREMENT RÉUSSI
