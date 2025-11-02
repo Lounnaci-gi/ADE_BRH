@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Composant de sélecteur de date moderne
-const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une date" }) => {
+const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une date", disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(value ? new Date(value) : null);
@@ -132,13 +132,21 @@ const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une da
     }
   }, [value]);
 
+  // Fermer le calendrier si disabled devient true
+  useEffect(() => {
+    if (disabled && isOpen) {
+      setIsOpen(false);
+    }
+  }, [disabled, isOpen]);
+
   return (
     <div className="relative" ref={datePickerRef}>
       {/* Input trigger */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full border-2 border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400 transition-all duration-300 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 shadow-sm hover:shadow-md text-left flex items-center justify-between font-medium"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className="w-full border-2 border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400 transition-all duration-300 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 shadow-sm hover:shadow-md text-left flex items-center justify-between font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-sm"
       >
         <span className={selectedDate ? 'text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-400'}>
           {formatDisplayDate(value)}
@@ -147,7 +155,7 @@ const ModernDatePicker = ({ value, onChange, placeholder = "Sélectionner une da
       </button>
 
       {/* Calendar dropdown */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute top-full left-0 mt-2 bg-white dark:bg-slate-900 border-2 border-gray-200 dark:border-slate-700 rounded-2xl shadow-xl z-50 p-4 min-w-[300px]">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">

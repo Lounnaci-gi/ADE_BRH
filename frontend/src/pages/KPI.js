@@ -290,11 +290,45 @@ function KPI() {
     console.log('✅ Réinitialisation terminée');
   };
 
+  // Fonction pour vérifier si la date est à plus de 7 jours pour les utilisateurs standard
+  const isDateOlderThan7Days = (dateStr) => {
+    const user = authService.getCurrentUser();
+    const isAdmin = (user?.role || '').toString() === 'Administrateur';
+    
+    // Les administrateurs ne sont pas limités
+    if (isAdmin) return false;
+    
+    if (!dateStr) return false;
+    
+    const selectedDate = new Date(dateStr);
+    const today = new Date();
+    
+    // Réinitialiser les heures à minuit pour une comparaison précise
+    selectedDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    
+    // Calculer la différence en millisecondes puis en jours
+    const diffTime = today.getTime() - selectedDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Retourner true si la date est à plus de 7 jours dans le passé
+    return diffDays > 7;
+  };
+
+  // Vérifier si le formulaire doit être désactivé pour les utilisateurs standard
+  const isFormDisabled = isDateOlderThan7Days(formData.dateKey);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.dateKey || !formData.agenceId) {
       await swalError('Veuillez sélectionner une date et une agence');
+      return;
+    }
+
+    // Vérifier la restriction de 7 jours pour les utilisateurs standard
+    if (isDateOlderThan7Days(formData.dateKey)) {
+      await swalError('Vous ne pouvez pas ajouter ou modifier des données de plus de 7 jours');
       return;
     }
 
@@ -399,7 +433,12 @@ function KPI() {
         // Conflit (par exemple, contrainte unique)
         errorMessage = e.response.data.message || 'Conflit de données. Vérifiez que les données ne sont pas déjà enregistrées.';
       } else if (e?.response?.status === 403) {
-        errorMessage = 'Accès refusé. Vérifiez vos permissions.';
+        const errorData = e.response.data;
+        errorMessage = errorData.message || 'Accès refusé. Vérifiez vos permissions.';
+        // Message spécifique pour la restriction de 7 jours
+        if (errorData.details && errorData.details.limite === 7) {
+          errorMessage = `Les utilisateurs standard ne peuvent pas ajouter ou modifier des données de plus de 7 jours. La date demandée (${errorData.details.dateDemandee}) est à ${errorData.details.joursDepuis} jours de la date actuelle (${errorData.details.dateActuelle}).`;
+        }
       } else if (e?.response?.status === 404) {
         errorMessage = 'Ressource non trouvée. Vérifiez que l\'agence et la catégorie existent.';
       }
@@ -581,12 +620,20 @@ function KPI() {
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 px-6 py-4 rounded-t-xl border-b border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-slate-100">📝 Saisie des données</h2>
-              {hasExistingData && (
-                <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>Mode édition - Données existantes chargées</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {hasExistingData && (
+                  <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Mode édition - Données existantes chargées</span>
+                  </div>
+                )}
+                {isFormDisabled && (
+                  <div className="flex items-center space-x-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-sm font-medium">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Date à plus de 7 jours - Modification non autorisée</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
@@ -610,8 +657,9 @@ function KPI() {
                       <select
                         value={formData.agenceId}
                         onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
-                          className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md text-xs max-w-[200px]"
+                          className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md text-xs max-w-[200px] disabled:opacity-50 disabled:cursor-not-allowed"
                         required
+                        disabled={isFormDisabled}
                       >
                         <option value="">Sélectionner une agence</option>
                         {agences.map(agence => (
@@ -651,6 +699,7 @@ function KPI() {
                     value={formData.dateKey}
                     onChange={(date) => setFormData({ ...formData, dateKey: date })}
                     placeholder="Sélectionner une date"
+                    disabled={isFormDisabled}
                   />
                 </div>
               </div>
@@ -702,7 +751,9 @@ function KPI() {
                               step="1"
                               value={e.nbRelancesEnvoyees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
+                                  disabled={isFormDisabled}
+                                  disabled={isFormDisabled} 
                             />
                               </div>
                               <div>
@@ -713,7 +764,8 @@ function KPI() {
                               step="0.01" 
                               value={e.mtRelancesEnvoyees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
+                                  disabled={isFormDisabled} 
                                 />
                               </div>
                               <div>
@@ -724,7 +776,8 @@ function KPI() {
                               step="1"
                               value={e.nbRelancesReglees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesReglees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
+                                  disabled={isFormDisabled} 
                             />
                               </div>
                               <div>
@@ -735,7 +788,8 @@ function KPI() {
                               step="0.01" 
                               value={e.mtRelancesReglees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesReglees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
+                                  disabled={isFormDisabled} 
                                 />
                               </div>
                             </div>
@@ -756,7 +810,8 @@ function KPI() {
                               step="1"
                               value={e.nbMisesEnDemeureEnvoyees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200"
+                                  disabled={isFormDisabled} 
                             />
                               </div>
                               <div>
@@ -767,7 +822,8 @@ function KPI() {
                               step="0.01" 
                               value={e.mtMisesEnDemeureEnvoyees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200"
+                                  disabled={isFormDisabled} 
                                 />
                               </div>
                               <div>
@@ -778,7 +834,8 @@ function KPI() {
                               step="1"
                               value={e.nbMisesEnDemeureReglees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureReglees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200"
+                                  disabled={isFormDisabled} 
                             />
                               </div>
                               <div>
@@ -810,7 +867,8 @@ function KPI() {
                               step="1"
                               value={e.nbDossiersJuridiques || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbDossiersJuridiques: ev.target.value } }))} 
-                                  className="w-full border border-orange-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-orange-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                                  disabled={isFormDisabled} 
                             />
                               </div>
                               <div>
@@ -821,7 +879,8 @@ function KPI() {
                               step="0.01" 
                               value={e.mtDossiersJuridiques || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtDossiersJuridiques: ev.target.value } }))} 
-                                  className="w-full border border-orange-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200" 
+                                  className="w-full border border-orange-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                                  disabled={isFormDisabled} 
                                 />
                               </div>
                             </div>
@@ -843,7 +902,8 @@ function KPI() {
                               step="1"
                               value={e.nbCoupures || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbCoupures: ev.target.value } }))} 
-                                    className="w-full border border-red-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-red-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                                    disabled={isFormDisabled} 
                             />
                                 </div>
                                 <div>
@@ -854,7 +914,8 @@ function KPI() {
                               step="0.01" 
                               value={e.mtCoupures || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtCoupures: ev.target.value } }))} 
-                                    className="w-full border border-red-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-red-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                                    disabled={isFormDisabled} 
                                   />
                                 </div>
                               </div>
@@ -867,7 +928,8 @@ function KPI() {
                               step="1"
                               value={e.nbRetablissements || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRetablissements: ev.target.value } }))} 
-                                    className="w-full border border-green-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-green-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                                    disabled={isFormDisabled} 
                             />
                                 </div>
                                 <div>
@@ -878,7 +940,8 @@ function KPI() {
                               step="0.01" 
                               value={e.mtRetablissements || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRetablissements: ev.target.value } }))} 
-                                    className="w-full border border-green-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-green-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                                    disabled={isFormDisabled} 
                                   />
                                 </div>
                               </div>
@@ -901,7 +964,8 @@ function KPI() {
                               step="1"
                               value={e.nbBranchements || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbBranchements: ev.target.value } }))} 
-                                    className="w-full border border-blue-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-blue-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    disabled={isFormDisabled} 
                                   />
                                 </div>
                                 <div>
@@ -912,7 +976,8 @@ function KPI() {
                               step="1"
                               value={e.nbCompteursRemplaces || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbCompteursRemplaces: ev.target.value } }))} 
-                                    className="w-full border border-purple-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-purple-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                                    disabled={isFormDisabled} 
                                   />
                                 </div>
                               </div>
@@ -925,7 +990,8 @@ function KPI() {
                               step="1"
                               value={e.nbControles || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbControles: ev.target.value } }))} 
-                                    className="w-full border border-indigo-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200" 
+                                    className="w-full border border-indigo-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                                    disabled={isFormDisabled} 
                                   />
                                 </div>
                               </div>
@@ -945,6 +1011,7 @@ function KPI() {
                               rows="2"
                               placeholder="Ajoutez une observation pour cette catégorie..."
                               maxLength="200"
+                              disabled={isFormDisabled}
                             />
                             <div className="text-right mt-1">
                               <span className="text-xs text-gray-400 dark:text-slate-400">
@@ -977,6 +1044,7 @@ function KPI() {
                   onChange={(e) => setFormData({ ...formData, encaissementJournalierGlobal: e.target.value })}
                       className="w-64 border-2 border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md"
                   placeholder="Montant de l'encaissement journalier global..."
+                  disabled={isFormDisabled}
                 />
               </div>
               </div>
@@ -985,7 +1053,8 @@ function KPI() {
             <div className="flex justify-end pt-6">
               <button
                 type="submit"
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm transform hover:scale-105"
+                disabled={isFormDisabled}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 <Save className="h-4 w-4" />
                   Enregistrer les données

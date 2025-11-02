@@ -121,6 +121,34 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Vérification pour les utilisateurs Standard : ne peuvent pas ajouter/modifier des données de plus de 7 jours
+    if (userRole === 'Standard') {
+      // Calculer la différence en jours entre la date actuelle et la date de saisie
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      todayStart.setHours(0, 0, 0, 0);
+      
+      const dateValueObjStart = new Date(year1, month1 - 1, day1);
+      dateValueObjStart.setHours(0, 0, 0, 0);
+      
+      // Calculer la différence en millisecondes puis en jours
+      const diffTime = todayStart.getTime() - dateValueObjStart.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Si la date de saisie est à plus de 7 jours dans le passé, bloquer
+      if (diffDays > 7) {
+        return res.status(403).json({ 
+          message: 'Les utilisateurs standard ne peuvent pas ajouter ou modifier des données de plus de 7 jours',
+          details: {
+            role: userRole,
+            dateDemandee: dateValueObjStart.toLocaleDateString('fr-FR'),
+            dateActuelle: todayStart.toLocaleDateString('fr-FR'),
+            joursDepuis: diffDays,
+            limite: 7
+          }
+        });
+      }
+    }
+
     // D'abord vérifier si l'enregistrement existe
     const checkQuery = `
       SELECT COUNT(*) as count 
