@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import authService from '../services/authService';
+import kpiService from '../services/kpiService';
+import { swal } from '../utils/swal';
+import { convertDateToYYYYMMDD } from '../utils/dateUtils';
 import './Login.css';
 
 const Login = () => {
@@ -15,6 +18,100 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
+    // Fonction pour vérifier les jours manquants (7 derniers jours)
+    const checkMissingDataDays = async (userAgenceId) => {
+        try {
+            const today = new Date();
+            const missingDays = [];
+            
+            // Parcourir les 7 derniers jours (aujourd'hui inclus)
+            for (let i = 0; i < 7; i++) {
+                const checkDate = new Date(today);
+                checkDate.setDate(today.getDate() - i);
+                checkDate.setHours(0, 0, 0, 0);
+                
+                const yyyy = checkDate.getFullYear();
+                const mm = String(checkDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(checkDate.getDate()).padStart(2, '0');
+                const dateKey = convertDateToYYYYMMDD(`${yyyy}-${mm}-${dd}`);
+                
+                // Vérifier si les données existent pour ce jour
+                const existingData = await kpiService.getExistingData(dateKey, userAgenceId);
+                
+                // Si aucune donnée n'existe, ajouter à la liste
+                if (!existingData || existingData.length === 0) {
+                    missingDays.push({
+                        date: checkDate,
+                        dateKey: dateKey,
+                        dateFormatted: `${dd}/${mm}/${yyyy}`
+                    });
+                }
+            }
+            
+            return missingDays;
+        } catch (error) {
+            console.error('Erreur lors de la vérification des jours manquants:', error);
+            return [];
+        }
+    };
+
+    // Fonction pour afficher l'alerte avec la liste des jours manquants
+    const showMissingDataAlert = async (user) => {
+        const userAgenceId = user?.agenceId ? Number(user.agenceId) : null;
+        
+        if (!userAgenceId) {
+            return;
+        }
+        
+        // Charger les agences pour obtenir le nom
+        let agenceName = 'votre agence';
+        try {
+            const agences = await kpiService.getAgences();
+            const agence = agences.find(a => Number(a.AgenceId) === userAgenceId);
+            if (agence) {
+                agenceName = agence.Nom_Agence;
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des agences:', error);
+        }
+        
+        // Vérifier les jours manquants
+        const missingDays = await checkMissingDataDays(userAgenceId);
+        
+        if (missingDays.length > 0) {
+            // Créer le HTML de la liste
+            const missingDaysList = missingDays
+                .map(day => `<li style="text-align: left; padding: 4px 0;">• ${day.dateFormatted}</li>`)
+                .join('');
+            
+            swal.fire({
+                icon: 'warning',
+                title: 'Jours sans données saisies',
+                html: `
+                    <p style="text-align: left; margin-bottom: 10px;">
+                        Vous n'avez pas saisi de données pour <strong>${agenceName}</strong> aux dates suivantes (7 derniers jours) :
+                    </p>
+                    <ul style="text-align: left; list-style: none; padding: 0; margin: 10px 0;">
+                        ${missingDaysList}
+                    </ul>
+                    <p style="text-align: left; margin-top: 10px; font-size: 0.9em; color: #666;">
+                        ⚠️ Note: Vous pouvez uniquement modifier les données des 7 derniers jours.
+                    </p>
+                `,
+                confirmButtonText: 'Aller à la saisie',
+                showCancelButton: true,
+                cancelButtonText: 'Fermer',
+                allowOutsideClick: true,
+                allowEscapeKey: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Rediriger vers la page KPI après fermeture de l'alerte
+                    navigate('/kpi');
+                }
+            });
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -24,6 +121,19 @@ const Login = () => {
             const response = await authService.login(username, password);
             
             if (response.success) {
+                const user = response.user;
+                
+                // Si l'utilisateur est standard, vérifier les jours manquants
+                const isStandard = (user?.role || '').toString() === 'Standard';
+                
+                if (isStandard) {
+                    // Attendre un peu que l'authentification soit bien établie
+                    setTimeout(async () => {
+                        await showMissingDataAlert(user);
+                    }, 500);
+                }
+                
+                // Rediriger vers le dashboard
                 navigate('/dashboard');
             } else {
                 setError(response.error || 'Erreur de connexion');
