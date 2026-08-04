@@ -7,7 +7,7 @@ Get-Process -Name "node" -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep 3
 
 # Aller dans le dossier backend
-Set-Location "F:\ADE_BRH\backend"
+Set-Location "$PSScriptRoot\backend"
 
 # Demarrer le serveur
 Write-Host "Demarrage du serveur..." -ForegroundColor Green

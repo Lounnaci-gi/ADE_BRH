@@ -24,7 +24,7 @@ catch {
 }
 
 # Aller dans le dossier backend
-Set-Location "F:\ADE_BRH\backend"
+Set-Location "$PSScriptRoot\backend"
 
 # Vérifier si package.json existe
 if (-not (Test-Path "package.json")) {
