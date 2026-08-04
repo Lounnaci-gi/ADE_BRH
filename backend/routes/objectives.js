@@ -2,6 +2,7 @@ const express = require('express');
 const { TYPES } = require('tedious');
 const db = require('../utils/db');
 const { parseDateStringForSQLServer } = require('../utils/dateUtils');
+const { sanitizeTextField } = require('../middleware/security');
 const router = express.Router();
 
 const getConfig = () => ({
@@ -138,7 +139,7 @@ router.get('/', async (req, res) => {
     res.json(results);
   } catch (err) {
     console.error('Erreur GET /objectives:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération des objectifs', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la récupération des objectifs' });
   }
 });
 
@@ -173,7 +174,7 @@ router.get('/agences', async (req, res) => {
     res.json(results);
   } catch (err) {
     console.error('Erreur GET /objectives/agences:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération des agences', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la récupération des agences' });
   }
 });
 
@@ -250,7 +251,7 @@ router.get('/debug', async (req, res) => {
     });
   } catch (err) {
     console.error('Erreur GET /objectives/debug:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération des informations de debug', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la récupération des informations de debug' });
   }
 });
 
@@ -345,8 +346,8 @@ router.post('/', async (req, res) => {
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
       { name: 'dateDebut', type: TYPES.Date, value: parseDateStringForSQLServer(dateDebut) },
       { name: 'dateFin', type: TYPES.Date, value: parseDateStringForSQLServer(dateFin) },
-      { name: 'titre', type: TYPES.NVarChar, value: titre },
-      { name: 'description', type: TYPES.NVarChar, value: description || null },
+      { name: 'titre', type: TYPES.NVarChar, value: sanitizeTextField(titre, 200) },
+      { name: 'description', type: TYPES.NVarChar, value: sanitizeTextField(description, 500) || null },
       { name: 'obj_Encaissement', type: TYPES.Money, value: obj_Encaissement || null },
       { name: 'obj_Coupures', type: TYPES.Int, value: obj_Coupures || null },
       { name: 'obj_Dossiers_Juridiques', type: TYPES.Int, value: obj_Dossiers_Juridiques || null },
@@ -364,7 +365,7 @@ router.post('/', async (req, res) => {
     });
   } catch (err) {
     console.error('Erreur POST /objectives:', err);
-    res.status(500).json({ message: 'Erreur lors de la création', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la création de l\'objectif' });
   }
 });
 
@@ -450,8 +451,8 @@ router.put('/', async (req, res) => {
       { name: 'agenceId', type: TYPES.Int, value: agenceId },
       { name: 'dateDebut', type: TYPES.Date, value: parseDateStringForSQLServer(dateDebut) },
       { name: 'dateFin', type: TYPES.Date, value: parseDateStringForSQLServer(dateFin) },
-      { name: 'titre', type: TYPES.NVarChar, value: titre },
-      { name: 'description', type: TYPES.NVarChar, value: description || null },
+      { name: 'titre', type: TYPES.NVarChar, value: sanitizeTextField(titre, 200) },
+      { name: 'description', type: TYPES.NVarChar, value: sanitizeTextField(description, 500) || null },
       { name: 'obj_Encaissement', type: TYPES.Money, value: obj_Encaissement || null },
       { name: 'obj_Coupures', type: TYPES.Int, value: obj_Coupures || null },
       { name: 'obj_Dossiers_Juridiques', type: TYPES.Int, value: obj_Dossiers_Juridiques || null },
@@ -465,7 +466,7 @@ router.put('/', async (req, res) => {
     return res.json({ message: 'Objectif mis à jour avec succès' });
   } catch (err) {
     console.error('Erreur PUT /objectives:', err);
-    return res.status(500).json({ message: 'Erreur lors de la mise à jour', error: err.message });
+    return res.status(500).json({ message: 'Erreur lors de la mise à jour de l\'objectif' });
   }
 });
 
@@ -514,7 +515,7 @@ router.delete('/', async (req, res) => {
     });
   } catch (err) {
     console.error('Erreur DELETE /objectives:', err);
-    res.status(500).json({ message: 'Erreur lors de la suppression', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la suppression de l\'objectif' });
   }
 });
 

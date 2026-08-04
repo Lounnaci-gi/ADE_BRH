@@ -1,6 +1,7 @@
 const express = require('express');
 const { TYPES } = require('tedious');
 const db = require('../utils/db');
+const { sanitizeTextField } = require('../middleware/security');
 const router = express.Router();
 
 // Configuration de la base de données
@@ -60,7 +61,7 @@ router.get('/', async (req, res) => {
     res.json(results);
   } catch (err) {
     console.error('Erreur GET /centres:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération des centres', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la récupération des centres' });
   }
 });
 
@@ -72,7 +73,17 @@ router.post('/', async (req, res) => {
     return res.status(403).json({ message: 'Accès refusé. Seuls les administrateurs peuvent créer des centres.' });
   }
 
-  const { nom_centre, adresse, telephone, telephone2, email, fax, nom_banque, compte_bancaire, nif, nis, rc } = req.body;
+  const nom_centre      = sanitizeTextField(req.body?.nom_centre, 200);
+  const adresse         = sanitizeTextField(req.body?.adresse, 300);
+  const telephone       = sanitizeTextField(req.body?.telephone, 50);
+  const telephone2      = req.body?.telephone2 ? sanitizeTextField(req.body.telephone2, 50) : null;
+  const email           = req.body?.email ? sanitizeTextField(req.body.email, 200) : null;
+  const fax             = req.body?.fax ? sanitizeTextField(req.body.fax, 50) : null;
+  const nom_banque      = req.body?.nom_banque ? sanitizeTextField(req.body.nom_banque, 200) : null;
+  const compte_bancaire = req.body?.compte_bancaire ? sanitizeTextField(req.body.compte_bancaire, 100) : null;
+  const nif             = req.body?.nif ? sanitizeTextField(req.body.nif, 50) : null;
+  const nis             = req.body?.nis ? sanitizeTextField(req.body.nis, 50) : null;
+  const rc              = req.body?.rc ? sanitizeTextField(req.body.rc, 50) : null;
 
   if (!nom_centre || !adresse || !telephone) {
     return res.status(400).json({ message: 'Nom du centre, adresse et téléphone sont obligatoires' });
@@ -111,7 +122,7 @@ router.post('/', async (req, res) => {
     return res.status(201).json({ message: 'Centre créé avec succès', CentreId: rows[0]?.CentreId });
   } catch (err) {
     console.error('Erreur POST /centres:', err);
-    return res.status(500).json({ message: 'Erreur lors de la création', error: err.message });
+    return res.status(500).json({ message: 'Erreur lors de la création du centre' });
   }
 });
 
@@ -124,7 +135,17 @@ router.put('/:id', async (req, res) => {
   }
 
   const { id } = req.params;
-  const { nom_centre, adresse, telephone, telephone2, email, fax, nom_banque, compte_bancaire, nif, nis, rc } = req.body;
+  const nom_centre      = sanitizeTextField(req.body?.nom_centre, 200);
+  const adresse         = sanitizeTextField(req.body?.adresse, 300);
+  const telephone       = sanitizeTextField(req.body?.telephone, 50);
+  const telephone2      = req.body?.telephone2 ? sanitizeTextField(req.body.telephone2, 50) : null;
+  const email           = req.body?.email ? sanitizeTextField(req.body.email, 200) : null;
+  const fax             = req.body?.fax ? sanitizeTextField(req.body.fax, 50) : null;
+  const nom_banque      = req.body?.nom_banque ? sanitizeTextField(req.body.nom_banque, 200) : null;
+  const compte_bancaire = req.body?.compte_bancaire ? sanitizeTextField(req.body.compte_bancaire, 100) : null;
+  const nif             = req.body?.nif ? sanitizeTextField(req.body.nif, 50) : null;
+  const nis             = req.body?.nis ? sanitizeTextField(req.body.nis, 50) : null;
+  const rc              = req.body?.rc ? sanitizeTextField(req.body.rc, 50) : null;
 
   if (!nom_centre || !adresse || !telephone) {
     return res.status(400).json({ message: 'Nom du centre, adresse et téléphone sont obligatoires' });
@@ -176,7 +197,7 @@ router.put('/:id', async (req, res) => {
     return res.json({ message: 'Centre modifié avec succès' });
   } catch (err) {
     console.error('Erreur PUT /centres/:id:', err);
-    return res.status(500).json({ message: 'Erreur lors de la modification', error: err.message });
+    return res.status(500).json({ message: 'Erreur lors de la modification du centre' });
   }
 });
 
@@ -213,7 +234,7 @@ router.delete('/:id', async (req, res) => {
     return res.json({ message: 'Centre supprimé avec succès' });
   } catch (err) {
     console.error('Erreur DELETE /centres/:id:', err);
-    return res.status(500).json({ message: 'Erreur lors de la suppression', error: err.message });
+    return res.status(500).json({ message: 'Erreur lors de la suppression du centre' });
   }
 });
 
@@ -232,7 +253,7 @@ router.get('/count', async (req, res) => {
     res.json({ count: results[0].count });
   } catch (err) {
     console.error('Erreur GET /centres/count:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération du nombre de centres', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la récupération du nombre de centres' });
   }
 });
 

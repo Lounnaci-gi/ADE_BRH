@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../utils/db');
 const { TYPES } = db;
 const { convertDateKeyToSQLServer, isValidDateKey, roundAmount, parseDateStringForSQLServer } = require('../utils/dateUtils');
+const { sanitizeTextField } = require('../middleware/security');
 
 const router = express.Router();
 
@@ -246,7 +247,7 @@ router.post('/', async (req, res) => {
       { name: 'nbCompteursRemplaces', type: TYPES.Int, value: parseInt(nbCompteursRemplaces || 0, 10) },
       { name: 'nbControles', type: TYPES.Int, value: parseInt(nbControles || 0, 10) },
       { name: 'encaissementJournalierGlobal', type: TYPES.Money, value: roundAmount(encaissementJournalierGlobal) },
-      { name: 'observation', type: TYPES.NVarChar, value: observation || '' }
+      { name: 'observation', type: TYPES.NVarChar, value: sanitizeTextField(observation, 500) || '' }
     ];
 
     const result = await db.query(query, params);
@@ -284,8 +285,7 @@ router.post('/', async (req, res) => {
     }
     
     res.status(statusCode).json({ 
-      message: errorMessage, 
-      error: err.message,
+      message: errorMessage,
       details: {
         dateKey: dateValue,
         agenceId: agenceIdInt,
@@ -602,7 +602,7 @@ router.get('/categories', async (req, res) => {
     res.json(results || []);
   } catch (err) {
     console.error('Erreur GET /kpi/categories:', err);
-    res.status(500).json({ message: 'Erreur lors de la lecture des catégories', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la lecture des catégories' });
   }
 });
 
@@ -764,7 +764,7 @@ router.get('/global-summary', async (req, res) => {
   } catch (err) {
     console.error('Erreur GET /kpi/global-summary:', err);
     console.error('Stack trace:', err.stack);
-    res.status(500).json({ message: 'Erreur lors de la récupération du résumé global', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la récupération du résumé global' });
   }
 });
 
@@ -850,14 +850,13 @@ router.get('/detailed-data', async (req, res) => {
       agenceId: parseInt(agenceId, 10),
       startDate: startDate,
       endDate: endDate,
-      totalRecords: results.length
+      totalRecords: results ? results.length : 0
     };
 
     res.json(response);
   } catch (err) {
     console.error('Erreur GET /kpi/detailed-data:', err);
-    console.error('Stack trace:', err.stack);
-    res.status(500).json({ message: 'Erreur lors de la récupération des données détaillées', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la récupération des données détaillées' });
   }
 });
 
@@ -923,9 +922,8 @@ router.get('/highest-daily-rate', async (req, res) => {
       res.json(null);
     }
   } catch (err) {
-    console.error('❌ Erreur GET /kpi/highest-daily-rate:', err);
-    console.error('Stack trace:', err.stack);
-    res.status(500).json({ message: 'Erreur lors de la récupération du meilleur taux journalier', error: err.message });
+    console.error('Erreur GET /kpi/best-daily-rate:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du meilleur taux journalier' });
   }
 });
 
@@ -983,8 +981,8 @@ router.get('/highest-daily-rate-centre', async (req, res) => {
       res.json(null);
     }
   } catch (err) {
-    console.error('❌ Erreur GET /kpi/highest-daily-rate-centre:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération du meilleur taux journalier par centre', error: err.message });
+    console.error('Erreur GET /kpi/best-monthly-rate-by-centre:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du meilleur taux mensuel par centre' });
   }
 });
 
@@ -1073,8 +1071,8 @@ router.get('/highest-monthly-average-rate-centre', async (req, res) => {
       res.json(null);
     }
   } catch (err) {
-    console.error('❌ Erreur GET /kpi/highest-monthly-average-rate-centre:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération du meilleur taux mensuel par centre', error: err.message });
+    console.error('Erreur GET /kpi/best-monthly-rate-by-centre:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du meilleur taux mensuel par centre' });
   }
 });
 
@@ -1167,8 +1165,8 @@ router.get('/highest-monthly-average-rate', async (req, res) => {
       res.json(null);
     }
   } catch (err) {
-    console.error('❌ Erreur GET /kpi/highest-monthly-average-rate:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération du taux moyen mensuel', error: err.message });
+    console.error('Erreur GET /kpi/average-monthly-rate:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du taux moyen mensuel' });
   }
 });
 
@@ -1262,9 +1260,8 @@ router.get('/top-3-agences-month', async (req, res) => {
       res.json([]);
     }
   } catch (err) {
-    console.error('❌ Erreur GET /kpi/top-3-agences-month:', err);
-    console.error('Stack trace:', err.stack);
-    res.status(500).json({ message: 'Erreur lors de la récupération du top 3 des agences', error: err.message });
+    console.error('Erreur GET /kpi/top-agencies:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du top 3 des agences' });
   }
 });
 
@@ -1369,9 +1366,8 @@ router.get('/top-3-centres-month', async (req, res) => {
       res.json([]);
     }
   } catch (err) {
-    console.error('❌ Erreur GET /kpi/top-3-centres-month:', err);
-    console.error('Stack trace:', err.stack);
-    res.status(500).json({ message: 'Erreur lors de la récupération du top 3 des centres', error: err.message });
+    console.error('Erreur GET /kpi/top-centres:', err);
+    res.status(500).json({ message: 'Erreur lors de la récupération du top 3 des centres' });
   }
 });
 

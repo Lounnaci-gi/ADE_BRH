@@ -1,6 +1,7 @@
 const express = require('express');
 const { Connection, Request, TYPES } = require('tedious');
 const db = require('../utils/db');
+const { sanitizeTextField } = require('../middleware/security');
 
 const router = express.Router();
 
@@ -68,10 +69,9 @@ router.get('/', async (req, res) => {
     } catch (err) {
         console.error('Erreur GET /agences:', err);
         res.status(500).json({ 
-                    message: 'Erreur lors du chargement des agences', 
-                    error: err.message 
-                });
-            }
+            message: 'Erreur lors du chargement des agences' 
+        });
+    }
 });
 
 // ✅ Ajouter une nouvelle agence
@@ -84,14 +84,12 @@ router.post('/', async (req, res) => {
     if (roleHeader !== 'Administrateur') {
         return res.status(403).json({ message: 'Accès refusé: droits administrateur requis' });
     }
-    const { 
-        FK_Centre,
-        Nom_Agence, 
-        Adresse, 
-        Telephone, 
-        Email, 
-        Fax
-    } = req.body;
+    const FK_Centre  = req.body?.FK_Centre;
+    const Nom_Agence = sanitizeTextField(req.body?.Nom_Agence, 200);
+    const Adresse    = sanitizeTextField(req.body?.Adresse, 300);
+    const Telephone  = sanitizeTextField(req.body?.Telephone, 50);
+    const Email      = req.body?.Email ? sanitizeTextField(req.body.Email, 200) : null;
+    const Fax        = req.body?.Fax ? sanitizeTextField(req.body.Fax, 50) : null;
 
     // Validation
     if (!FK_Centre || !Nom_Agence || !Adresse || !Telephone) {
@@ -129,7 +127,7 @@ router.post('/', async (req, res) => {
         return res.status(201).json({ message: 'Agence ajoutée avec succès', id: rows[0]?.AgenceId });
     } catch (err) {
         console.error('Erreur POST /agences:', err);
-        return res.status(500).json({ message: 'Erreur lors de l\'ajout de l\'agence', error: err.message });
+        return res.status(500).json({ message: 'Erreur lors de l\'ajout de l\'agence' });
     }
 });
 
@@ -144,14 +142,12 @@ router.put('/:id', (req, res) => {
         return res.status(403).json({ message: 'Accès refusé: droits administrateur requis' });
     }
     const { id } = req.params;
-    const { 
-        FK_Centre,
-        Nom_Agence, 
-        Adresse, 
-        Telephone, 
-        Email, 
-        Fax
-    } = req.body;
+    const FK_Centre  = req.body?.FK_Centre;
+    const Nom_Agence = sanitizeTextField(req.body?.Nom_Agence, 200);
+    const Adresse    = sanitizeTextField(req.body?.Adresse, 300);
+    const Telephone  = sanitizeTextField(req.body?.Telephone, 50);
+    const Email      = req.body?.Email ? sanitizeTextField(req.body.Email, 200) : null;
+    const Fax        = req.body?.Fax ? sanitizeTextField(req.body.Fax, 50) : null;
 
     // Validation
     if (!FK_Centre || !Nom_Agence || !Adresse || !Telephone) {
@@ -165,8 +161,7 @@ router.put('/:id', (req, res) => {
     connection.on('connect', (err) => {
         if (err) {
             return res.status(500).json({ 
-                message: 'Erreur de connexion à la base de données', 
-                error: err.message 
+                message: 'Erreur de connexion à la base de données' 
             });
         }
 
@@ -186,8 +181,7 @@ router.put('/:id', (req, res) => {
 
             if (err) {
                 return res.status(500).json({ 
-                    message: 'Erreur lors de la modification de l\'agence', 
-                    error: err.message 
+                    message: 'Erreur lors de la modification de l\'agence' 
                 });
             }
 
@@ -235,8 +229,7 @@ router.get('/centres', async (req, res) => {
     } catch (err) {
         console.error('Erreur GET /agences/centres:', err);
         res.status(500).json({ 
-            message: 'Erreur lors du chargement des centres', 
-            error: err.message 
+            message: 'Erreur lors du chargement des centres' 
         });
     }
 });
@@ -331,8 +324,7 @@ router.delete('/:id', async (req, res) => {
     } catch (err) {
         console.error('Erreur DELETE /agences/:id:', err);
         return res.status(500).json({ 
-            message: 'Erreur lors de la suppression de l\'agence', 
-            error: err.message 
+            message: 'Erreur lors de la suppression de l\'agence' 
         });
     }
 });
@@ -355,7 +347,7 @@ router.get('/count', async (req, res) => {
     res.json({ count: results[0].count });
   } catch (err) {
     console.error('Erreur GET /agences/count:', err);
-    res.status(500).json({ message: 'Erreur lors de la récupération du nombre d\'agences', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la récupération du nombre d\'agences' });
   }
 });
 

@@ -127,7 +127,8 @@ const login = (req, res) => {
         const request = new Request(query, (err, rowCount) => {
             if (err) {
                 connection.close();
-                return res.status(500).json({ error: err.message });
+                console.error('Erreur DB login:', err);
+                return res.status(500).json({ error: 'Erreur de connexion à la base de données' });
             }
 
             if (users.length === 0) {
@@ -220,7 +221,7 @@ const updateAdminPassword = (req, res) => {
                 connection.close();
 
                 if (err) {
-                    return res.status(500).json({ error: err.message });
+                    return res.status(500).json({ error: 'Erreur lors de la mise à jour du mot de passe' });
                 }
 
                 return res.json({
@@ -298,7 +299,8 @@ const createAdmin = (req, res) => {
                 connection.close();
 
                 if (err) {
-                    return res.status(500).json({ error: err.message });
+                    console.error('Erreur DB createAdmin:', err);
+                    return res.status(500).json({ error: 'Erreur lors de la création du compte administrateur' });
                 }
 
                 // SÉCURITÉ: Ne jamais retourner le mot de passe en réponse

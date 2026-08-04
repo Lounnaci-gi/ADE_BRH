@@ -1,5 +1,6 @@
 const express = require('express');
 const { Connection, Request, TYPES } = require('tedious');
+const { sanitizeTextField } = require('../middleware/security');
 
 const router = express.Router();
 
@@ -27,7 +28,8 @@ router.get('/', (req, res) => {
 
   connection.on('connect', (err) => {
     if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+      console.error('Erreur connexion DB /categories GET:', err);
+      return res.status(500).json({ message: 'Erreur de connexion à la base de données' });
     }
 
     const categories = [];
@@ -44,7 +46,8 @@ router.get('/', (req, res) => {
     const request = new Request(query, (err) => {
       connection.close();
       if (err) {
-        return res.status(500).json({ message: 'Erreur lors de la lecture des catégories', error: err.message });
+        console.error('Erreur DB /categories GET:', err);
+        return res.status(500).json({ message: 'Erreur lors de la lecture des catégories' });
       }
       res.json(categories);
     });
@@ -63,7 +66,14 @@ router.get('/', (req, res) => {
 
 // POST /api/categories - créer une catégorie
 router.post('/', (req, res) => {
-  const { codeCategorie, libelle, description } = req.body || {};
+  const rawCode   = req.body?.codeCategorie;
+  const rawLibelle = req.body?.libelle;
+  const rawDesc   = req.body?.description;
+
+  // Sanitiser les champs texte libres
+  const codeCategorie = sanitizeTextField(rawCode, 50);
+  const libelle       = sanitizeTextField(rawLibelle, 200);
+  const description   = rawDesc ? sanitizeTextField(rawDesc, 500) : null;
 
   if (!codeCategorie || !libelle) {
     return res.status(400).json({ message: 'CodeCategorie et Libelle sont requis' });
@@ -73,7 +83,8 @@ router.post('/', (req, res) => {
 
   connection.on('connect', (err) => {
     if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+      console.error('Erreur connexion DB /categories POST:', err);
+      return res.status(500).json({ message: 'Erreur de connexion à la base de données' });
     }
 
     const query = `
@@ -84,14 +95,15 @@ router.post('/', (req, res) => {
     const request = new Request(query, (err, rowCount) => {
       connection.close();
       if (err) {
-        return res.status(500).json({ message: 'Erreur lors de la création de la catégorie', error: err.message });
+        console.error('Erreur DB /categories POST:', err);
+        return res.status(500).json({ message: 'Erreur lors de la création de la catégorie' });
       }
       res.status(201).json({ message: 'Catégorie créée avec succès' });
     });
 
     request.addParameter('codeCategorie', TYPES.NVarChar, codeCategorie);
     request.addParameter('libelle', TYPES.NVarChar, libelle);
-    request.addParameter('description', TYPES.NVarChar, description || null);
+    request.addParameter('description', TYPES.NVarChar, description);
 
     connection.execSql(request);
   });
@@ -101,8 +113,14 @@ router.post('/', (req, res) => {
 
 // PUT /api/categories/:id - modifier une catégorie
 router.put('/:id', (req, res) => {
-  const { id } = req.params;
-  const { codeCategorie, libelle, description } = req.body || {};
+  const idNum = parseInt(req.params.id, 10);
+  if (isNaN(idNum) || idNum <= 0) {
+    return res.status(400).json({ message: 'Identifiant de catégorie invalide' });
+  }
+
+  const codeCategorie = sanitizeTextField(req.body?.codeCategorie, 50);
+  const libelle       = sanitizeTextField(req.body?.libelle, 200);
+  const description   = req.body?.description ? sanitizeTextField(req.body.description, 500) : null;
 
   if (!codeCategorie || !libelle) {
     return res.status(400).json({ message: 'CodeCategorie et Libelle sont requis' });
@@ -112,7 +130,8 @@ router.put('/:id', (req, res) => {
 
   connection.on('connect', (err) => {
     if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+      console.error('Erreur connexion DB /categories PUT:', err);
+      return res.status(500).json({ message: 'Erreur de connexion à la base de données' });
     }
 
     const query = `
@@ -126,7 +145,8 @@ router.put('/:id', (req, res) => {
     const request = new Request(query, (err, rowCount) => {
       connection.close();
       if (err) {
-        return res.status(500).json({ message: 'Erreur lors de la mise à jour de la catégorie', error: err.message });
+        console.error('Erreur DB /categories PUT:', err);
+        return res.status(500).json({ message: 'Erreur lors de la mise à jour de la catégorie' });
       }
       if (rowCount === 0) {
         return res.status(404).json({ message: 'Catégorie non trouvée' });
@@ -136,8 +156,8 @@ router.put('/:id', (req, res) => {
 
     request.addParameter('codeCategorie', TYPES.NVarChar, codeCategorie);
     request.addParameter('libelle', TYPES.NVarChar, libelle);
-    request.addParameter('description', TYPES.NVarChar, description || null);
-    request.addParameter('id', TYPES.Int, parseInt(id, 10));
+    request.addParameter('description', TYPES.NVarChar, description);
+    request.addParameter('id', TYPES.Int, idNum);
 
     connection.execSql(request);
   });
@@ -147,13 +167,17 @@ router.put('/:id', (req, res) => {
 
 // DELETE /api/categories/:id - supprimer une catégorie
 router.delete('/:id', (req, res) => {
-  const { id } = req.params;
+  const idNum = parseInt(req.params.id, 10);
+  if (isNaN(idNum) || idNum <= 0) {
+    return res.status(400).json({ message: 'Identifiant de catégorie invalide' });
+  }
 
   const connection = new Connection(getConfig());
 
   connection.on('connect', (err) => {
     if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+      console.error('Erreur connexion DB /categories DELETE:', err);
+      return res.status(500).json({ message: 'Erreur de connexion à la base de données' });
     }
 
     const query = `
@@ -164,7 +188,8 @@ router.delete('/:id', (req, res) => {
     const request = new Request(query, (err, rowCount) => {
       connection.close();
       if (err) {
-        return res.status(500).json({ message: 'Erreur lors de la suppression de la catégorie', error: err.message });
+        console.error('Erreur DB /categories DELETE:', err);
+        return res.status(500).json({ message: 'Erreur lors de la suppression de la catégorie' });
       }
       if (rowCount === 0) {
         return res.status(404).json({ message: 'Catégorie non trouvée' });
@@ -172,7 +197,7 @@ router.delete('/:id', (req, res) => {
       res.json({ message: 'Catégorie supprimée avec succès' });
     });
 
-    request.addParameter('id', TYPES.Int, parseInt(id, 10));
+    request.addParameter('id', TYPES.Int, idNum);
 
     connection.execSql(request);
   });

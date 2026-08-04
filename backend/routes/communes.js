@@ -1,6 +1,7 @@
 const express = require('express');
 const { TYPES } = require('tedious');
 const db = require('../utils/db');
+const { sanitizeTextField } = require('../middleware/security');
 const router = express.Router();
 
 // La config est gérée par utils/db
@@ -42,7 +43,8 @@ router.get('/', async (req, res) => {
 
 // POST /api/communes - Créer une nouvelle commune
 router.post('/', requireAdmin, async (req, res) => {
-  const { Nom_Commune, FK_Agence } = req.body || {};
+  const Nom_Commune = sanitizeTextField(req.body?.Nom_Commune, 200);
+  const FK_Agence = req.body?.FK_Agence;
 
   if (!Nom_Commune || !FK_Agence) {
     return res.status(400).json({
@@ -81,7 +83,8 @@ router.post('/', requireAdmin, async (req, res) => {
 // PUT /api/communes/:id - Modifier une commune
 router.put('/:id', requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { Nom_Commune, FK_Agence } = req.body || {};
+  const Nom_Commune = sanitizeTextField(req.body?.Nom_Commune, 200);
+  const FK_Agence = req.body?.FK_Agence;
 
   if (!Nom_Commune || !FK_Agence) {
     return res.status(400).json({
@@ -150,7 +153,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
       return res.status(409).json({ message: 'Impossible de supprimer cette commune: des données y sont rattachées.' });
     }
     console.error('Erreur DELETE /communes/:id:', err);
-    return res.status(500).json({ message: 'Erreur lors de la suppression de la commune', error: err.message });
+    return res.status(500).json({ message: 'Erreur lors de la suppression de la commune' });
   }
 });
 

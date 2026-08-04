@@ -15,6 +15,7 @@ const objectivesRoutes = require('./routes/objectives.js');
 const centresRoutes = require('./routes/centres.js');
 const communesRoutes = require('./routes/communes.js');
 const { sqlInjectionDetection } = require('./middleware/security');
+const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = 5000;
@@ -23,18 +24,29 @@ const PORT = 5000;
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:"],
+            defaultSrc:      ["'self'"],
+            scriptSrc:       ["'self'"],
+            styleSrc:        ["'self'", "'unsafe-inline'"],  // React inline styles
+            imgSrc:          ["'self'", "data:", "https:"],
+            connectSrc:      ["'self'"],
+            fontSrc:         ["'self'", "https://fonts.gstatic.com"],
+            objectSrc:       ["'none'"],                    // bloquer Flash/plugins
+            frameAncestors:  ["'none'"],                    // anti-clickjacking
+            formAction:      ["'self'"],                    // anti-CSRF form hijack
+            baseUri:         ["'self'"],
+            upgradeInsecureRequests: [],
         },
     },
-    crossOriginEmbedderPolicy: false, // Peut être nécessaire pour certaines API
+    crossOriginEmbedderPolicy: false,
     hsts: {
         maxAge: 31536000,
         includeSubDomains: true,
         preload: true
-    }
+    },
+    // Headers supplémentaires anti-XSS
+    xContentTypeOptions: true,    // X-Content-Type-Options: nosniff
+    xDnsPrefetchControl: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
 // SÉCURITÉ: Rate limiting global pour prévenir les attaques DoS
@@ -201,8 +213,11 @@ app.use("/api/centres", centresRoutes);
 app.use("/api/communes", communesRoutes);
 
 
+// ─── Middleware global de gestion d'erreurs (doit être en dernier) ────────────
+app.use(errorHandler);
+
 // Lancement du serveur
-app.listen(PORT,"0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Serveur backend démarré sur le port ${PORT}`);
     console.log(`🧩 Test: http://localhost:${PORT}/api/test`);
 });

@@ -1,6 +1,7 @@
 const express = require('express');
 const { Connection, Request, TYPES } = require('tedious');
 const bcrypt = require('bcryptjs');
+const { sanitizeTextField, validateUsername, validatePassword } = require('../middleware/security');
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.get('/', (req, res) => {
 
   connection.on('connect', (err) => {
     if (err) {
-      return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+      return res.status(500).json({ message: 'Erreur de connexion à la base de données' });
     }
 
     const users = [];
@@ -61,7 +62,7 @@ router.get('/', (req, res) => {
       request = new Request(query, (err) => {
         connection.close();
         if (err) {
-          return res.status(500).json({ message: 'Erreur lors de la lecture des utilisateurs', error: err.message });
+          return res.status(500).json({ message: 'Erreur lors de la lecture des utilisateurs' });
         }
         res.json(users);
       });
@@ -80,7 +81,7 @@ router.get('/', (req, res) => {
       request = new Request(query, (err) => {
         connection.close();
         if (err) {
-          return res.status(500).json({ message: 'Erreur lors de la lecture des utilisateurs', error: err.message });
+          return res.status(500).json({ message: 'Erreur lors de la lecture des utilisateurs' });
         }
         res.json(users);
       });
@@ -109,7 +110,12 @@ router.post('/', (req, res) => {
   if (roleHeader !== 'Administrateur') {
     return res.status(403).json({ message: 'Accès refusé: droits administrateur requis' });
   }
-  const { username, email, role: roleRaw = 'Standard', password, agenceId } = req.body || {};
+  const rawUsername = req.body?.username;
+  const rawEmail    = req.body?.email;
+  const { role: roleRaw = 'Standard', password, agenceId } = req.body || {};
+
+  const username = sanitizeTextField(rawUsername, 50);
+  const email    = sanitizeTextField(rawEmail, 200);
 
   // Normaliser le rôle reçu depuis le front
   const role = (roleRaw || '').toString().trim();
@@ -132,7 +138,7 @@ router.post('/', (req, res) => {
 
     connection.on('connect', (err) => {
       if (err) {
-        return res.status(500).json({ message: 'Erreur de connexion à la base', error: err.message });
+        return res.status(500).json({ message: 'Erreur de connexion à la base de données' });
       }
 
       const query = `
@@ -159,7 +165,7 @@ router.post('/', (req, res) => {
       const request = new Request(query, (err) => {
         connection.close();
         if (err) {
-          return res.status(500).json({ message: 'Erreur lors de la création de l\'utilisateur', error: err.message });
+          return res.status(500).json({ message: 'Erreur lors de la création de l\'utilisateur' });
         }
       });
 
@@ -203,7 +209,6 @@ router.post('/', (req, res) => {
 // PUT /api/users/:id - modifier un utilisateur (email, role, agence)
 router.put('/:id', (req, res) => {
   const roleHeader = (req.headers['x-role'] || '').toString().trim();
-  // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
   if (!roleHeader) {
     return res.status(401).json({ message: 'Authentification requise' });
   }
@@ -211,12 +216,13 @@ router.put('/:id', (req, res) => {
     return res.status(403).json({ message: 'Accès refusé: droits administrateur requis' });
   }
   const { id } = req.params;
-  const { email, role, agenceId } = req.body || {};
+  const { role, agenceId } = req.body || {};
+  const email = sanitizeTextField(req.body?.email, 200);
 
   const connection = new Connection(getConfig());
 
   connection.on('connect', (err) => {
-    if (err) return res.status(500).json({ message: 'Erreur de connexion', error: err.message });
+    if (err) return res.status(500).json({ message: 'Erreur de connexion à la base de données' });
 
     const normalizedRole = (role === 'Administrateur') ? 'Administrateur' : 'Standard';
     const finalAgenceId = normalizedRole === 'Administrateur' ? null : parseInt(agenceId ?? 0, 10);
@@ -229,7 +235,7 @@ router.put('/:id', (req, res) => {
       WHERE UtilisateurId = @id
     `, (err, rowCount) => {
       connection.close();
-      if (err) return res.status(500).json({ message: 'Erreur lors de la mise à jour', error: err.message });
+      if (err) return res.status(500).json({ message: 'Erreur lors de la mise à jour de l\'utilisateur' });
       if (rowCount === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
       res.json({ message: 'Utilisateur mis à jour' });
     });
@@ -260,7 +266,7 @@ router.delete('/:id', (req, res) => {
   const connection = new Connection(getConfig());
 
   connection.on('connect', (err) => {
-    if (err) return res.status(500).json({ message: 'Erreur de connexion', error: err.message });
+    if (err) return res.status(500).json({ message: 'Erreur de connexion à la base de données' });
 
     const request = new Request(`
       UPDATE dbo.DIM_UTILISATEUR
@@ -268,7 +274,7 @@ router.delete('/:id', (req, res) => {
       WHERE UtilisateurId = @id
     `, (err, rowCount) => {
       connection.close();
-      if (err) return res.status(500).json({ message: 'Erreur lors de la suppression', error: err.message });
+      if (err) return res.status(500).json({ message: 'Erreur lors de la désactivation de l\'utilisateur' });
       if (rowCount === 0) return res.status(404).json({ message: 'Utilisateur non trouvé' });
       res.json({ message: 'Utilisateur désactivé' });
     });
@@ -285,20 +291,21 @@ router.put('/profile', (req, res) => {
   const roleHeader = (req.headers['x-role'] || '').toString().trim();
   const userIdHeader = req.headers['x-user-id'] || null;
   
-  // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
   if (!roleHeader || (roleHeader !== 'Administrateur' && roleHeader !== 'Standard')) {
     return res.status(401).json({ message: 'Authentification requise' });
   }
-  const { username, email, currentPassword, newPassword } = req.body || {};
-
   if (!userIdHeader) {
     return res.status(401).json({ message: 'Utilisateur non identifié' });
   }
 
+  const { currentPassword, newPassword } = req.body || {};
+  const username = sanitizeTextField(req.body?.username, 50);
+  const email    = sanitizeTextField(req.body?.email, 200);
+
   const connection = new Connection(getConfig());
 
   connection.on('connect', (err) => {
-    if (err) return res.status(500).json({ message: 'Erreur de connexion', error: err.message });
+    if (err) return res.status(500).json({ message: 'Erreur de connexion à la base de données' });
 
     // Vérifier le mot de passe actuel si un nouveau mot de passe est fourni
     if (newPassword) {
@@ -311,7 +318,7 @@ router.put('/profile', (req, res) => {
         if (err) {
           // Fermer la connexion uniquement en cas d'erreur ici
           connection.close();
-          return res.status(500).json({ message: 'Erreur lors de la vérification', error: err.message });
+          return res.status(500).json({ message: 'Erreur lors de la vérification' });
         }
       });
 
@@ -363,7 +370,7 @@ router.put('/profile', (req, res) => {
         // La fermeture est gérée dans requestCompleted pour garantir la fin complète
         if (err) {
           connection.close();
-          return res.status(500).json({ message: 'Erreur lors de la mise à jour', error: err.message });
+          return res.status(500).json({ message: 'Erreur lors de la mise à jour du profil' });
         }
         if (rowCount === 0) {
           connection.close();

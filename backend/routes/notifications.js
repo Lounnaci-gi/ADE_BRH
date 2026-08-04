@@ -155,9 +155,8 @@ router.get('/agencies-status', async (req, res) => {
     
   } catch (err) {
     console.error('Erreur GET /notifications/agencies-status:', err);
-    res.status(500).json({ 
-      message: 'Erreur lors de la récupération du statut des agences', 
-      error: err.message 
+    res.status(500).json({
+      message: 'Erreur lors de la récupération du statut des agences',
     });
   }
 });
