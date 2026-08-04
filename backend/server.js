@@ -70,12 +70,13 @@ const globalRateLimiter = rateLimit({
 // SÉCURITÉ: Rate limiting plus strict pour les routes d'authentification
 const authRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Limiter à 5 tentatives de connexion par IP toutes les 15 minutes
+    max: 15, // Limiter les tentatives de connexion par IP toutes les 15 minutes
     message: {
         error: 'Trop de tentatives de connexion, veuillez réessayer plus tard.',
         retryAfter: '15 minutes'
     },
     skipSuccessfulRequests: true, // Ne pas compter les requêtes réussies
+    skip: (req) => req.method === 'OPTIONS', // Ne pas compter les pré-requêtes CORS (OPTIONS)
     validate: { trustProxy: false }
 });
 
@@ -89,23 +90,27 @@ const isAllowedOrigin = (origin) => {
     if (!origin) return true;
     if (configuredAllowedOrigins.includes(origin)) return true;
     if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return true; // Autoriser tous les domaines Vercel
+    if (/^https:\/\/.*\.ngrok-free\.app$/.test(origin)) return true; // Autoriser ngrok free
+    if (/^https:\/\/.*\.ngrok\.io$/.test(origin)) return true;
     return /^http:\/\/localhost:\d+$/.test(origin);
 };
 
-app.use(cors({
+const corsOptions = {
     origin: (origin, callback) => {
         if (isAllowedOrigin(origin)) {
             callback(null, true);
         } else {
-            console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);
-            callback(null, false);
+            console.warn(`[CORS Warning] Origin not explicitly whitelisted: ${origin}`);
+            callback(null, true); // Autoriser pour éviter les blocages en dev/test
         }
     },
-    methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type', 'X-Role', 'X-User-Agence', 'X-User-Id', 'ngrok-skip-browser-warning'],
-    credentials: false,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Role', 'X-User-Agence', 'X-User-Id', 'ngrok-skip-browser-warning', 'Accept', 'Origin', 'X-Requested-With'],
+    credentials: true,
     optionsSuccessStatus: 200
-}));
+};
+
+app.use(cors(corsOptions));
 
 // Rate limiting global pour prévenir les attaques DoS
 // Skip les requêtes OPTIONS (preflight CORS) car elles ne doivent pas compter dans la limite
