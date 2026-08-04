@@ -1,68 +1,94 @@
-const { Connection, Request, TYPES } = require('tedious');
+require('dotenv').config();
+const { TYPES } = require('tedious');
 
-const baseConfig = {
-  server: process.env.DB_SERVER || 'localhost',
-  authentication: {
-    type: 'default',
-    options: {
-      userName: process.env.DB_USER || 'lounnaci',
-      password: process.env.DB_PASSWORD || 'Lounnaci2026!'
-    }
-  },
-  options: {
-    database: process.env.DB_DATABASE || 'ADE_KPI',
-    trustServerCertificate: true,
-    encrypt: false,
-    instanceName: 'SQLEXPRESS',
-    enableArithAbort: true
+const useWindowsAuth = (process.env.DB_AUTH || 'windows').toLowerCase() === 'windows';
+const sql = useWindowsAuth ? require('mssql/msnodesqlv8') : require('mssql');
+
+const server = process.env.DB_SERVER || 'DESKTOP-QROBQA9';
+const instanceName = process.env.DB_INSTANCE || 'SQLEXPRESS';
+const database = process.env.DB_DATABASE || 'ADE_KPI';
+const odbcDriver = process.env.DB_ODBC_DRIVER || 'ODBC Driver 18 for SQL Server';
+
+function getPoolConfig() {
+  if (useWindowsAuth) {
+    return {
+      connectionString: [
+        `Driver={${odbcDriver}}`,
+        `Server=${server}\\${instanceName}`,
+        `Database=${database}`,
+        'Trusted_Connection=yes',
+        'TrustServerCertificate=yes'
+      ].join(';')
+    };
   }
-};
 
-function connect() {
-  return new Promise((resolve, reject) => {
-    const connection = new Connection(baseConfig);
-    connection.on('connect', (err) => {
-      if (err) return reject(err);
-      resolve(connection);
-    });
-    connection.connect();
-  });
-}
-
-async function query(sql, params = []) {
-  const connection = await connect();
-  return new Promise((resolve, reject) => {
-    const rows = [];
-    const request = new Request(sql, (err) => {
-      if (err) {
-        // ensure close then reject
-        connection.close();
-        return reject(err);
+  return {
+    server,
+    authentication: {
+      type: 'default',
+      options: {
+        userName: process.env.DB_USER,
+        password: process.env.DB_PASSWORD
       }
-    });
+    },
+    options: {
+      database,
+      trustServerCertificate: true,
+      encrypt: false,
+      instanceName,
+      enableArithAbort: true
+    }
+  };
+}
 
-    // add parameters
-    params.forEach((p) => {
-      request.addParameter(p.name, p.type, p.value);
-    });
+let poolPromise = null;
 
-    request.on('row', (columns) => {
-      const row = {};
-      columns.forEach((c) => {
-        row[c.metadata.colName] = c.value;
-      });
-      rows.push(row);
+function getPool() {
+  if (!poolPromise) {
+    poolPromise = sql.connect(getPoolConfig()).catch((err) => {
+      poolPromise = null;
+      throw err;
     });
+  }
+  return poolPromise;
+}
 
-    request.on('requestCompleted', () => {
-      connection.close();
-      resolve(rows);
-    });
+function toMssqlType(type) {
+  if (!type) return sql.NVarChar;
+  const name = type.name || type.type?.name;
+  if (!name) return sql.NVarChar;
+  return sql[name] || sql.NVarChar;
+}
 
-    connection.execSql(request);
+function bindParams(request, params = []) {
+  params.forEach((p) => {
+    request.input(p.name, toMssqlType(p.type), p.value);
   });
 }
 
-module.exports = { query, TYPES };
+async function execute(sqlText, params = []) {
+  const pool = await getPool();
+  const request = pool.request();
+  bindParams(request, params);
+  return request.query(sqlText);
+}
 
+async function query(sqlText, params = []) {
+  const result = await execute(sqlText, params);
+  return result.recordset || [];
+}
 
+async function testConnection() {
+  const rows = await query('SELECT DB_NAME() AS DatabaseName, SUSER_SNAME() AS WindowsUser');
+  return rows[0] || null;
+}
+
+module.exports = {
+  query,
+  execute,
+  testConnection,
+  TYPES,
+  sql,
+  useWindowsAuth,
+  getPoolConfig
+};

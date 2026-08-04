@@ -1,6 +1,6 @@
 const express = require('express');
-const { TYPES } = require('tedious');
 const db = require('../utils/db');
+const { TYPES } = db;
 const { sanitizeTextField } = require('../middleware/security');
 const router = express.Router();
 

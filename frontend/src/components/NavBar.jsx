@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, Users, Building2, LogOut, Bell, Crown, Sparkles, FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText, Settings, TrendingUp } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, Building2, LogOut, LogIn, Bell, Crown, Sparkles, FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText, Settings, TrendingUp } from 'lucide-react';
 import notificationsService from '../services/notificationsService';
 import ThemeToggle from './ThemeToggle';
 import authService from '../services/authService';
@@ -402,9 +402,9 @@ const NavBar = () => {
             ) : (
               <NavLink
                 to="/login"
-                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-full text-xs text-green-600 dark:text-green-400 hover:bg-green-50/70 dark:hover:bg-green-900/20 hover:scale-105 transition-all duration-200 ring-1 ring-inset ring-emerald-300/30"
+                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-full text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-50/70 dark:hover:bg-slate-800/50 hover:scale-105 transition-all duration-200 ring-1 ring-inset ring-slate-300/40 dark:ring-slate-600/40"
               >
-                <LogOut className="h-3 w-3" />
+                <LogIn className="h-3 w-3" />
                 <span className="hidden sm:inline">Connexion</span>
               </NavLink>
             )}

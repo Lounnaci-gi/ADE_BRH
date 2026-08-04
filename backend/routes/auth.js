@@ -1,6 +1,7 @@
-const { Connection, Request, TYPES } = require('tedious');
 const bcrypt = require('bcryptjs');
 const { validateUsername, validatePassword } = require('../middleware/security');
+const db = require('../utils/db');
+const { TYPES } = db;
 
 // Basic in-memory rate limiter for login attempts per user+IP
 const loginAttempts = new Map();
@@ -56,31 +57,11 @@ function clearAttempts(username, ip) {
     loginAttempts.delete(key);
 }
 
-// Configuration de connexion (à importer depuis server.js ou .env)
-const getConfig = () => ({
-    server: process.env.DB_SERVER || 'localhost',
-    authentication: {
-        type: 'default',
-        options: {
-            userName: process.env.DB_USER || 'lounnaci',
-            password: process.env.DB_PASSWORD || 'Lounnaci2026!'
-        }
-    },
-    options: {
-        database: process.env.DB_DATABASE || 'ADE_KPI',
-        trustServerCertificate: true,
-        encrypt: false,
-        instanceName: 'SQLEXPRESS',
-        enableArithAbort: true
-    }
-});
-
 // Route de login
-const login = (req, res) => {
+const login = async (req, res) => {
     const { username: usernameRaw, password: passwordRaw } = req.body;
     const clientIp = getClientIp(req);
 
-    // Validation et sanitization des entrées
     const usernameValidation = validateUsername(usernameRaw);
     if (!usernameValidation.valid) {
         return res.status(400).json({ error: usernameValidation.error });
@@ -93,7 +74,6 @@ const login = (req, res) => {
     }
     const password = passwordValidation.sanitized;
 
-    // Check lockout state before hitting DB
     const { entry } = getAttempts(username, clientIp);
     const now = Date.now();
     if (entry.until && now < entry.until) {
@@ -102,16 +82,8 @@ const login = (req, res) => {
         return res.status(429).json({ error: 'Trop de tentatives. Réessayez plus tard.', retryAfterSec });
     }
 
-    const connection = new Connection(getConfig());
-
-    connection.on('connect', (err) => {
-        if (err) {
-            return res.status(500).json({ error: 'Erreur de connexion à la base de données' });
-        }
-
-        let users = [];
-
-        const query = `
+    try {
+        const users = await db.query(`
             SELECT 
                 UtilisateurId,
                 Nom_Utilisateur,
@@ -122,215 +94,128 @@ const login = (req, res) => {
                 IsActive
             FROM dbo.DIM_UTILISATEUR
             WHERE Nom_Utilisateur = @username AND IsActive = 1
-        `;
+        `, [{ name: 'username', type: TYPES.NVarChar, value: username }]);
 
-        const request = new Request(query, (err, rowCount) => {
-            if (err) {
-                connection.close();
-                console.error('Erreur DB login:', err);
-                return res.status(500).json({ error: 'Erreur de connexion à la base de données' });
+        if (users.length === 0) {
+            const result = recordFailure(username, clientIp);
+            if (result.blocked) {
+                return res.status(429).json({ error: 'Compte temporairement bloqué suite aux tentatives.', retryAfterSec: Math.ceil(BLOCK_WINDOW_MS / 1000) });
             }
+            return res.status(401).json({
+                error: 'Utilisateur non trouvé ou inactif',
+                remainingAttempts: Math.max(0, MAX_ATTEMPTS - (loginAttempts.get(getAttemptKey(username, clientIp))?.count || 0))
+            });
+        }
 
-            if (users.length === 0) {
-                connection.close();
-                const result = recordFailure(username, clientIp);
-                if (result.blocked) {
-                    return res.status(429).json({ error: 'Compte temporairement bloqué suite aux tentatives.', retryAfterSec: Math.ceil(BLOCK_WINDOW_MS / 1000) });
-                }
-                return res.status(401).json({ error: 'Utilisateur non trouvé ou inactif', remainingAttempts: Math.max(0, MAX_ATTEMPTS - (loginAttempts.get(getAttemptKey(username, clientIp))?.count || 0)) });
-            }
+        const user = users[0];
+        const isMatch = await bcrypt.compare(password, user.Mot_de_Passe_Hash.toString());
 
-            const user = users[0];
-
-            // Comparer le mot de passe
-            bcrypt.compare(password, user.Mot_de_Passe_Hash.toString(), (err, isMatch) => {
-                connection.close();
-
-                if (err) {
-                    return res.status(500).json({ error: 'Erreur lors de la vérification du mot de passe' });
-                }
-
-                if (isMatch) {
-                    // Connexion réussie => reset attempts
-                    clearAttempts(username, clientIp);
-                    return res.json({
-                        success: true,
-                        message: 'Connexion réussie',
-                        user: {
-                            id: user.UtilisateurId,
-                            username: user.Nom_Utilisateur,
-                            role: user.Role,
-                            agenceId: user.FK_Agence,
-                            email: user.Email
-                        }
-                    });
-                } else {
-                    const result = recordFailure(username, clientIp);
-                    if (result.blocked) {
-                        return res.status(429).json({ error: 'Compte temporairement bloqué suite aux tentatives.', retryAfterSec: Math.ceil(BLOCK_WINDOW_MS / 1000) });
-                    }
-                    return res.status(401).json({ error: 'Mot de passe incorrect', remainingAttempts: Math.max(0, MAX_ATTEMPTS - (loginAttempts.get(getAttemptKey(username, clientIp))?.count || 0)) });
+        if (isMatch) {
+            clearAttempts(username, clientIp);
+            return res.json({
+                success: true,
+                message: 'Connexion réussie',
+                user: {
+                    id: user.UtilisateurId,
+                    username: user.Nom_Utilisateur,
+                    role: user.Role,
+                    agenceId: user.FK_Agence,
+                    email: user.Email
                 }
             });
+        }
+
+        const result = recordFailure(username, clientIp);
+        if (result.blocked) {
+            return res.status(429).json({ error: 'Compte temporairement bloqué suite aux tentatives.', retryAfterSec: Math.ceil(BLOCK_WINDOW_MS / 1000) });
+        }
+        return res.status(401).json({
+            error: 'Mot de passe incorrect',
+            remainingAttempts: Math.max(0, MAX_ATTEMPTS - (loginAttempts.get(getAttemptKey(username, clientIp))?.count || 0))
         });
-
-        request.addParameter('username', TYPES.NVarChar, username);
-
-        request.on('row', (columns) => {
-            let row = {};
-            columns.forEach(column => {
-                row[column.metadata.colName] = column.value;
-            });
-            users.push(row);
-        });
-
-        connection.execSql(request);
-    });
-
-    connection.connect();
+    } catch (err) {
+        console.error('Erreur DB login:', err);
+        return res.status(500).json({ error: 'Erreur de connexion à la base de données' });
+    }
 };
 
-// Fonction pour créer/mettre à jour le hash du mot de passe admin
-// SÉCURITÉ: Ne plus exposer de mot de passe en dur - doit être passé en paramètre sécurisé
-const updateAdminPassword = (req, res) => {
-    // SÉCURITÉ: Require authentication and validate input
+const updateAdminPassword = async (req, res) => {
     const { password } = req.body;
     if (!password || typeof password !== 'string' || password.length < 8) {
         return res.status(400).json({ error: 'Mot de passe requis (minimum 8 caractères)' });
     }
 
-    bcrypt.hash(password, 10, (err, hash) => {
-        if (err) {
-            return res.status(500).json({ error: 'Erreur lors du hashage' });
-        }
+    try {
+        const hash = await bcrypt.hash(password, 10);
+        const result = await db.execute(`
+            UPDATE dbo.DIM_UTILISATEUR
+            SET Mot_de_Passe_Hash = @hash
+            WHERE Nom_Utilisateur = 'admin'
+        `, [{ name: 'hash', type: TYPES.VarBinary, value: Buffer.from(hash) }]);
 
-        const connection = new Connection(getConfig());
-
-        connection.on('connect', (err) => {
-            if (err) {
-                return res.status(500).json({ error: 'Erreur de connexion' });
-            }
-
-            const query = `
-                UPDATE dbo.DIM_UTILISATEUR
-                SET Mot_de_Passe_Hash = @hash
-                WHERE Nom_Utilisateur = 'admin'
-            `;
-
-            const request = new Request(query, (err, rowCount) => {
-                connection.close();
-
-                if (err) {
-                    return res.status(500).json({ error: 'Erreur lors de la mise à jour du mot de passe' });
-                }
-
-                return res.json({
-                    success: true,
-                    message: 'Mot de passe admin mis à jour',
-                    rowsAffected: rowCount
-                });
-            });
-
-            request.addParameter('hash', TYPES.VarBinary, Buffer.from(hash));
-
-            connection.execSql(request);
+        return res.json({
+            success: true,
+            message: 'Mot de passe admin mis à jour',
+            rowsAffected: result.rowsAffected?.[0] || 0
         });
-
-        connection.connect();
-    });
+    } catch (err) {
+        console.error('Erreur updateAdminPassword:', err);
+        return res.status(500).json({ error: 'Erreur lors de la mise à jour du mot de passe' });
+    }
 };
 
-
-// Fonction pour créer l'utilisateur admin initial
-// SÉCURITÉ: Ne plus exposer de mots de passe en dur
-const createAdmin = (req, res) => {
-    // SÉCURITÉ: Permettre de définir les credentials via body ou utiliser des valeurs par défaut sécurisées uniquement en environnement de dev
+const createAdmin = async (req, res) => {
     const username = req.body?.username || 'admin';
     const password = req.body?.password;
     const email = req.body?.email || 'admin@ade.dz';
-    
-    // SÉCURITÉ: En production, exiger un mot de passe fort
+
     if (!password || typeof password !== 'string') {
-        return res.status(400).json({ 
+        return res.status(400).json({
             error: 'Mot de passe requis pour créer l\'administrateur',
             message: 'Fournissez un mot de passe sécurisé dans le body de la requête'
         });
     }
-    
+
     if (password.length < 8) {
         return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères' });
     }
 
-    bcrypt.hash(password, 10, (err, hash) => {
-        if (err) {
-            return res.status(500).json({ error: 'Erreur lors du hashage' });
-        }
+    try {
+        const hash = await bcrypt.hash(password, 10);
+        const result = await db.query(`
+            IF NOT EXISTS (SELECT 1 FROM dbo.DIM_UTILISATEUR WHERE Nom_Utilisateur = 'admin')
+            BEGIN
+                INSERT INTO dbo.DIM_UTILISATEUR 
+                    (Nom_Utilisateur, Mot_de_Passe_Hash, FK_Agence, [Role], Email, IsActive)
+                VALUES 
+                    (@username, @hash, NULL, 'Administrateur', @email, 1)
+            END
+            ELSE
+            BEGIN
+                UPDATE dbo.DIM_UTILISATEUR
+                SET Mot_de_Passe_Hash = @hash,
+                    Email = @email,
+                    IsActive = 1
+                WHERE Nom_Utilisateur = @username
+            END
+            
+            SELECT @@ROWCOUNT as RowsAffected
+        `, [
+            { name: 'username', type: TYPES.NVarChar, value: username },
+            { name: 'hash', type: TYPES.VarBinary, value: Buffer.from(hash) },
+            { name: 'email', type: TYPES.NVarChar, value: email }
+        ]);
 
-        const connection = new Connection(getConfig());
-
-        connection.on('connect', (err) => {
-            if (err) {
-                return res.status(500).json({ error: 'Erreur de connexion' });
-            }
-
-            const query = `
-                IF NOT EXISTS (SELECT 1 FROM dbo.DIM_UTILISATEUR WHERE Nom_Utilisateur = 'admin')
-                BEGIN
-                    INSERT INTO dbo.DIM_UTILISATEUR 
-                        (Nom_Utilisateur, Mot_de_Passe_Hash, FK_Agence, [Role], Email, IsActive)
-                    VALUES 
-                        (@username, @hash, NULL, 'Administrateur', @email, 1)
-                END
-                ELSE
-                BEGIN
-                    UPDATE dbo.DIM_UTILISATEUR
-                    SET Mot_de_Passe_Hash = @hash,
-                        Email = @email,
-                        IsActive = 1
-                    WHERE Nom_Utilisateur = @username
-                END
-                
-                SELECT @@ROWCOUNT as RowsAffected
-            `;
-
-            let result = [];
-
-            const request = new Request(query, (err, rowCount) => {
-                connection.close();
-
-                if (err) {
-                    console.error('Erreur DB createAdmin:', err);
-                    return res.status(500).json({ error: 'Erreur lors de la création du compte administrateur' });
-                }
-
-                // SÉCURITÉ: Ne jamais retourner le mot de passe en réponse
-                return res.json({
-                    success: true,
-                    message: 'Utilisateur admin créé/mis à jour avec succès',
-                    username: username,
-                    // password: password, // SÉCURITÉ: Retiré - ne jamais exposer le mot de passe
-                    result: result
-                });
-            });
-
-            request.addParameter('username', TYPES.NVarChar, username);
-            request.addParameter('hash', TYPES.VarBinary, Buffer.from(hash));
-            request.addParameter('email', TYPES.NVarChar, email);
-
-            request.on('row', (columns) => {
-                let row = {};
-                columns.forEach(column => {
-                    row[column.metadata.colName] = column.value;
-                });
-                result.push(row);
-            });
-
-            connection.execSql(request);
+        return res.json({
+            success: true,
+            message: 'Utilisateur admin créé/mis à jour avec succès',
+            username,
+            result
         });
-
-        connection.connect();
-    });
+    } catch (err) {
+        console.error('Erreur DB createAdmin:', err);
+        return res.status(500).json({ error: 'Erreur lors de la création du compte administrateur' });
+    }
 };
 
 module.exports = { login, updateAdminPassword, createAdmin };
-

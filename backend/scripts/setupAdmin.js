@@ -1,24 +1,8 @@
-const { Connection, Request, TYPES } = require('tedious');
 const bcrypt = require('bcryptjs');
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
-
-const getConfig = () => ({
-    server: process.env.DB_SERVER || 'localhost',
-    authentication: {
-        type: 'default',
-        options: {
-            userName: process.env.DB_USER || 'lounnaci',
-            password: process.env.DB_PASSWORD || 'Lounnaci2026!'
-        }
-    },
-    options: {
-        database: process.env.DB_DATABASE || 'ADE_KPI',
-        trustServerCertificate: true,
-        encrypt: false,
-        instanceName: 'SQLEXPRESS',
-        enableArithAbort: true
-    }
-});
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const db = require('../utils/db');
+const { TYPES } = db;
 
 async function upsertAdmin() {
     const username = 'admin';
@@ -27,14 +11,7 @@ async function upsertAdmin() {
 
     const hash = await bcrypt.hash(password, 10);
 
-    const connection = new Connection(getConfig());
-
-    await new Promise((resolve, reject) => {
-        connection.on('connect', (err) => (err ? reject(err) : resolve()));
-        connection.connect();
-    });
-
-    const query = `
+    await db.query(`
         IF NOT EXISTS (SELECT 1 FROM dbo.DIM_UTILISATEUR WHERE Nom_Utilisateur = @username)
         BEGIN
             INSERT INTO dbo.DIM_UTILISATEUR 
@@ -53,21 +30,11 @@ async function upsertAdmin() {
             WHERE Nom_Utilisateur = @username
         END
         SELECT 1 as Done
-    `;
-
-    await new Promise((resolve, reject) => {
-        const request = new Request(query, (err) => {
-            connection.close();
-            if (err) return reject(err);
-            resolve();
-        });
-
-        request.addParameter('username', TYPES.NVarChar, username);
-        request.addParameter('hash', TYPES.VarBinary, Buffer.from(hash));
-        request.addParameter('email', TYPES.NVarChar, email);
-
-        connection.execSql(request);
-    });
+    `, [
+        { name: 'username', type: TYPES.NVarChar, value: username },
+        { name: 'hash', type: TYPES.VarBinary, value: Buffer.from(hash) },
+        { name: 'email', type: TYPES.NVarChar, value: email }
+    ]);
 
     console.log('Admin user ensured: username=admin, password=admin123');
 }
@@ -76,5 +43,3 @@ upsertAdmin().catch((err) => {
     console.error('Failed to upsert admin:', err.message);
     process.exit(1);
 });
-
-

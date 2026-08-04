@@ -1,26 +1,8 @@
 const express = require('express');
-const { TYPES } = require('tedious');
+const { TYPES } = require('../utils/db');
 const db = require('../utils/db');
 const { sanitizeTextField } = require('../middleware/security');
 const router = express.Router();
-
-// Configuration de la base de données
-// SÉCURITÉ: Ne plus exposer de mots de passe en dur
-const getConfig = () => ({
-  server: process.env.DB_SERVER || 'localhost',
-  authentication: {
-    type: 'default',
-    options: {
-      userName: process.env.DB_USER || 'lounnaci',
-      password: process.env.DB_PASSWORD || 'Lounnaci2026!'
-    }
-  },
-  options: {
-    encrypt: false, // SÉCURITÉ: Activer en production avec encrypt: true
-    database: process.env.DB_DATABASE || process.env.DB_NAME || 'ADE_KPI',
-    trustServerCertificate: true
-  }
-});
 
 // Helper pour obtenir le rôle
 const getRole = (req) => (req.headers['x-role'] || '').toString();

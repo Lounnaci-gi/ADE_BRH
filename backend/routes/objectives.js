@@ -1,27 +1,9 @@
 const express = require('express');
-const { TYPES } = require('tedious');
 const db = require('../utils/db');
+const { TYPES } = db;
 const { parseDateStringForSQLServer } = require('../utils/dateUtils');
 const { sanitizeTextField } = require('../middleware/security');
 const router = express.Router();
-
-const getConfig = () => ({
-  server: process.env.DB_SERVER || 'localhost',
-  authentication: {
-    type: 'default',
-    options: {
-      userName: process.env.DB_USER || 'lounnaci',
-      password: process.env.DB_PASSWORD || 'Lounnaci2026!'
-    }
-  },
-  options: {
-    database: process.env.DB_DATABASE || 'ADE_KPI',
-    trustServerCertificate: true,
-    encrypt: false,
-    instanceName: 'SQLEXPRESS',
-    enableArithAbort: true
-  }
-});
 
 // Helper pour obtenir le rôle et l'ID utilisateur
 const getRole = (req) => (req.headers['x-role'] || '').toString();

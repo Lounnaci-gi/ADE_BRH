@@ -1,5 +1,4 @@
 const express = require('express');
-const { Connection, Request } = require('tedious');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -16,6 +15,7 @@ const centresRoutes = require('./routes/centres.js');
 const communesRoutes = require('./routes/communes.js');
 const { sqlInjectionDetection } = require('./middleware/security');
 const { errorHandler } = require('./middleware/errorHandler');
+const db = require('./utils/db');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -131,74 +131,25 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Middleware de sécurité SQL injection (appliqué à toutes les routes)
 app.use(sqlInjectionDetection);
 
-// Configuration SQL Server
-// En production (Azure SQL) : encrypt=true, pas d'instanceName
-// En développement (SQLEXPRESS local) : encrypt=false, instanceName='SQLEXPRESS'
-const isProduction = process.env.NODE_ENV === 'production';
-const config = {
-    server: process.env.DB_SERVER || 'localhost',
-    authentication: {
-        type: 'default',
-        options: {
-            userName: process.env.DB_USER || 'lounnaci',
-            password: process.env.DB_PASSWORD || 'Lounnaci2026!'
-        }
-    },
-    options: {
-        database: process.env.DB_DATABASE || 'ADE_KPI',
-        trustServerCertificate: !isProduction,  // false en prod (Azure SQL vérifie le cert)
-        encrypt: isProduction,                   // true en prod (Azure SQL exige TLS)
-        ...(isProduction ? {} : { instanceName: 'SQLEXPRESS' }), // seulement en local
-        enableArithAbort: true,
-        connectTimeout: 30000,
-        requestTimeout: 30000
-    }
-};
-
 // Health check pour Railway
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'ok', env: process.env.NODE_ENV || 'development' });
 });
 
 // Test de connexion
-app.get('/api/test', (req, res) => {
-    const connection = new Connection(config);
-
-    connection.on('connect', (err) => {
-        if (err) {
-            console.error('❌ Erreur de connexion:', err.message);
-            res.status(500).json({ error: err.message });
-        } else {
-            let result = [];
-            
-            const request = new Request('SELECT DB_NAME() as DatabaseName', (err, rowCount) => {
-                if (err) {
-                    console.error('Erreur requête:', err.message);
-                    res.status(500).json({ error: err.message });
-                } else {
-                    res.json({ 
-                        message: 'Connexion à SQL Server réussie !',
-                        database: result[0]?.DatabaseName || process.env.DB_DATABASE,
-                        user: process.env.DB_USER,
-                        rowCount: rowCount
-                    });
-                }
-                connection.close();
-            });
-
-            request.on('row', (columns) => {
-                let row = {};
-                columns.forEach(column => {
-                    row[column.metadata.colName] = column.value;
-                });
-                result.push(row);
-            });
-
-            connection.execSql(request);
-        }
-    });
-
-    connection.connect();
+app.get('/api/test', async (req, res) => {
+    try {
+        const info = await db.testConnection();
+        res.json({
+            message: 'Connexion à SQL Server réussie !',
+            database: info?.DatabaseName || process.env.DB_DATABASE,
+            windowsUser: info?.WindowsUser,
+            auth: db.useWindowsAuth ? 'windows' : 'sql'
+        });
+    } catch (err) {
+        console.error('❌ Erreur de connexion:', err.message);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Routes
@@ -239,6 +190,8 @@ app.use(errorHandler);
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Serveur backend démarré sur le port ${PORT}`);
     console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🗄️  Base de données: ${process.env.DB_SERVER || 'localhost'}/${process.env.DB_DATABASE || 'ADE_KPI'}`);
+    const dbHost = `${process.env.DB_SERVER || 'DESKTOP-QROBQA9'}\\${process.env.DB_INSTANCE || 'SQLEXPRESS'}`;
+    console.log(`🗄️  Base de données: ${dbHost}/${process.env.DB_DATABASE || 'ADE_KPI'}`);
+    console.log(`🔐 Auth DB: ${db.useWindowsAuth ? 'Windows' : 'SQL'}`);
     console.log(`🧩 Health: http://localhost:${PORT}/api/health`);
 });

@@ -1,28 +1,9 @@
 const express = require('express');
-const { Connection, Request, TYPES } = require('tedious');
 const db = require('../utils/db');
+const { TYPES } = db;
 const { sanitizeTextField } = require('../middleware/security');
 
 const router = express.Router();
-
-// Configuration de connexion (identique à auth.js)
-const getConfig = () => ({
-    server: process.env.DB_SERVER || 'localhost',
-    authentication: {
-        type: 'default',
-        options: {
-            userName: process.env.DB_USER || 'lounnaci',
-            password: process.env.DB_PASSWORD || 'Lounnaci2026!'
-        }
-    },
-    options: {
-        database: process.env.DB_DATABASE || 'ADE_KPI',
-        trustServerCertificate: true,
-        encrypt: false,
-        instanceName: 'SQLEXPRESS',
-        enableArithAbort: true
-    }
-});
 
 // Helpers role/agency from headers (since no auth middleware/token yet)
 function getRole(req) {
@@ -132,9 +113,8 @@ router.post('/', async (req, res) => {
 });
 
 // ✅ Modifier une agence existante
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
     const roleHeader = (req.headers['x-role'] || '').toString().trim();
-    // SÉCURITÉ: Vérification stricte - rejeter si pas d'authentification
     if (!roleHeader) {
         return res.status(401).json({ message: 'Authentification requise' });
     }
@@ -149,23 +129,14 @@ router.put('/:id', (req, res) => {
     const Email      = req.body?.Email ? sanitizeTextField(req.body.Email, 200) : null;
     const Fax        = req.body?.Fax ? sanitizeTextField(req.body.Fax, 50) : null;
 
-    // Validation
     if (!FK_Centre || !Nom_Agence || !Adresse || !Telephone) {
         return res.status(400).json({ 
             message: 'Les champs Centre, Nom_Agence, Adresse et Telephone sont obligatoires' 
         });
     }
 
-    const connection = new Connection(getConfig());
-
-    connection.on('connect', (err) => {
-        if (err) {
-            return res.status(500).json({ 
-                message: 'Erreur de connexion à la base de données' 
-            });
-        }
-
-        const query = `
+    try {
+        const result = await db.execute(`
             UPDATE DIM_AGENCE 
             SET FK_Centre = @FK_Centre,
                 Nom_Agence = @Nom_Agence, 
@@ -174,40 +145,24 @@ router.put('/:id', (req, res) => {
                 Email = @Email, 
                 Fax = @Fax
             WHERE AgenceId = @AgenceId
-        `;
+        `, [
+            { name: 'AgenceId', type: TYPES.Int, value: parseInt(id) },
+            { name: 'FK_Centre', type: TYPES.Int, value: parseInt(FK_Centre) },
+            { name: 'Nom_Agence', type: TYPES.NVarChar, value: Nom_Agence },
+            { name: 'Adresse', type: TYPES.NVarChar, value: Adresse },
+            { name: 'Telephone', type: TYPES.NVarChar, value: Telephone },
+            { name: 'Email', type: TYPES.NVarChar, value: Email || null },
+            { name: 'Fax', type: TYPES.NVarChar, value: Fax || null }
+        ]);
 
-        const request = new Request(query, (err, rowCount) => {
-            connection.close();
-
-            if (err) {
-                return res.status(500).json({ 
-                    message: 'Erreur lors de la modification de l\'agence' 
-                });
-            }
-
-            if (rowCount === 0) {
-                return res.status(404).json({ 
-                    message: 'Agence non trouvée' 
-                });
-            }
-
-            res.json({ 
-                message: 'Agence modifiée avec succès' 
-            });
-        });
-
-        request.addParameter('AgenceId', TYPES.Int, parseInt(id));
-        request.addParameter('FK_Centre', TYPES.Int, parseInt(FK_Centre));
-        request.addParameter('Nom_Agence', TYPES.NVarChar, Nom_Agence);
-        request.addParameter('Adresse', TYPES.NVarChar, Adresse);
-        request.addParameter('Telephone', TYPES.NVarChar, Telephone);
-        request.addParameter('Email', TYPES.NVarChar, Email || null);
-        request.addParameter('Fax', TYPES.NVarChar, Fax || null);
-
-        connection.execSql(request);
-    });
-
-    connection.connect();
+        if ((result.rowsAffected?.[0] || 0) === 0) {
+            return res.status(404).json({ message: 'Agence non trouvée' });
+        }
+        res.json({ message: 'Agence modifiée avec succès' });
+    } catch (err) {
+        console.error('Erreur DB /agences PUT:', err);
+        return res.status(500).json({ message: 'Erreur lors de la modification de l\'agence' });
+    }
 });
 
 // ✅ Récupérer la liste des centres pour le formulaire

@@ -1,7 +1,9 @@
 import axios from 'axios';
 import authService from './authService';
 
-const baseURL = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+// En local → backend Node ; en prod (Vercel) → proxy /api → BACKEND_URL (ngrok)
+const defaultApiUrl = process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:5000/api';
+const baseURL = (process.env.REACT_APP_API_URL || defaultApiUrl).replace(/\/$/, '');
 const instance = axios.create({
   baseURL
 });
