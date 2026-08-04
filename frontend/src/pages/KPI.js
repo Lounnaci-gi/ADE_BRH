@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Calendar, Building2, Save, Target, DollarSign, BarChart3, CheckCircle, AlertCircle, Zap, Shield, Users, Wrench, Eye, ChevronDown, ChevronRight } from 'lucide-react';
+import { Calendar, Building2, Save, Target, DollarSign, BarChart3, CheckCircle, AlertCircle, Zap, Shield, Users, Wrench, Eye, ChevronDown, ChevronRight, Table, LayoutGrid } from 'lucide-react';
 import { motion } from 'framer-motion';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
@@ -20,21 +20,57 @@ function KPI() {
   const [loading, setLoading] = useState(false);
   const [hasExistingData, setHasExistingData] = useState(false);
   const [isReset, setIsReset] = useState(false);
-  
+  const [viewMode, setViewMode] = useState('table'); // 'table' (Grille Excel) ou 'cards'
+
   const [formData, setFormData] = useState({
     dateKey: '',
     agenceId: '',
     encaissementJournalierGlobal: ''
   });
 
-  // Fonction pour trier les catégories dans l'ordre souhaité
+  // Helper pour mettre à jour une cellule dans la grille de saisie
+  const handleCellChange = (catId, field, value) => {
+    setEntriesByCategory(prev => ({
+      ...prev,
+      [catId]: {
+        ...(prev[catId] || {}),
+        [field]: value
+      }
+    }));
+  };
+
+  // Helper pour obtenir le libellé formaté selon les vrais codes DB (DOM, COM, IND, ADM)
+  const getCategoryLabel = (cat) => {
+    const code = (cat?.CodeCategorie || '').toUpperCase().trim();
+    switch (code) {
+      case 'DOM': return 'Cat 1 (Ménages individuel)';
+      case 'ADM': return 'Cat 2 (Administrations)';
+      case 'COM': return 'Cat 3 (Artisans et services)';
+      case 'IND': return 'Cat 4 (Activités industrielles et Touristiques)';
+      default:    return cat?.Libelle || `Catégorie ${cat?.CategorieId}`;
+    }
+  };
+
+  // Helper pour calculer les totaux dans la grille
+  const getSum = (field, isAmount = false) => {
+    const total = (sortedCategories || []).reduce((acc, cat) => {
+      const val = parseFloat(entriesByCategory[cat.CategorieId]?.[field]) || 0;
+      return acc + val;
+    }, 0);
+    if (isAmount) {
+      return total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return total;
+  };
+
+  // Trie les catégories : Cat1 DOM (Ménages), Cat2 ADM (Admin), Cat3 COM (Artisans), Cat4 IND (Industriel)
   const sortCategories = (categories) => {
     if (!categories || !Array.isArray(categories)) return [];
-    const order = ['MENAGE', 'ADMIN', 'ARTCOM', 'IND'];
-    return categories.sort((a, b) => {
-      const indexA = order.indexOf(a.CodeCategorie);
-      const indexB = order.indexOf(b.CodeCategorie);
-      return indexA - indexB;
+    const order = ['DOM', 'ADM', 'COM', 'IND'];
+    return [...categories].sort((a, b) => {
+      const ia = order.indexOf((a.CodeCategorie || '').toUpperCase().trim());
+      const ib = order.indexOf((b.CodeCategorie || '').toUpperCase().trim());
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
   };
 
@@ -64,7 +100,8 @@ function KPI() {
       const sortedCats = sortCategories(categoriesData || []);
       setSortedCategories(sortedCats);
       
-      const init = (categoriesData || []).reduce((acc, cat) => {
+      // Initialise les entrées dans l'ordre trié
+      const init = sortedCats.reduce((acc, cat) => {
         acc[cat.CategorieId] = {
           nbRelancesEnvoyees: '', mtRelancesEnvoyees: '',
           nbRelancesReglees: '', mtRelancesReglees: '',
@@ -83,7 +120,7 @@ function KPI() {
       setEntriesByCategory(init);
 
       // Par défaut: catégories dépliées
-      const initCollapsed = (categoriesData || []).reduce((acc, cat) => {
+      const initCollapsed = sortedCats.reduce((acc, cat) => {
         acc[cat.CategorieId] = false;
         return acc;
       }, {});
@@ -694,326 +731,224 @@ function KPI() {
                 </div>
               </div>
 
-              {/* Design en cartes groupées par type d'opération */}
-              <div className="space-y-6">
+              {/* Toggle vue: Grille Excel / Cartes */}
+              <div className="flex items-center justify-end gap-2 mb-4">
+                <span className="text-xs text-gray-500 dark:text-slate-400 font-medium">Vue :</span>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border ${viewMode === 'table' ? 'bg-blue-600 text-white border-blue-600 shadow' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-600 hover:border-blue-400'}`}
+                >
+                  <Table className="h-3.5 w-3.5" />
+                  Grille Excel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cards')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border ${viewMode === 'cards' ? 'bg-blue-600 text-white border-blue-600 shadow' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-600 hover:border-blue-400'}`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  Cartes
+                </button>
+              </div>
+
+              {/* ─────────────── VUE GRILLE EXCEL ─────────────── */}
+              {viewMode === 'table' && (
+                <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                  <table style={{ borderCollapse: 'collapse', minWidth: '1100px', width: '100%', fontSize: '11px' }}>
+                    <thead>
+                      {/* Ligne 1 : En-têtes de groupes colorés */}
+                      <tr>
+                        <th rowSpan={2} style={{ background: '#D9E1F2', color: '#1a1a2e', border: '1px solid #b0b8cc', padding: '6px 8px', textAlign: 'center', fontWeight: 700, whiteSpace: 'nowrap', minWidth: '140px' }}>
+                          cat
+                        </th>
+                        <th colSpan={4} style={{ background: '#82C91E', color: '#fff', border: '1px solid #6aab12', padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>
+                          Relances Systématiques
+                        </th>
+                        <th colSpan={4} style={{ background: '#FFFF00', color: '#333', border: '1px solid #cccc00', padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>
+                          Mise en Demeure
+                        </th>
+                        <th colSpan={4} style={{ background: '#FFC000', color: '#fff', border: '1px solid #cc9900', padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>
+                          Activité Coupure
+                        </th>
+                        <th colSpan={2} style={{ background: '#FF0000', color: '#fff', border: '1px solid #cc0000', padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>
+                          Autre Activité
+                        </th>
+                        <th colSpan={4} style={{ background: '#8EA9DB', color: '#fff', border: '1px solid #6a85b8', padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>
+                          Gestion des Compteurs
+                        </th>
+                        <th rowSpan={2} style={{ background: '#ED7D31', color: '#fff', border: '1px solid #c4611e', padding: '5px 4px', textAlign: 'center', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          ENCAISSEMENT<br />Global
+                        </th>
+                      </tr>
+                      {/* Ligne 2 : Sous-colonnes */}
+                      <tr>
+                        {/* Relances Systématiques */}
+                        <th style={{ background: '#c5e87a', color: '#1a1a2e', border: '1px solid #82C91E', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>RS Nbre</th>
+                        <th style={{ background: '#c5e87a', color: '#1a1a2e', border: '1px solid #82C91E', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>RS Mts</th>
+                        <th style={{ background: '#c5e87a', color: '#1a1a2e', border: '1px solid #82C91E', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Encai ≥RS Nbre</th>
+                        <th style={{ background: '#c5e87a', color: '#1a1a2e', border: '1px solid #82C91E', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Encai ≥RS Mts</th>
+                        {/* Mise en Demeure */}
+                        <th style={{ background: '#ffffaa', color: '#333', border: '1px solid #cccc00', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>MeD Nbre</th>
+                        <th style={{ background: '#ffffaa', color: '#333', border: '1px solid #cccc00', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>MeD Mts</th>
+                        <th style={{ background: '#ffffaa', color: '#333', border: '1px solid #cccc00', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Encai ≥MeD Nbre</th>
+                        <th style={{ background: '#ffffaa', color: '#333', border: '1px solid #cccc00', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Encai ≥MeD Mts</th>
+                        {/* Activité Coupure */}
+                        <th style={{ background: '#ffe066', color: '#333', border: '1px solid #cc9900', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Coupures Nbre</th>
+                        <th style={{ background: '#ffe066', color: '#333', border: '1px solid #cc9900', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Coupures Mts</th>
+                        <th style={{ background: '#ffe066', color: '#333', border: '1px solid #cc9900', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Réouv. Nbre</th>
+                        <th style={{ background: '#ffe066', color: '#333', border: '1px solid #cc9900', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Réouv. Mts</th>
+                        {/* Autre Activité */}
+                        <th style={{ background: '#ff8080', color: '#fff', border: '1px solid #cc0000', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Dos. Cont. Nbre</th>
+                        <th style={{ background: '#ff8080', color: '#fff', border: '1px solid #cc0000', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Dos. Cont. Mts</th>
+                        {/* Gestion des Compteurs */}
+                        <th style={{ background: '#b8cce4', color: '#1a1a2e', border: '1px solid #8EA9DB', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Nouv. Branch.</th>
+                        <th style={{ background: '#b8cce4', color: '#1a1a2e', border: '1px solid #8EA9DB', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Sans Compt.</th>
+                        <th style={{ background: '#b8cce4', color: '#1a1a2e', border: '1px solid #8EA9DB', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Contrôles</th>
+                        <th style={{ background: '#b8cce4', color: '#1a1a2e', border: '1px solid #8EA9DB', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Observation</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(sortedCategories || []).map((cat, idx) => {
+                        const e = entriesByCategory[cat.CategorieId] || {};
+                        const rowBg = idx % 2 === 0 ? '#f8fafc' : '#ffffff';
+                        const cellStyle = { border: '1px solid #d1d5db', padding: '2px 2px', background: rowBg };
+                        const inputStyle = {
+                          width: '100%', border: 'none', background: 'transparent',
+                          textAlign: 'center', padding: '3px 2px', fontSize: '11px',
+                          outline: 'none', color: 'inherit', minWidth: '52px'
+                        };
+                        const labelStyle = { border: '1px solid #d1d5db', padding: '5px 6px', background: '#eef2ff', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', fontSize: '11px' };
+                        return (
+                          <tr key={cat.CategorieId}>
+                            <td style={labelStyle}>{getCategoryLabel(cat)}</td>
+                            {/* Relances Systématiques */}
+                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbRelancesEnvoyees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbRelancesEnvoyees', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtRelancesEnvoyees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtRelancesEnvoyees', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbRelancesReglees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbRelancesReglees', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtRelancesReglees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtRelancesReglees', ev.target.value)} disabled={isFormDisabled} /></td>
+                            {/* Mise en Demeure */}
+                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbMisesEnDemeureEnvoyees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbMisesEnDemeureEnvoyees', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtMisesEnDemeureEnvoyees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtMisesEnDemeureEnvoyees', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbMisesEnDemeureReglees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbMisesEnDemeureReglees', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtMisesEnDemeureReglees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtMisesEnDemeureReglees', ev.target.value)} disabled={isFormDisabled} /></td>
+                            {/* Activité Coupure */}
+                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbCoupures || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbCoupures', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtCoupures || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtCoupures', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbRetablissements || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbRetablissements', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtRetablissements || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtRetablissements', ev.target.value)} disabled={isFormDisabled} /></td>
+                            {/* Autre Activité */}
+                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbDossiersJuridiques || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbDossiersJuridiques', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtDossiersJuridiques || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtDossiersJuridiques', ev.target.value)} disabled={isFormDisabled} /></td>
+                            {/* Gestion des Compteurs */}
+                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbBranchements || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbBranchements', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbCompteursRemplaces || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbCompteursRemplaces', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbControles || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbControles', ev.target.value)} disabled={isFormDisabled} /></td>
+                            <td style={{ ...cellStyle, minWidth: '90px' }}><input type="text" style={{ ...inputStyle, textAlign: 'left', minWidth: '80px' }} value={e.observation || ''} onChange={ev => handleCellChange(cat.CategorieId, 'observation', ev.target.value)} maxLength={200} disabled={isFormDisabled} placeholder="obs..." /></td>
+                            {/* ENCAISSEMENT colonne vide par ligne (global en bas) */}
+                            <td style={{ border: '1px solid #d1d5db', background: '#fff7ed', padding: '4px', textAlign: 'center', color: '#9ca3af', fontSize: '10px' }}>—</td>
+                          </tr>
+                        );
+                      })}
+                      {/* Ligne Total */}
+                      <tr style={{ background: '#1e3a5f' }}>
+                        <td style={{ border: '1px solid #1e3a5f', padding: '5px 8px', color: '#fff', fontWeight: 700, fontSize: '12px' }}>Total</td>
+                        {[
+                          'nbRelancesEnvoyees','mtRelancesEnvoyees','nbRelancesReglees','mtRelancesReglees',
+                          'nbMisesEnDemeureEnvoyees','mtMisesEnDemeureEnvoyees','nbMisesEnDemeureReglees','mtMisesEnDemeureReglees',
+                          'nbCoupures','mtCoupures','nbRetablissements','mtRetablissements',
+                          'nbDossiersJuridiques','mtDossiersJuridiques',
+                          'nbBranchements','nbCompteursRemplaces','nbControles'
+                        ].map(field => (
+                          <td key={field} style={{ border: '1px solid #2d5a8e', padding: '5px 4px', color: '#fff', fontWeight: 700, textAlign: 'center', background: '#1e3a5f', fontSize: '11px' }}>
+                            {getSum(field)}
+                          </td>
+                        ))}
+                        {/* Observation total — vide */}
+                        <td style={{ border: '1px solid #2d5a8e', background: '#1e3a5f', padding: '5px 4px' }}></td>
+                        {/* Encaissement Global total */}
+                        <td style={{ border: '1px solid #c4611e', padding: '5px 4px', color: '#fff', fontWeight: 700, textAlign: 'center', background: '#ED7D31', fontSize: '11px' }}>
+                          {formData.encaissementJournalierGlobal
+                            ? parseFloat(formData.encaissementJournalierGlobal).toLocaleString('fr-FR', { minimumFractionDigits: 2 })
+                            : '—'}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* ─────────────── VUE CARTES ─────────────── */}
+              {viewMode === 'cards' && (
+                <div className="space-y-6">
                     {(sortedCategories || []).map((cat, index) => {
                       const e = entriesByCategory[cat.CategorieId] || {};
                       return (
                     <div key={cat.CategorieId} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200">
                       <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-800 dark:to-slate-800 px-6 py-4 rounded-t-xl border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                        <h4 className="text-lg font-semibold text-gray-800 dark:text-slate-100">{cat.Libelle}</h4>
+                        <h4 className="text-lg font-semibold text-gray-800 dark:text-slate-100">{getCategoryLabel(cat)}</h4>
                         <button
                           type="button"
                           onClick={() => setCollapsedByCategory(prev => ({ ...prev, [cat.CategorieId]: !prev[cat.CategorieId] }))}
                           className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 transition-colors"
-                          aria-expanded={!collapsedByCategory[cat.CategorieId]}
-                          aria-controls={`cat-panel-${cat.CategorieId}`}
                         >
-                          {collapsedByCategory[cat.CategorieId] ? (
-                            <>
-                              <ChevronRight className="h-4 w-4" />
-                              Déplier
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="h-4 w-4" />
-                              Plier
-                            </>
-                          )}
+                          {collapsedByCategory[cat.CategorieId] ? <><ChevronRight className="h-4 w-4" />Déplier</> : <><ChevronDown className="h-4 w-4" />Plier</>}
                         </button>
                       </div>
-                      
-                      <div id={`cat-panel-${cat.CategorieId}`} className={collapsedByCategory[cat.CategorieId] ? 'hidden' : 'p-6'}>
+                      <div className={collapsedByCategory[cat.CategorieId] ? 'hidden' : 'p-6'}>
                         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                          
-                          {/* Section Relances */}
                           <div className="space-y-3">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-3 h-3 bg-cyan-500 rounded-full"></div>
-                              <h5 className="font-semibold text-cyan-700 dark:text-cyan-400 text-sm">Relances</h5>
-                            </div>
+                            <h5 className="font-semibold text-cyan-700 dark:text-cyan-400 text-sm border-b border-cyan-100 pb-1">Relances Systématiques</h5>
                             <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Envoyées (Nb)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbRelancesEnvoyees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                                  disabled={isFormDisabled} 
-                            />
-                              </div>
-                              <div>
-                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Envoyées (Mt)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtRelancesEnvoyees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                                  disabled={isFormDisabled} 
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Réglées (Nb)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbRelancesReglees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesReglees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                                  disabled={isFormDisabled} 
-                            />
-                              </div>
-                              <div>
-                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Réglées (Mt)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtRelancesReglees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRelancesReglees: ev.target.value } }))} 
-                                  className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                                  disabled={isFormDisabled} 
-                                />
-                              </div>
+                              {[['nbRelancesEnvoyees','RS Nbre','1'],['mtRelancesEnvoyees','RS Montant','0.01'],['nbRelancesReglees','Encai≥RS Nbre','1'],['mtRelancesReglees','Encai≥RS Mts','0.01']].map(([f,l,s])=>(
+                                <div key={f}><label className="text-xs text-gray-500 mb-1 block">{l}</label><input type="number" min="0" step={s} value={e[f]||''} onChange={ev=>handleCellChange(cat.CategorieId,f,ev.target.value)} className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500" disabled={isFormDisabled} /></div>
+                              ))}
                             </div>
                           </div>
-
-                          {/* Section Mises en demeure */}
                           <div className="space-y-3">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                              <h5 className="font-semibold text-yellow-700 dark:text-yellow-400 text-sm">Mises en demeure</h5>
-                            </div>
+                            <h5 className="font-semibold text-yellow-700 dark:text-yellow-400 text-sm border-b border-yellow-100 pb-1">Mise en Demeure</h5>
                             <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Envoyées (Nb)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbMisesEnDemeureEnvoyees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200"
-                                  disabled={isFormDisabled} 
-                            />
-                              </div>
-                              <div>
-                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Envoyées (Mt)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtMisesEnDemeureEnvoyees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureEnvoyees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200"
-                                  disabled={isFormDisabled} 
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Réglées (Nb)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbMisesEnDemeureReglees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbMisesEnDemeureReglees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200"
-                                  disabled={isFormDisabled} 
-                            />
-                              </div>
-                              <div>
-                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Réglées (Mt)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtMisesEnDemeureReglees || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtMisesEnDemeureReglees: ev.target.value } }))} 
-                                  className="w-full border border-yellow-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all duration-200" 
-                                />
-                              </div>
+                              {[['nbMisesEnDemeureEnvoyees','MeD Nbre','1'],['mtMisesEnDemeureEnvoyees','MeD Montant','0.01'],['nbMisesEnDemeureReglees','Encai≥MeD Nbre','1'],['mtMisesEnDemeureReglees','Encai≥MeD Mts','0.01']].map(([f,l,s])=>(
+                                <div key={f}><label className="text-xs text-gray-500 mb-1 block">{l}</label><input type="number" min="0" step={s} value={e[f]||''} onChange={ev=>handleCellChange(cat.CategorieId,f,ev.target.value)} className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-yellow-500" disabled={isFormDisabled} /></div>
+                              ))}
                             </div>
                           </div>
-
-                          {/* Section Activité Juridique */}
                           <div className="space-y-3">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                              <h5 className="font-semibold text-orange-700 dark:text-orange-400 text-sm">Activité Juridique</h5>
-                            </div>
+                            <h5 className="font-semibold text-orange-700 dark:text-orange-400 text-sm border-b border-orange-100 pb-1">Activité Coupure</h5>
                             <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Dossiers juridiques (Nb)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbDossiersJuridiques || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbDossiersJuridiques: ev.target.value } }))} 
-                                  className="w-full border border-orange-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
-                                  disabled={isFormDisabled} 
-                            />
-                              </div>
-                              <div>
-                                <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Dossiers juridiques (Mt)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtDossiersJuridiques || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtDossiersJuridiques: ev.target.value } }))} 
-                                  className="w-full border border-orange-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
-                                  disabled={isFormDisabled} 
-                                />
-                              </div>
+                              {[['nbCoupures','Coupures Nbre','1'],['mtCoupures','Coupures Mts','0.01'],['nbRetablissements','Réouv. Nbre','1'],['mtRetablissements','Réouv. Mts','0.01']].map(([f,l,s])=>(
+                                <div key={f}><label className="text-xs text-gray-500 mb-1 block">{l}</label><input type="number" min="0" step={s} value={e[f]||''} onChange={ev=>handleCellChange(cat.CategorieId,f,ev.target.value)} className="w-full border border-orange-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500" disabled={isFormDisabled} /></div>
+                              ))}
                             </div>
                           </div>
-
-                          {/* Section Activité Coupure & Rétablissement */}
                           <div className="space-y-3">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                              <h5 className="font-semibold text-red-700 dark:text-red-400 text-sm">Activité Coupure & Rétablissement</h5>
-                            </div>
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Coupures (Nb)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbCoupures || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbCoupures: ev.target.value } }))} 
-                                    className="w-full border border-red-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-                                    disabled={isFormDisabled} 
-                            />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Coupures (Mt)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtCoupures || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtCoupures: ev.target.value } }))} 
-                                    className="w-full border border-red-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-                                    disabled={isFormDisabled} 
-                                  />
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Rétablissements (Nb)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbRetablissements || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRetablissements: ev.target.value } }))} 
-                                    className="w-full border border-green-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
-                                    disabled={isFormDisabled} 
-                            />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Rétablissements (Mt)</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={e.mtRetablissements || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], mtRetablissements: ev.target.value } }))} 
-                                    className="w-full border border-green-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
-                                    disabled={isFormDisabled} 
-                                  />
-                                </div>
-                              </div>
+                            <h5 className="font-semibold text-red-700 dark:text-red-400 text-sm border-b border-red-100 pb-1">Autre Activité (Contentieux)</h5>
+                            <div className="grid grid-cols-2 gap-3">
+                              {[['nbDossiersJuridiques','Dossiers Nbre','1'],['mtDossiersJuridiques','Dossiers Mts','0.01']].map(([f,l,s])=>(
+                                <div key={f}><label className="text-xs text-gray-500 mb-1 block">{l}</label><input type="number" min="0" step={s} value={e[f]||''} onChange={ev=>handleCellChange(cat.CategorieId,f,ev.target.value)} className="w-full border border-red-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500" disabled={isFormDisabled} /></div>
+                              ))}
                             </div>
                           </div>
-
-                          {/* Section Gestion des Compteurs */}
                           <div className="space-y-3">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                              <h5 className="font-semibold text-purple-700 dark:text-purple-400 text-sm">Gestion des Compteurs</h5>
-                            </div>
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Branchements</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbBranchements || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbBranchements: ev.target.value } }))} 
-                                    className="w-full border border-blue-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                    disabled={isFormDisabled} 
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Compteurs remplacés</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbCompteursRemplaces || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbCompteursRemplaces: ev.target.value } }))} 
-                                    className="w-full border border-purple-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                    disabled={isFormDisabled} 
-                                  />
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-1 gap-3">
-                                <div>
-                                  <label className="text-xs text-gray-600 dark:text-slate-300 mb-1 block">Contrôles</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              step="1"
-                              value={e.nbControles || ''} 
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbControles: ev.target.value } }))} 
-                                    className="w-full border border-indigo-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
-                                    disabled={isFormDisabled} 
-                                  />
-                                </div>
-                              </div>
+                            <h5 className="font-semibold text-blue-700 dark:text-blue-400 text-sm border-b border-blue-100 pb-1">Gestion des Compteurs</h5>
+                            <div className="grid grid-cols-2 gap-3">
+                              {[['nbBranchements','Nouv. Branch.','1'],['nbCompteursRemplaces','Sans Compt.','1'],['nbControles','Contrôles','1']].map(([f,l,s])=>(
+                                <div key={f}><label className="text-xs text-gray-500 mb-1 block">{l}</label><input type="number" min="0" step={s} value={e[f]||''} onChange={ev=>handleCellChange(cat.CategorieId,f,ev.target.value)} className="w-full border border-blue-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={isFormDisabled} /></div>
+                              ))}
                             </div>
                           </div>
-
-                          {/* Champ Observation par catégorie */}
-                          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-2 h-2 bg-gray-400 dark:bg-slate-500 rounded-full"></div>
-                              <h6 className="font-medium text-gray-600 dark:text-slate-300 text-xs">Observation</h6>
-                            </div>
-                            <textarea
-                              value={e.observation || ''}
-                              onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], observation: ev.target.value } }))}
-                              className="w-full border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent transition-all duration-200 resize-none"
-                              rows="2"
-                              placeholder="Ajoutez une observation pour cette catégorie..."
-                              maxLength="200"
-                              disabled={isFormDisabled}
-                            />
-                            <div className="text-right mt-1">
-                              <span className="text-xs text-gray-400 dark:text-slate-400">
-                                {(e.observation || '').length}/200 caractères
-                              </span>
-                            </div>
+                          <div className="space-y-2">
+                            <label className="text-xs text-gray-500 font-medium">Observation</label>
+                            <textarea value={e.observation||''} onChange={ev=>handleCellChange(cat.CategorieId,'observation',ev.target.value)} className="w-full border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none" rows="3" maxLength="200" disabled={isFormDisabled} placeholder="Observation..." />
+                            <div className="text-right text-xs text-gray-400">{(e.observation||'').length}/200</div>
                           </div>
                         </div>
                       </div>
                     </div>
                       );
                     })}
-            </div>
+                </div>
+              )}
 
               {/* Encaissement Journalier Global */}
             <div className="border-t border-gray-200 dark:border-slate-700 pt-6">

@@ -18,7 +18,7 @@ const { sqlInjectionDetection } = require('./middleware/security');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 // SÉCURITÉ: Headers de sécurité HTTP avec Helmet
 app.use(helmet({
@@ -123,6 +123,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(sqlInjectionDetection);
 
 // Configuration SQL Server
+// En production (Azure SQL) : encrypt=true, pas d'instanceName
+// En développement (SQLEXPRESS local) : encrypt=false, instanceName='SQLEXPRESS'
+const isProduction = process.env.NODE_ENV === 'production';
 const config = {
     server: process.env.DB_SERVER || 'localhost',
     authentication: {
@@ -134,12 +137,19 @@ const config = {
     },
     options: {
         database: process.env.DB_DATABASE || 'ADE_KPI',
-        trustServerCertificate: true,
-        encrypt: false,
-        instanceName: 'SQLEXPRESS',
-        enableArithAbort: true
+        trustServerCertificate: !isProduction,  // false en prod (Azure SQL vérifie le cert)
+        encrypt: isProduction,                   // true en prod (Azure SQL exige TLS)
+        ...(isProduction ? {} : { instanceName: 'SQLEXPRESS' }), // seulement en local
+        enableArithAbort: true,
+        connectTimeout: 30000,
+        requestTimeout: 30000
     }
 };
+
+// Health check pour Railway
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', env: process.env.NODE_ENV || 'development' });
+});
 
 // Test de connexion
 app.get('/api/test', (req, res) => {
@@ -219,5 +229,7 @@ app.use(errorHandler);
 // Lancement du serveur
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Serveur backend démarré sur le port ${PORT}`);
-    console.log(`🧩 Test: http://localhost:${PORT}/api/test`);
+    console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🗄️  Base de données: ${process.env.DB_SERVER || 'localhost'}/${process.env.DB_DATABASE || 'ADE_KPI'}`);
+    console.log(`🧩 Health: http://localhost:${PORT}/api/health`);
 });
