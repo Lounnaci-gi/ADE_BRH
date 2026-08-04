@@ -49,6 +49,9 @@ app.use(helmet({
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
+// Ensure correct client IP detection behind proxies (1 proxy hop: ngrok, Railway, etc.)
+app.set('trust proxy', 1);
+
 // SÉCURITÉ: Rate limiting global pour prévenir les attaques DoS
 // En développement, limite plus élevée pour permettre le développement
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -61,6 +64,7 @@ const globalRateLimiter = rateLimit({
     },
     standardHeaders: true, // Retourner les infos de rate limit dans les headers `RateLimit-*`
     legacyHeaders: false, // Désactiver les headers `X-RateLimit-*`
+    validate: { trustProxy: false }
 });
 
 // SÉCURITÉ: Rate limiting plus strict pour les routes d'authentification
@@ -72,10 +76,8 @@ const authRateLimiter = rateLimit({
         retryAfter: '15 minutes'
     },
     skipSuccessfulRequests: true, // Ne pas compter les requêtes réussies
+    validate: { trustProxy: false }
 });
-
-// Ensure correct client IP detection behind proxies (doit être avant rate limiting)
-app.set('trust proxy', true);
 
 // Middleware CORS - DOIT être avant le rate limiting pour gérer les requêtes OPTIONS
 const configuredAllowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:3001')
