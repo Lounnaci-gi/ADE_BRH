@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, Building2, Save, Target, DollarSign, BarChart3, CheckCircle, AlertCircle, Zap, Shield, Users, Wrench, Eye, ChevronDown, ChevronRight, Table, LayoutGrid } from 'lucide-react';
 import { motion } from 'framer-motion';
 import kpiService from '../services/kpiService';
@@ -9,9 +9,7 @@ import ModernDatePicker from '../components/ModernDatePicker';
 import KpiCard from '../components/KpiCard';
 
 function KPI() {
-  const [kpis, setKpis] = useState([]);
   const [agences, setAgences] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [sortedCategories, setSortedCategories] = useState([]);
   const [entriesByCategory, setEntriesByCategory] = useState({});
   const [collapsedByCategory, setCollapsedByCategory] = useState({});
@@ -93,9 +91,7 @@ function KPI() {
         setFormData(prev => ({ ...prev, agenceId: userAgenceId.toString() }));
       }
       
-      setKpis(kpisData || []);
       setAgences(agencesData || []);
-      setCategories(categoriesData || []);
       
       const sortedCats = sortCategories(categoriesData || []);
       setSortedCategories(sortedCats);
