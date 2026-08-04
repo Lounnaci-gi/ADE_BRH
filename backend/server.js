@@ -88,6 +88,7 @@ const configuredAllowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3
 const isAllowedOrigin = (origin) => {
     if (!origin) return true;
     if (configuredAllowedOrigins.includes(origin)) return true;
+    if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return true; // Autoriser tous les domaines Vercel
     return /^http:\/\/localhost:\d+$/.test(origin);
 };
 
@@ -96,11 +97,12 @@ app.use(cors({
         if (isAllowedOrigin(origin)) {
             callback(null, true);
         } else {
+            console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);
             callback(null, false);
         }
     },
     methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type', 'X-Role', 'X-User-Agence', 'X-User-Id'],
+    allowedHeaders: ['Content-Type', 'X-Role', 'X-User-Agence', 'X-User-Id', 'ngrok-skip-browser-warning'],
     credentials: false,
     optionsSuccessStatus: 200
 }));

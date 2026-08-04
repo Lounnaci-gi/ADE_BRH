@@ -7,11 +7,11 @@ const instance = axios.create({
 });
 
 instance.interceptors.request.use((config) => {
+  // Contourner la page d'avertissement HTML d'ngrok (gratuit)
+  config.headers['ngrok-skip-browser-warning'] = 'true';
+
   const user = authService.getCurrentUser();
-  // SÉCURITÉ: Ne pas définir de rôle par défaut - nécessite une authentification réelle
   if (!user || !user.role) {
-    // Si pas d'utilisateur, ne pas ajouter de headers d'authentification
-    // Le serveur doit rejeter ces requêtes
     return config;
   }
   config.headers['X-Role'] = user.role;
