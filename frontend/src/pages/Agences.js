@@ -16,7 +16,6 @@ export default function Agences() {
   const [error, setError] = useState(null);
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
-  const canEdit = isAdmin; // Seuls les admins peuvent modifier/supprimer
   
   // Debug: Log user info
   console.log('Agences page - Current user:', user);

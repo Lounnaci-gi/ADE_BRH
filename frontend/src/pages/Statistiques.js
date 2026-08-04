@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, Calendar, Building2, Filter, Trophy, Award } from 'lucide-react';
+import { TrendingUp, Calendar, Building2, Filter, Trophy } from 'lucide-react';
 import kpiService from '../services/kpiService';
 import agenceService from '../services/agenceService';
 import ModernDatePicker from '../components/ModernDatePicker';

@@ -66,11 +66,29 @@ const authRateLimiter = rateLimit({
 app.set('trust proxy', true);
 
 // Middleware CORS - DOIT être avant le rate limiting pour gérer les requêtes OPTIONS
+const configuredAllowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:3001')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+    if (configuredAllowedOrigins.includes(origin)) return true;
+    return /^http:\/\/localhost:\d+$/.test(origin);
+};
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) {
+            callback(null, true);
+        } else {
+            callback(null, false);
+        }
+    },
     methods: ['GET','POST','PUT','DELETE','OPTIONS'],
     allowedHeaders: ['Content-Type', 'X-Role', 'X-User-Agence', 'X-User-Id'],
-    credentials: false
+    credentials: false,
+    optionsSuccessStatus: 200
 }));
 
 // Rate limiting global pour prévenir les attaques DoS
@@ -94,16 +112,16 @@ app.use(sqlInjectionDetection);
 
 // Configuration SQL Server
 const config = {
-    server: process.env.DB_SERVER,
+    server: process.env.DB_SERVER || 'localhost',
     authentication: {
         type: 'default',
         options: {
-            userName: process.env.DB_USER,
-            password: process.env.DB_PASSWORD
+            userName: process.env.DB_USER || 'lounnaci',
+            password: process.env.DB_PASSWORD || 'Lounnaci2026!'
         }
     },
     options: {
-        database: process.env.DB_DATABASE,
+        database: process.env.DB_DATABASE || 'ADE_KPI',
         trustServerCertificate: true,
         encrypt: false,
         instanceName: 'SQLEXPRESS',

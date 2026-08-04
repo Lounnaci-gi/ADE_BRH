@@ -5,12 +5,12 @@ const baseConfig = {
   authentication: {
     type: 'default',
     options: {
-      userName: process.env.DB_USER,
-      password: process.env.DB_PASSWORD
+      userName: process.env.DB_USER || 'lounnaci',
+      password: process.env.DB_PASSWORD || 'Lounnaci2026!'
     }
   },
   options: {
-    database: process.env.DB_DATABASE,
+    database: process.env.DB_DATABASE || 'ADE_KPI',
     trustServerCertificate: true,
     encrypt: false,
     instanceName: 'SQLEXPRESS',

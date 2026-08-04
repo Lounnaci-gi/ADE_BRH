@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Printer, MapPin } from 'lucide-react';
 import communesService from '../services/communesService';
 import CommunesAddModal from '../components/CommunesAddModal';
-import { swal, swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
+import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
 import authService from '../services/authService';
 
 const Communes = () => {

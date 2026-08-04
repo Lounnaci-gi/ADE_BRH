@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Calendar, Building2, Save, Target, TrendingUp, DollarSign, BarChart3, CheckCircle, AlertCircle, Zap, Shield, Users, Wrench, Eye, ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Calendar, Building2, Save, Target, DollarSign, BarChart3, CheckCircle, AlertCircle, Zap, Shield, Users, Wrench, Eye, ChevronDown, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
 import { swalSuccess, swalError, swal } from '../utils/swal';
-import { convertDateToYYYYMMDD, convertDateToSQLServer, formatDateForDisplay } from '../utils/dateUtils';
+import { convertDateToYYYYMMDD } from '../utils/dateUtils';
 import ModernDatePicker from '../components/ModernDatePicker';
 import KpiCard from '../components/KpiCard';
 
@@ -16,7 +16,6 @@ function KPI() {
   const [entriesByCategory, setEntriesByCategory] = useState({});
   const [collapsedByCategory, setCollapsedByCategory] = useState({});
   const [objectives, setObjectives] = useState(null);
-  const [allObjectives, setAllObjectives] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [hasExistingData, setHasExistingData] = useState(false);
@@ -477,30 +476,6 @@ function KPI() {
     return Math.min(((actual / target) * 100), 200); // Limiter à 200% pour l'animation
   };
 
-  const formatPercentage = (percentage) => {
-    return percentage.toFixed(2).replace('.', ',');
-  };
-
-  const createProgressBar = (percentage, color = 'blue') => {
-    const colorClasses = {
-      blue: 'bg-blue-500',
-      green: 'bg-green-500',
-      yellow: 'bg-yellow-500',
-      red: 'bg-red-500',
-      purple: 'bg-purple-500',
-      indigo: 'bg-indigo-500'
-    };
-    
-    return (
-      <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-        <div 
-          className={`h-2 rounded-full ${colorClasses[color]}`}
-          style={{ width: `${Math.min(percentage, 100)}%` }}
-        ></div>
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -551,7 +526,7 @@ function KPI() {
                 </motion.div>
                 Objectifs de l'Agence
                 <span className="text-blue-200 ml-2">
-                  {agences.find(a => a.AgenceId == formData.agenceId)?.Nom_Agence}
+                  {agences.find(a => String(a.AgenceId) === String(formData.agenceId))?.Nom_Agence}
                 </span>
               </motion.h2>
               </div>
@@ -767,7 +742,6 @@ function KPI() {
                               value={e.nbRelancesEnvoyees || ''} 
                               onChange={(ev) => setEntriesByCategory(prev => ({ ...prev, [cat.CategorieId]: { ...prev[cat.CategorieId], nbRelancesEnvoyees: ev.target.value } }))} 
                                   className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                                  disabled={isFormDisabled}
                                   disabled={isFormDisabled} 
                             />
                               </div>

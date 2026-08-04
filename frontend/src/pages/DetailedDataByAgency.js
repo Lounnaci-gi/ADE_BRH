@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Eye, Wrench, DollarSign, ArrowUp, ArrowDown, Minus, Play, Search, ChevronDown, X } from 'lucide-react';
+import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, ArrowUp, ArrowDown, Minus, Search, ChevronDown } from 'lucide-react';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -37,12 +37,8 @@ function DetailedDataByAgency() {
   // States for enhanced filter components
   const [isAgencyDropdownOpen, setIsAgencyDropdownOpen] = useState(false);
   const [agencySearchTerm, setAgencySearchTerm] = useState('');
-  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const agencyButtonRef = useRef(null);
-
-  const user = authService.getCurrentUser();
-  const isAdmin = (user?.role || '').toString() === 'Administrateur';
 
   // Fonction pour formater la monnaie
   const formatCurrency = (value) => {
@@ -53,35 +49,22 @@ function DetailedDataByAgency() {
     }).format(value);
   };
 
-  // Fonction pour formater les pourcentages avec deux décimales
-  const formatPercentage = (value) => {
-    if (value === null || value === undefined || isNaN(value)) return '0,00%';
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'percent',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value / 100);
-  };
-
   // Charger les données des agences
-  const loadAgences = async () => {
+  const loadAgences = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      const agencesData = await kpiService.getAgences();
-      
-      setAgences(agencesData);
+      const data = await kpiService.getAgences();
+      setAgences(data || []);
     } catch (err) {
       console.error('❌ Erreur lors du chargement des agences:', err);
       setError('Erreur lors du chargement des agences');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Charger les données détaillées pour l'agence sélectionnée
-  const loadDetailedData = async () => {
+  const loadDetailedData = useCallback(async () => {
     if (!filters.selectedAgence || !filters.date1 || !filters.date2) {
       setDetailedData([]);
       setObjectiveData(null);
@@ -115,7 +98,7 @@ function DetailedDataByAgency() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.selectedAgence, filters.date1, filters.date2]);
 
   // Gérer les changements de filtres
   const handleFilterChange = (field, value) => {
@@ -159,7 +142,7 @@ function DetailedDataByAgency() {
 
   useEffect(() => {
     loadAgences();
-  }, []);
+  }, [loadAgences]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -174,13 +157,6 @@ function DetailedDataByAgency() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isAgencyDropdownOpen]);
-
-  // Auto-reload data when filters change
-  useEffect(() => {
-    if (filters.selectedAgence && filters.date1 && filters.date2) {
-      loadDetailedData();
-    }
-  }, [filters.selectedAgence, filters.date1, filters.date2]);
 
   // Toggle metric selection
   const toggleMetric = (metricKey) => {

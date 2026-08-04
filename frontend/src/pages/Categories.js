@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
-import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
+import { Pencil, Trash2, Plus, X } from 'lucide-react';
 import categoriesService from '../services/categoriesService';
 import authService from '../services/authService';
 import './Login.css';
@@ -19,7 +19,7 @@ function Categories() {
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     if (!isAdmin) {
       setLoading(false);
       return;
@@ -37,11 +37,11 @@ function Categories() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin]);
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [loadCategories]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

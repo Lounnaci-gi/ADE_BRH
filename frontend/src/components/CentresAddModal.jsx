@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building2, MapPin, Phone, Mail, FileText, CreditCard, Hash } from 'lucide-react';
+import { X, Building2, MapPin, Phone, Mail, FileText, CreditCard } from 'lucide-react';
 import '../pages/Login.css';
 
 const CentresAddModal = ({ isOpen, onClose, onSubmit, initialValues }) => {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Eye, Wrench, DollarSign, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { Building2, Calendar, Filter, FileText, TrendingUp, AlertCircle, CheckCircle, Shield, Users, Zap, Wrench, DollarSign, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
 
@@ -31,16 +31,6 @@ function BilansDetailles() {
       style: 'currency',
       currency: 'DZD'
     }).format(value);
-  };
-
-  // Fonction pour formater les pourcentages avec deux décimales
-  const formatPercentage = (value) => {
-    if (value === null || value === undefined || isNaN(value)) return '0,00%';
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'percent',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value / 100);
   };
 
   // Charger les données des agences
@@ -669,7 +659,7 @@ const AgencyRow = ({ agence, index, filters }) => {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const loadDetails = async () => {
+  const loadDetails = useCallback(async () => {
     setLoading(true);
     try {
       // Utiliser les filtres de date sélectionnés
@@ -727,11 +717,11 @@ const AgencyRow = ({ agence, index, filters }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [agence.AgenceId, filters.date, filters.mois, filters.annee]);
 
   useEffect(() => {
     loadDetails();
-  }, [agence.AgenceId, filters.date, filters.mois, filters.annee]);
+  }, [loadDetails]);
 
   const formatCurrency = (value) => {
     if (!value) return '0,00 DA';

@@ -10,8 +10,8 @@ const getConfig = () => ({
   authentication: {
     type: 'default',
     options: {
-      userName: process.env.DB_USER,
-      password: process.env.DB_PASSWORD
+      userName: process.env.DB_USER || 'lounnaci',
+      password: process.env.DB_PASSWORD || 'Lounnaci2026!'
     }
   },
   options: {

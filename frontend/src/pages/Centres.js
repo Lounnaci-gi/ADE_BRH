@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pencil, Trash2, Printer, Plus, Building2, MapPin, Phone, Mail, FileText } from 'lucide-react';
+import { Pencil, Trash2, Printer, Plus, Building2 } from 'lucide-react';
 import centresService from '../services/centresService';
 import CentresAddModal from '../components/CentresAddModal';
 import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';

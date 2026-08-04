@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Pencil, Trash2, Printer, User, Mail, Lock, Save } from 'lucide-react';
 import UsersAddModal from '../components/UsersAddModal';
 import { swalConfirmDelete, swalSuccess, swalError } from '../utils/swal';
@@ -28,7 +28,7 @@ function Users() {
   const user = authService.getCurrentUser();
   const isAdmin = (user?.role || '').toString() === 'Administrateur';
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       const data = await userService.list();
@@ -54,7 +54,7 @@ function Users() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin]);
 
   const handleProfileCancel = () => {
     setProfileForm({
@@ -122,7 +122,7 @@ function Users() {
       });
       setOriginalProfileData(userData);
     }
-  }, [isAdmin]);
+  }, [isAdmin, loadUsers]);
 
   const handleCreate = async (payload) => {
     try {

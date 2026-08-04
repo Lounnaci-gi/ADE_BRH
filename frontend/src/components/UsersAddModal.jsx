@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { User, Mail, Shield, Building2, Lock, X, UserPlus } from 'lucide-react';
+import { X } from 'lucide-react';
 import agenceService from '../services/agenceService';
 import '../pages/Login.css';
 
@@ -7,11 +7,6 @@ export default function UsersAddModal({ open, onClose, onSubmit, initialValues }
   const [formData, setFormData] = useState({ username: '', email: '', role: 'Standard', password: '', agenceId: '' });
   const [agences, setAgences] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // Fonction pour réinitialiser le formulaire
-  const resetForm = () => {
-    setFormData({ username: '', email: '', role: 'Standard', password: '', agenceId: '' });
-  };
 
   useEffect(() => {
     if (open) {

@@ -106,7 +106,6 @@ function Objectives() {
     }
   }, [isAdmin]); // Retirer 'filters' des dépendances
 
-  const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (row) => { setEditing(row); setModalOpen(true); };
 
   const handleSubmitModal = async (payload) => {
