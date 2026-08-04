@@ -1,11 +1,9 @@
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import api from './api';
 
 const authService = {
     login: async (username, password) => {
         try {
-            const response = await axios.post(`${API_URL}/login`, {
+            const response = await api.post('/login', {
                 username,
                 password
             });
@@ -17,7 +15,7 @@ const authService = {
             }
             return response.data;
         } catch (error) {
-            throw error.response?.data || { error: 'Erreur de connexion' };
+            throw error.response?.data || { error: 'Erreur de connexion au serveur' };
         }
     },
 
