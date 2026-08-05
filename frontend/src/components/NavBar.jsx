@@ -1,97 +1,210 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, Users, Building2, LogOut, LogIn, Bell, Crown, Sparkles, FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText, Settings, TrendingUp } from 'lucide-react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import {
+  Menu, X, LayoutDashboard, Users, Building2, LogOut, LogIn, Bell, Crown,
+  Sparkles, FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText,
+  Settings, TrendingUp, KeyRound, Droplets
+} from 'lucide-react';
 import notificationsService from '../services/notificationsService';
 import ThemeToggle from './ThemeToggle';
 import authService from '../services/authService';
 
+const GESTION_ITEMS = [
+  { to: '/centres', icon: Building2, label: 'Centres' },
+  { to: '/agences', icon: Building2, label: 'Agences' },
+  { to: '/communes', icon: MapPin, label: 'Communes' },
+  { to: '/users', icon: Users, label: 'Utilisateurs' },
+  { to: '/categories', icon: FolderOpen, label: 'Catégories' },
+  { to: '/objectives', icon: Target, label: 'Objectifs' },
+];
+
+const DATA_ITEMS = [
+  { to: '/kpi', icon: BarChart3, label: 'Saisie des Données' },
+  { to: '/bilans-detailles', icon: FileText, label: 'Bilans détaillés' },
+  { to: '/detailed-data-by-agency', icon: Building2, label: 'Détails par agence' },
+];
+
+const MAIN_LINKS = [
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/statistiques', icon: TrendingUp, label: 'Statistiques' },
+];
+
+function useDropdownPosition(isOpen, buttonRef, menuRef, minWidth = 220) {
+  const [pos, setPos] = React.useState({ top: 0, left: 0, width: minWidth });
+
+  React.useEffect(() => {
+    const update = () => {
+      const buttonEl = buttonRef.current;
+      const menuEl = menuRef.current;
+      if (!buttonEl) return;
+
+      const rect = buttonEl.getBoundingClientRect();
+      const padding = 8;
+      const width = Math.max(minWidth, Math.round(rect.width));
+      const maxLeft = window.innerWidth - width - padding;
+      const left = Math.min(Math.max(Math.round(rect.left), padding), Math.max(maxLeft, padding));
+
+      let top = Math.round(rect.bottom + 10);
+      if (menuEl) {
+        const menuHeight = menuEl.offsetHeight || 0;
+        if (window.innerHeight - rect.bottom < menuHeight + 16) {
+          top = Math.max(padding, Math.round(rect.top - menuHeight - 10));
+        }
+      }
+      setPos({ top, left, width });
+    };
+
+    if (isOpen) {
+      update();
+      window.addEventListener('resize', update);
+      window.addEventListener('scroll', update, true);
+    }
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [isOpen, buttonRef, menuRef, minWidth]);
+
+  return pos;
+}
+
+function DropdownPanel({ title, subtitle, children, pos, panelRef, className = '' }) {
+  return createPortal(
+    <div
+      ref={panelRef}
+      className={`fixed z-[9999] overflow-hidden rounded-2xl border border-water-200/60 bg-white/95 shadow-[0_20px_50px_-12px_rgba(2,132,199,0.25)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/95 dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] ${className}`}
+      style={{ top: `${pos.top}px`, left: `${pos.left}px`, minWidth: pos.width }}
+      role="menu"
+    >
+      {(title || subtitle) && (
+        <div className="border-b border-water-100/80 px-4 py-3 dark:border-slate-700/60">
+          {title && <p className="text-xs font-semibold uppercase tracking-wider text-water-600 dark:text-water-400">{title}</p>}
+          {subtitle && <p className="mt-0.5 text-sm font-medium text-slate-800 dark:text-slate-100">{subtitle}</p>}
+        </div>
+      )}
+      <div className="p-1.5">{children}</div>
+    </div>,
+    document.body
+  );
+}
+
+function DropdownNavLink({ to, icon: Icon, label, onNavigate }) {
+  return (
+    <NavLink
+      to={to}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-150 ${
+          isActive
+            ? 'bg-gradient-to-r from-water-500/10 to-water-400/5 text-water-800 ring-1 ring-water-200/60 dark:from-water-500/20 dark:to-water-600/10 dark:text-water-100 dark:ring-water-700/50'
+            : 'text-slate-700 hover:bg-water-50/80 dark:text-slate-200 dark:hover:bg-slate-800/80'
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+            isActive
+              ? 'bg-water-500 text-white shadow-sm'
+              : 'bg-slate-100 text-slate-500 group-hover:bg-water-100 group-hover:text-water-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-water-900/40 dark:group-hover:text-water-300'
+          }`}>
+            <Icon className="h-4 w-4" />
+          </span>
+          <span className="font-medium">{label}</span>
+        </>
+      )}
+    </NavLink>
+  );
+}
+
 const NavBar = () => {
   const [open, setOpen] = React.useState(false);
-  const [unread, setUnread] = React.useState(0);
   const [agenciesStatus, setAgenciesStatus] = React.useState({ agencies: [], summary: { total: 0, completed: 0, pending: 0 } });
   const [showAgenciesStatus, setShowAgenciesStatus] = React.useState(false);
   const [showDataMenu, setShowDataMenu] = React.useState(false);
+  const [showUserMenu, setShowUserMenu] = React.useState(false);
+  const [showGestionMenu, setShowGestionMenu] = React.useState(false);
+
   const dataMenuButtonRef = React.useRef(null);
   const dataMenuRef = React.useRef(null);
-  const [dataMenuPos, setDataMenuPos] = React.useState({ top: 0, left: 0, width: 0 });
-  const [showUserMenu, setShowUserMenu] = React.useState(false);
   const userMenuButtonRef = React.useRef(null);
   const userMenuRef = React.useRef(null);
-  const [userMenuPos, setUserMenuPos] = React.useState({ top: 0, left: 0, width: 0 });
-  const [showGestionMenu, setShowGestionMenu] = React.useState(false);
   const gestionMenuButtonRef = React.useRef(null);
   const gestionMenuRef = React.useRef(null);
-  const [gestionMenuPos, setGestionMenuPos] = React.useState({ top: 0, left: 0, width: 0 });
-  const navigate = useNavigate();
 
-  const linkBase = "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors duration-200 relative group";
-  const linkActive = "text-water-700 dark:text-water-200 bg-water-50/60 dark:bg-slate-800/60 border border-water-200/40 dark:border-slate-700/50";
-  const linkInactive = "text-gray-600 dark:text-gray-400 hover:text-water-700 dark:hover:text-water-200 hover:bg-water-50/50 dark:hover:bg-slate-800/50";
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const dataMenuPos = useDropdownPosition(showDataMenu, dataMenuButtonRef, dataMenuRef, 280);
+  const userMenuPos = useDropdownPosition(showUserMenu, userMenuButtonRef, userMenuRef, 240);
+  const gestionMenuPos = useDropdownPosition(showGestionMenu, gestionMenuButtonRef, gestionMenuRef, 260);
 
   const user = authService.getCurrentUser();
   const initials = React.useMemo(() => {
     if (!user?.username) return 'U';
     const parts = String(user.username).split(/\s+/);
-    const first = parts[0]?.[0] || '';
-    const second = parts[1]?.[0] || '';
-    return (first + second || first).toUpperCase();
+    return ((parts[0]?.[0] || '') + (parts[1]?.[0] || parts[0]?.[1] || '')).toUpperCase();
   }, [user]);
+
+  const isGestionActive = GESTION_ITEMS.some((item) => location.pathname.startsWith(item.to));
+  const isDataActive = DATA_ITEMS.some((item) => location.pathname.startsWith(item.to));
+
+  const closeAllMenus = () => {
+    setShowAgenciesStatus(false);
+    setShowDataMenu(false);
+    setShowUserMenu(false);
+    setShowGestionMenu(false);
+  };
 
   const handleLogout = () => {
     authService.logout();
     navigate('/login');
   };
 
+  const navLinkClass = ({ isActive }) =>
+    `relative flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
+      isActive
+        ? 'bg-white text-water-700 shadow-sm ring-1 ring-water-200/70 dark:bg-slate-800 dark:text-water-100 dark:ring-water-700/50'
+        : 'text-slate-600 hover:bg-white/60 hover:text-water-700 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-water-200'
+    }`;
+
+  const dropdownTriggerClass = (isActive) =>
+    `flex cursor-pointer items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
+      isActive
+        ? 'bg-white text-water-700 shadow-sm ring-1 ring-water-200/70 dark:bg-slate-800 dark:text-water-100 dark:ring-water-700/50'
+        : 'text-slate-600 hover:bg-white/60 hover:text-water-700 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-water-200'
+    }`;
+
   React.useEffect(() => {
     let mounted = true;
     const load = async () => {
       try {
-        console.log('Loading notifications...');
-        const [count, status] = await Promise.all([
+        const [_, status] = await Promise.all([
           notificationsService.getUnreadCount(),
-          notificationsService.getAgenciesStatus()
+          notificationsService.getAgenciesStatus(),
         ]);
-        console.log('Notifications loaded:', { count, status });
-        if (mounted) {
-          setUnread(count);
-          setAgenciesStatus(status);
-        }
+        if (mounted) setAgenciesStatus(status);
       } catch (error) {
         console.error('Erreur lors du chargement des notifications:', error);
       }
     };
     load();
-    const id = setInterval(load, 30000); // refresh toutes les 30s
+    const id = setInterval(load, 30000);
     return () => { mounted = false; clearInterval(id); };
   }, []);
 
-  // Fermer les dropdowns quand on clique à l'extérieur
   React.useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showAgenciesStatus && !event.target.closest('.agencies-status-dropdown')) {
-        setShowAgenciesStatus(false);
-      }
-      if (showDataMenu && !event.target.closest('.data-menu-dropdown')) {
-        setShowDataMenu(false);
-      }
-      if (showUserMenu && !event.target.closest('.user-menu-dropdown')) {
-        setShowUserMenu(false);
-      }
-      if (showGestionMenu && !event.target.closest('.gestion-menu-dropdown')) {
-        setShowGestionMenu(false);
-      }
+      if (showAgenciesStatus && !event.target.closest('.agencies-status-dropdown')) setShowAgenciesStatus(false);
+      if (showDataMenu && !event.target.closest('.data-menu-dropdown')) setShowDataMenu(false);
+      if (showUserMenu && !event.target.closest('.user-menu-dropdown')) setShowUserMenu(false);
+      if (showGestionMenu && !event.target.closest('.gestion-menu-dropdown')) setShowGestionMenu(false);
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
     const handleKey = (e) => {
-      if (e.key === 'Escape') {
-        if (showAgenciesStatus) setShowAgenciesStatus(false);
-        if (showDataMenu) setShowDataMenu(false);
-        if (showUserMenu) setShowUserMenu(false);
-        if (showGestionMenu) setShowGestionMenu(false);
-      }
+      if (e.key === 'Escape') closeAllMenus();
     };
+    document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -99,490 +212,300 @@ const NavBar = () => {
     };
   }, [showAgenciesStatus, showDataMenu, showUserMenu, showGestionMenu]);
 
-  // Calculer la position du sous-menu "Saisie des Données" pour l'afficher en dehors du navbar
   React.useEffect(() => {
-    const updatePosition = () => {
-      const buttonEl = dataMenuButtonRef.current;
-      const menuEl = dataMenuRef.current;
-      if (!buttonEl) return;
-      const rect = buttonEl.getBoundingClientRect();
-      const viewportPadding = 8;
+    setOpen(false);
+    closeAllMenus();
+  }, [location.pathname]);
 
-      const desiredWidth = Math.max(256, Math.round(rect.width));
-      const maxLeft = window.innerWidth - desiredWidth - viewportPadding;
-      const left = Math.min(Math.max(Math.round(rect.left), viewportPadding), Math.max(maxLeft, viewportPadding));
-
-      // par défaut en dessous du bouton
-      let top = Math.round(rect.bottom + 8);
-      if (menuEl) {
-        const menuHeight = menuEl.offsetHeight || 0;
-        const spaceBelow = window.innerHeight - rect.bottom;
-        if (spaceBelow < menuHeight + 16) {
-          // ouvrir au-dessus si pas assez d'espace en bas
-          top = Math.max(viewportPadding, Math.round(rect.top - menuHeight - 8));
-        }
-      }
-
-      setDataMenuPos({ top, left, width: desiredWidth });
-    };
-
-    if (showDataMenu) {
-      updatePosition();
-      window.addEventListener('resize', updatePosition);
-      window.addEventListener('scroll', updatePosition, true);
-    }
-
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [showDataMenu]);
-
-  // Positionnement du menu utilisateur
-  React.useEffect(() => {
-    const updateUserMenuPosition = () => {
-      const buttonEl = userMenuButtonRef.current;
-      const menuEl = userMenuRef.current;
-      if (!buttonEl) return;
-      const rect = buttonEl.getBoundingClientRect();
-      const viewportPadding = 8;
-
-      const desiredWidth = Math.max(220, Math.round(rect.width));
-      const maxLeft = window.innerWidth - desiredWidth - viewportPadding;
-      const left = Math.min(Math.max(Math.round(rect.left), viewportPadding), Math.max(maxLeft, viewportPadding));
-
-      let top = Math.round(rect.bottom + 8);
-      if (menuEl) {
-        const menuHeight = menuEl.offsetHeight || 0;
-        const spaceBelow = window.innerHeight - rect.bottom;
-        if (spaceBelow < menuHeight + 16) {
-          top = Math.max(viewportPadding, Math.round(rect.top - menuHeight - 8));
-        }
-      }
-
-      setUserMenuPos({ top, left, width: desiredWidth });
-    };
-
-    if (showUserMenu) {
-      updateUserMenuPosition();
-      window.addEventListener('resize', updateUserMenuPosition);
-      window.addEventListener('scroll', updateUserMenuPosition, true);
-    }
-
-    return () => {
-      window.removeEventListener('resize', updateUserMenuPosition);
-      window.removeEventListener('scroll', updateUserMenuPosition, true);
-    };
-  }, [showUserMenu]);
-
-  // Positionnement du menu Gestion
-  React.useEffect(() => {
-    const updateGestionMenuPosition = () => {
-      const buttonEl = gestionMenuButtonRef.current;
-      const menuEl = gestionMenuRef.current;
-      if (!buttonEl) return;
-      const rect = buttonEl.getBoundingClientRect();
-      const viewportPadding = 8;
-
-      const desiredWidth = Math.max(220, Math.round(rect.width));
-      const maxLeft = window.innerWidth - desiredWidth - viewportPadding;
-      const left = Math.min(Math.max(Math.round(rect.left), viewportPadding), Math.max(maxLeft, viewportPadding));
-
-      let top = Math.round(rect.bottom + 8);
-      if (menuEl) {
-        const menuHeight = menuEl.offsetHeight || 0;
-        const spaceBelow = window.innerHeight - rect.bottom;
-        if (spaceBelow < menuHeight + 16) {
-          top = Math.max(viewportPadding, Math.round(rect.top - menuHeight - 8));
-        }
-      }
-
-      setGestionMenuPos({ top, left, width: desiredWidth });
-    };
-
-    if (showGestionMenu) {
-      updateGestionMenuPosition();
-      window.addEventListener('resize', updateGestionMenuPosition);
-      window.addEventListener('scroll', updateGestionMenuPosition, true);
-    }
-
-    return () => {
-      window.removeEventListener('resize', updateGestionMenuPosition);
-      window.removeEventListener('scroll', updateGestionMenuPosition, true);
-    };
-  }, [showGestionMenu]);
+  const { pending, completed, total } = agenciesStatus.summary;
+  const bellVariant = pending > 0 ? 'alert' : completed > 0 && pending === 0 ? 'success' : 'neutral';
 
   return (
     <>
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/75 dark:bg-slate-900/70 border-b border-slate-200/60 dark:border-slate-800/60 overflow-visible">
-      <div className="mx-auto max-w-7xl px-3 py-2 flex items-center justify-between overflow-visible">
-        <div className="flex items-center gap-1.5">
-          <button
-            className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/70 dark:border-slate-700/60 bg-white/50 dark:bg-slate-800/50 hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors duration-200"
-            onClick={() => setOpen(!open)}
-            aria-label="Toggle menu"
-          >
-            {open ? <X className="h-4 w-4 text-water-600 dark:text-water-300" /> : <Menu className="h-4 w-4 text-water-600 dark:text-water-300" />}
-          </button>
-          <div className="flex items-center gap-1.5">
-            <div className="relative group">
-              <div className="h-7 w-7 rounded-md border border-slate-200/70 dark:border-slate-700/60 bg-white/70 dark:bg-slate-800/70 grid place-items-center">
-                <Sparkles className="h-3.5 w-3.5 text-water-600 dark:text-water-300" />
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-bold tracking-wide text-slate-800 dark:text-slate-100">
-                ADE BRH
-              </div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500/90 dark:text-slate-400/90 font-semibold hidden sm:block">Système</div>
-            </div>
-          </div>
-        </div>
-
-        <nav className="hidden md:flex items-center gap-1.5">
-          <NavLink to="/dashboard" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-            <LayoutDashboard className="h-3.5 w-3.5" /> 
-            <span className="hidden lg:inline">Dashboard</span>
-          </NavLink>
-          <NavLink to="/statistiques" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-            <TrendingUp className="h-3.5 w-3.5" /> 
-            <span className="hidden lg:inline">Statistiques</span>
-          </NavLink>
-          <div className="relative group">
+      <header className="sticky top-0 z-50 overflow-visible border-b border-water-200/50 bg-white/80 shadow-[0_1px_0_rgba(2,132,199,0.06)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/80 dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
+          {/* Brand */}
+          <div className="flex min-w-0 items-center gap-3">
             <button
-              ref={gestionMenuButtonRef}
-              onClick={() => setShowGestionMenu(!showGestionMenu)}
-              className={`${linkBase} ${showGestionMenu ? linkActive : linkInactive} cursor-pointer`}
+              type="button"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-water-200/70 bg-white/80 text-water-700 shadow-sm transition-all hover:border-water-300 hover:bg-water-50 md:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-water-300 dark:hover:bg-slate-800"
+              onClick={() => setOpen(!open)}
+              aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
+              aria-expanded={open}
             >
-              <Settings className="h-3.5 w-3.5" /> 
-              <span className="hidden lg:inline">Gestion</span>
-              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${showGestionMenu ? 'rotate-180' : ''}`} />
+              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            
-            {/* Sous-menu via portal (rendu externe) */}
-          </div>
-          <div className="relative group">
-            <button
-              ref={dataMenuButtonRef}
-              onClick={() => setShowDataMenu(!showDataMenu)}
-              className={`${linkBase} ${showDataMenu ? linkActive : linkInactive} cursor-pointer`}
-            >
-              <BarChart3 className="h-3.5 w-3.5" /> 
-              <span className="hidden lg:inline">Saisie des Données</span>
-              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${showDataMenu ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {/* Sous-menu via portal (rendu externe) */}
-          </div>
-        </nav>
 
-        <div className="flex items-center gap-1 overflow-visible">
-          {/* Badge notifications avec statut des agences */}
-          <div className="relative agencies-status-dropdown">
-            <button 
-              onClick={() => setShowAgenciesStatus(!showAgenciesStatus)}
-              className={`relative inline-flex h-7 w-7 items-center justify-center rounded-md border bg-white/60 dark:bg-slate-800/60 transition-colors duration-200 ${
-                agenciesStatus.summary.pending > 0
-                  ? 'border-red-200/60 dark:border-red-700/60 bg-red-50/80 dark:bg-red-900/20'
-                  : agenciesStatus.summary.completed > 0 && agenciesStatus.summary.pending === 0
-                  ? 'border-green-200/60 dark:border-green-700/60 bg-green-50/80 dark:bg-green-900/20'
-                  : 'border-slate-200/70 dark:border-slate-700/60'
-              }`}
-            >
-              <Bell className={`h-3.5 w-3.5 transition-colors ${
-                agenciesStatus.summary.pending > 0
-                  ? 'text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300'
-                  : agenciesStatus.summary.completed > 0 && agenciesStatus.summary.pending === 0
-                  ? 'text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300'
-                  : 'text-water-600 dark:text-water-300 group-hover:text-water-700 dark:group-hover:text-water-200'
-              }`} />
-              {agenciesStatus.summary.pending > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-1 shadow-md animate-pulse">
-                  {agenciesStatus.summary.pending}
-                </span>
-              )}
-              {agenciesStatus.summary.completed > 0 && agenciesStatus.summary.pending === 0 && (
-                <span className="absolute -top-0.5 -right-0.5 inline-flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-1 shadow-md">
-                  ✓
-                </span>
-              )}
-            </button>
-            
-            {/* Dropdown du statut des agences */}
-            {showAgenciesStatus && (
-              <div className="fixed right-4 top-16 w-80 bg-white/95 dark:bg-slate-900/85 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] ring-1 ring-water-400/30 dark:ring-water-600/30 z-[9999] agencies-status-dropdown animate-in slide-in-from-top-2 duration-200 backdrop-blur-xl">
-                <div className="p-3 border-b border-water-200/30 dark:border-slate-700/30">
-                  <h3 className="text-sm font-semibold text-water-800 dark:text-water-200">
-                    {agenciesStatus.summary.pending > 0 
-                      ? `⚠️ ${agenciesStatus.summary.pending} agence(s) en retard` 
-                      : '✅ Toutes les agences ont saisi leurs données'}
-                  </h3>
-                  <p className="text-xs text-water-600 dark:text-water-400 mt-1">
-                    {agenciesStatus.summary.completed}/{agenciesStatus.summary.total} agences ont saisi leurs données du jour
-                  </p>
+            <NavLink to="/dashboard" className="group flex min-w-0 items-center gap-3">
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-water-500 to-water-700 text-white shadow-md shadow-water-500/25 ring-1 ring-white/20 transition-transform duration-200 group-hover:scale-105">
+                <Droplets className="h-5 w-5" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 to-white/20" />
+              </div>
+              <div className="min-w-0 hidden sm:block">
+                <div className="truncate text-sm font-bold tracking-tight text-slate-900 dark:text-white">ADE BRH</div>
+                <div className="truncate text-[10px] font-semibold uppercase tracking-[0.2em] text-water-600/80 dark:text-water-400/80">
+                  Système KPI
                 </div>
-                <div className="max-h-64 overflow-y-auto">
-                  {agenciesStatus.agencies.map((agency) => (
-                    <div key={agency.agenceId} className="flex items-center justify-between p-2 hover:bg-water-50/50 dark:hover:bg-slate-700/50">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          agency.hasDataToday 
-                            ? 'bg-green-500 animate-pulse' 
-                            : 'bg-red-500 animate-pulse'
-                        }`}></div>
-                        <div>
-                          <div className="text-xs font-medium text-water-800 dark:text-water-200">
-                            {agency.nomAgence}
-                          </div>
-                          <div className="text-xs text-water-600 dark:text-water-400">
-                            {agency.nomCentre}
+              </div>
+            </NavLink>
+          </div>
+
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-1 rounded-2xl border border-water-100/80 bg-water-50/50 p-1 dark:border-slate-800 dark:bg-slate-900/50 md:flex">
+            {MAIN_LINKS.map(({ to, icon: Icon, label }) => (
+              <NavLink key={to} to={to} className={navLinkClass}>
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="hidden lg:inline">{label}</span>
+              </NavLink>
+            ))}
+
+            <div className="gestion-menu-dropdown relative">
+              <button
+                ref={gestionMenuButtonRef}
+                type="button"
+                onClick={() => { setShowGestionMenu(!showGestionMenu); setShowDataMenu(false); }}
+                className={dropdownTriggerClass(showGestionMenu || isGestionActive)}
+                aria-expanded={showGestionMenu}
+              >
+                <Settings className="h-4 w-4 shrink-0" />
+                <span className="hidden lg:inline">Gestion</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showGestionMenu ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+
+            <div className="data-menu-dropdown relative">
+              <button
+                ref={dataMenuButtonRef}
+                type="button"
+                onClick={() => { setShowDataMenu(!showDataMenu); setShowGestionMenu(false); }}
+                className={dropdownTriggerClass(showDataMenu || isDataActive)}
+                aria-expanded={showDataMenu}
+              >
+                <BarChart3 className="h-4 w-4 shrink-0" />
+                <span className="hidden lg:inline">Données</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showDataMenu ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+          </nav>
+
+          {/* Actions */}
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="agencies-status-dropdown relative">
+              <button
+                type="button"
+                onClick={() => setShowAgenciesStatus(!showAgenciesStatus)}
+                className={`relative inline-flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-200 ${
+                  bellVariant === 'alert'
+                    ? 'border-red-200/70 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-400'
+                    : bellVariant === 'success'
+                    ? 'border-emerald-200/70 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400'
+                    : 'border-water-200/70 bg-white/80 text-water-600 hover:bg-water-50 dark:border-slate-700 dark:bg-slate-900 dark:text-water-300 dark:hover:bg-slate-800'
+                }`}
+                aria-label="Statut des agences"
+              >
+                <Bell className="h-4 w-4" />
+                {pending > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                    {pending}
+                  </span>
+                )}
+              </button>
+
+              {showAgenciesStatus && (
+                <div className="agencies-status-dropdown fixed right-4 top-[4.5rem] z-[9999] w-80 overflow-hidden rounded-2xl border border-water-200/60 bg-white/95 shadow-[0_20px_50px_-12px_rgba(2,132,199,0.25)] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/95">
+                  <div className={`border-b px-4 py-3 ${
+                    pending > 0
+                      ? 'border-red-100 bg-red-50/50 dark:border-red-900/30 dark:bg-red-950/20'
+                      : 'border-emerald-100 bg-emerald-50/50 dark:border-emerald-900/30 dark:bg-emerald-950/20'
+                  }`}>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {pending > 0 ? `${pending} agence(s) en retard` : 'Saisies du jour complètes'}
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                      {completed}/{total} agences ont saisi leurs données
+                    </p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-2">
+                    {agenciesStatus.agencies.map((agency) => (
+                      <div
+                        key={agency.agenceId}
+                        className="flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-water-50/60 dark:hover:bg-slate-800/60"
+                      >
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className={`h-2 w-2 shrink-0 rounded-full ${agency.hasDataToday ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{agency.nomAgence}</div>
+                            <div className="truncate text-xs text-slate-500 dark:text-slate-400">{agency.nomCentre}</div>
                           </div>
                         </div>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          agency.hasDataToday
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          {agency.hasDataToday ? 'OK' : 'Attente'}
+                        </span>
                       </div>
-                      <div className={`text-xs px-2 py-1 rounded-full ${
-                        agency.hasDataToday
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                      }`}>
-                        {agency.hasDataToday ? 'Complété' : 'En attente'}
-                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <ThemeToggle />
+
+            <div className="user-menu-dropdown flex items-center gap-2 pl-1">
+              <button
+                ref={userMenuButtonRef}
+                type="button"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 rounded-xl border border-water-200/70 bg-white/80 py-1 pl-1 pr-2.5 transition-all hover:border-water-300 hover:bg-water-50/80 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+                aria-haspopup="menu"
+                aria-expanded={showUserMenu}
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 text-[11px] font-bold text-white shadow-sm">
+                  {initials}
+                </div>
+                <div className="hidden text-left lg:block">
+                  <div className="max-w-[120px] truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
+                    {user?.username || 'Invité'}
+                  </div>
+                  {user?.role && (
+                    <div className="flex items-center gap-1 text-[10px] text-water-600 dark:text-water-400">
+                      {user.role === 'Administrateur' && <Crown className="h-2.5 w-2.5" />}
+                      {user.role}
                     </div>
+                  )}
+                </div>
+                <ChevronDown className={`hidden h-3.5 w-3.5 text-slate-400 lg:block transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {user ? (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="hidden items-center gap-1.5 rounded-xl border border-red-200/60 bg-red-50/50 px-3 py-2 text-xs font-medium text-red-600 transition-all hover:bg-red-100 sm:inline-flex dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-950/40"
+                  title="Déconnexion"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="hidden xl:inline">Déconnexion</span>
+                </button>
+              ) : (
+                <NavLink
+                  to="/login"
+                  className="hidden items-center gap-1.5 rounded-xl border border-slate-200/70 bg-white/80 px-3 py-2 text-xs font-medium text-slate-600 transition-all hover:bg-slate-50 sm:inline-flex dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <LogIn className="h-3.5 w-3.5" />
+                  <span className="hidden xl:inline">Connexion</span>
+                </NavLink>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {open && (
+          <div className="border-t border-water-100/80 bg-white/95 px-3 pb-4 pt-2 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 md:hidden">
+            <div className="space-y-4">
+              <section>
+                <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-water-600/70 dark:text-water-400/70">Navigation</p>
+                <div className="space-y-1">
+                  {MAIN_LINKS.map(({ to, icon: Icon, label }) => (
+                    <NavLink key={to} to={to} onClick={() => setOpen(false)} className={navLinkClass}>
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </NavLink>
                   ))}
                 </div>
-                <div className="p-2 border-t border-water-200/30 dark:border-slate-700/30">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-green-600 dark:text-green-400">
-                      ✓ {agenciesStatus.summary.completed} complétées
-                    </span>
-                    {agenciesStatus.summary.pending > 0 && (
-                      <span className="text-red-600 dark:text-red-400 font-semibold">
-                        ⚠ {agenciesStatus.summary.pending} en retard
-                      </span>
-                    )}
-                  </div>
+              </section>
+
+              <section>
+                <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-water-600/70 dark:text-water-400/70">Gestion</p>
+                <div className="space-y-1">
+                  {GESTION_ITEMS.map(({ to, icon: Icon, label }) => (
+                    <NavLink key={to} to={to} onClick={() => setOpen(false)} className={navLinkClass}>
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </NavLink>
+                  ))}
                 </div>
-              </div>
-            )}
-          </div>
+              </section>
 
-          <ThemeToggle />
+              <section>
+                <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-water-600/70 dark:text-water-400/70">Données</p>
+                <div className="space-y-1">
+                  {DATA_ITEMS.map(({ to, icon: Icon, label }) => (
+                    <NavLink key={to} to={to} onClick={() => setOpen(false)} className={navLinkClass}>
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </NavLink>
+                  ))}
+                </div>
+              </section>
 
-          {/* User info and logout */}
-          <div className="flex items-center gap-1">
-            <button
-              ref={userMenuButtonRef}
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-1.5 px-1.5 py-1 rounded-md border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/60 hover:bg-slate-50/70 dark:hover:bg-slate-700/50 transition-colors"
-              aria-haspopup="menu"
-              aria-expanded={showUserMenu}
-            >
-              <div className="h-7 w-7 rounded-md bg-slate-900/80 text-white grid place-items-center font-bold text-[10px]">
-                {initials}
-              </div>
-              <div className="text-left hidden lg:block">
-                <div className="text-xs font-semibold text-water-800 dark:text-water-100">{user?.username || 'Invité'}</div>
-                {user?.role && (
-                  <div className="text-xs text-water-500 dark:text-water-400 flex items-center gap-1">
-                    {user.role === 'Administrateur' ? <Crown className="h-2 w-2" /> : null}
-                    {user.role}
-                  </div>
-                )}
-              </div>
-            </button>
-            
-            {user ? (
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-full text-xs text-red-600 dark:text-red-400 hover:bg-red-50/70 dark:hover:bg-red-900/20 hover:scale-105 transition-all duration-200 ring-1 ring-inset ring-red-300/30"
-                title="Déconnexion"
-              >
-                <LogOut className="h-3 w-3" />
-                <span className="hidden sm:inline">Déconnexion</span>
-              </button>
-            ) : (
-              <NavLink
-                to="/login"
-                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-full text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-50/70 dark:hover:bg-slate-800/50 hover:scale-105 transition-all duration-200 ring-1 ring-inset ring-slate-300/40 dark:ring-slate-600/40"
-              >
-                <LogIn className="h-3 w-3" />
-                <span className="hidden sm:inline">Connexion</span>
-              </NavLink>
-            )}
+              {user && (
+                <section className="border-t border-water-100/80 pt-3 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => { setOpen(false); handleLogout(); }}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200/60 bg-red-50/60 px-4 py-2.5 text-sm font-medium text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Déconnexion
+                  </button>
+                </section>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        )}
+      </header>
 
-      {open && (
-        <div className="md:hidden border-t border-water-200/20 dark:border-slate-700/40 px-2 pb-2 bg-gradient-to-b from-white/90 to-blue-50/90 dark:from-slate-900/80 dark:to-slate-900/60 backdrop-blur-2xl">
-          <div className="flex flex-col gap-1 pt-2">
-            <NavLink onClick={() => setOpen(false)} to="/dashboard" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <LayoutDashboard className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Dashboard
-            </NavLink>
-            <NavLink onClick={() => setOpen(false)} to="/statistiques" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <TrendingUp className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Statistiques
-            </NavLink>
-            <NavLink onClick={() => setOpen(false)} to="/centres" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <Building2 className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Centres
-            </NavLink>
-            <NavLink onClick={() => setOpen(false)} to="/agences" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <Building2 className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Agences
-            </NavLink>
-            <NavLink onClick={() => setOpen(false)} to="/communes" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <MapPin className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Communes
-            </NavLink>
-            <NavLink onClick={() => setOpen(false)} to="/users" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <Users className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Utilisateurs
-            </NavLink>
-            <NavLink onClick={() => setOpen(false)} to="/categories" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <FolderOpen className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Catégories
-            </NavLink>
-            <NavLink onClick={() => setOpen(false)} to="/kpi" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <BarChart3 className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> KPIs
-            </NavLink>
-            <NavLink onClick={() => setOpen(false)} to="/bilans-detailles" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <FileText className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Bilans Détaillés
-            </NavLink>
-            <NavLink onClick={() => setOpen(false)} to="/detailed-data-by-agency" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <Building2 className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Data par Agence
-            </NavLink>
-            <NavLink onClick={() => setOpen(false)} to="/objectives" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-              <Target className="h-3.5 w-3.5 group-hover:scale-110 transition-transform duration-200" /> Objectifs
-            </NavLink>
-          </div>
-        </div>
+      {showGestionMenu && (
+        <DropdownPanel
+          title="Administration"
+          subtitle="Gestion du référentiel"
+          pos={gestionMenuPos}
+          panelRef={gestionMenuRef}
+          className="gestion-menu-dropdown"
+        >
+          {GESTION_ITEMS.map((item) => (
+            <DropdownNavLink key={item.to} {...item} onNavigate={() => setShowGestionMenu(false)} />
+          ))}
+        </DropdownPanel>
       )}
-    </header>
-    {showDataMenu && createPortal(
-      <div
-        ref={dataMenuRef}
-        className="fixed bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200/70 dark:border-slate-700/60 z-[9999] data-menu-dropdown"
-        style={{ top: `${dataMenuPos.top}px`, left: `${dataMenuPos.left}px`, minWidth: dataMenuPos.width }}
-        role="menu"
-        aria-label="Saisie des Données"
-      >
-        <div className="py-2">
-          <NavLink 
-            to="/kpi" 
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowDataMenu(false)}
+
+      {showDataMenu && (
+        <DropdownPanel
+          title="Saisie & rapports"
+          subtitle="Données opérationnelles"
+          pos={dataMenuPos}
+          panelRef={dataMenuRef}
+          className="data-menu-dropdown"
+        >
+          {DATA_ITEMS.map((item) => (
+            <DropdownNavLink key={item.to} {...item} onNavigate={() => setShowDataMenu(false)} />
+          ))}
+        </DropdownPanel>
+      )}
+
+      {showUserMenu && (
+        <DropdownPanel pos={userMenuPos} panelRef={userMenuRef} className="user-menu-dropdown">
+          <DropdownNavLink to="/profile" icon={Users} label="Mon profil" onNavigate={() => setShowUserMenu(false)} />
+          <DropdownNavLink to="/settings" icon={KeyRound} label="Changer le mot de passe" onNavigate={() => setShowUserMenu(false)} />
+          <button
+            type="button"
+            onClick={() => { setShowUserMenu(false); handleLogout(); }}
+            className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
           >
-                    <BarChart3 className="h-4 w-4 text-slate-500" />
-            <span>Saisie des Données</span>
-          </NavLink>
-          <NavLink 
-            to="/bilans-detailles" 
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowDataMenu(false)}
-          >
-                    <FileText className="h-4 w-4 text-slate-500" />
-            <span>Bilans liste détaillés</span>
-          </NavLink>
-          <NavLink 
-            to="/detailed-data-by-agency" 
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowDataMenu(false)}
-          >
-                    <Building2 className="h-4 w-4 text-slate-500" />
-            <span>Details Agence</span>
-          </NavLink>
-        </div>
-      </div>,
-      document.body
-    )}
-    {showUserMenu && createPortal(
-      <div
-        ref={userMenuRef}
-        className="fixed bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200/70 dark:border-slate-700/60 z-[9999] user-menu-dropdown"
-        style={{ top: `${userMenuPos.top}px`, left: `${userMenuPos.left}px`, minWidth: userMenuPos.width }}
-        role="menu"
-        aria-label="Menu utilisateur"
-      >
-        <div className="py-2">
-          <NavLink
-            to="/profile"
-            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowUserMenu(false)}
-          >
-            <Users className="h-4 w-4 text-slate-500" />
-            <span>Mon profil</span>
-          </NavLink>
-          <NavLink
-            to="/settings"
-            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowUserMenu(false)}
-          >
-            <LogOut className="h-4 w-4 rotate-180 text-slate-500" />
-            <span>Changer le mot de passe</span>
-          </NavLink>
-        </div>
-      </div>,
-      document.body
-    )}
-    {showGestionMenu && createPortal(
-      <div
-        ref={gestionMenuRef}
-        className="fixed bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200/70 dark:border-slate-700/60 z-[9999] gestion-menu-dropdown"
-        style={{ top: `${gestionMenuPos.top}px`, left: `${gestionMenuPos.left}px`, minWidth: gestionMenuPos.width }}
-        role="menu"
-        aria-label="Menu Gestion"
-      >
-        <div className="py-2">
-          <NavLink
-            to="/centres"
-            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowGestionMenu(false)}
-          >
-            <Building2 className="h-4 w-4 text-slate-500" />
-            <span>Centres</span>
-          </NavLink>
-          <NavLink
-            to="/agences"
-            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowGestionMenu(false)}
-          >
-            <Building2 className="h-4 w-4 text-slate-500" />
-            <span>Agences</span>
-          </NavLink>
-          <NavLink
-            to="/communes"
-            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowGestionMenu(false)}
-          >
-            <MapPin className="h-4 w-4 text-slate-500" />
-            <span>Communes</span>
-          </NavLink>
-          <NavLink
-            to="/users"
-            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowGestionMenu(false)}
-          >
-            <Users className="h-4 w-4 text-slate-500" />
-            <span>Utilisateurs</span>
-          </NavLink>
-          <NavLink
-            to="/categories"
-            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowGestionMenu(false)}
-          >
-            <FolderOpen className="h-4 w-4 text-slate-500" />
-            <span>Catégories</span>
-          </NavLink>
-          <NavLink
-            to="/objectives"
-            className="flex items-center gap-3 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-150 rounded-lg mx-2"
-            onClick={() => setShowGestionMenu(false)}
-          >
-            <Target className="h-4 w-4 text-slate-500" />
-            <span>Objectifs</span>
-          </NavLink>
-        </div>
-      </div>,
-      document.body
-    )}
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400">
+              <LogOut className="h-4 w-4" />
+            </span>
+            Déconnexion
+          </button>
+        </DropdownPanel>
+      )}
     </>
   );
 };
 
 export default NavBar;
-
-
