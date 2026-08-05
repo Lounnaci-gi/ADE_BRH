@@ -179,6 +179,11 @@ const Login = () => {
         <div className="login-container">
             <div className={`login-card ${isShaking ? 'shake' : ''}`}>
                 <div className="login-header">
+                    <img
+                        src={`${process.env.PUBLIC_URL}/ade.png`}
+                        alt="Logo ADE"
+                        className="login-logo"
+                    />
                     <h1>ADE BRH</h1>
                     <p>Système de gestion commercial - Unité Médéa</p>
                 </div>

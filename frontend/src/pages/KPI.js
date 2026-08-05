@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Building2, Save, Target, DollarSign, BarChart3, CheckCircle, AlertCircle, Zap, Shield, Users, Wrench, Eye, ChevronDown, ChevronRight, Table, LayoutGrid } from 'lucide-react';
+import { Calendar, Building2, Save, Target, DollarSign, BarChart3, CheckCircle, AlertCircle, Zap, Shield, Users, Wrench, Eye, ChevronDown, ChevronRight, Table, LayoutGrid, ClipboardList } from 'lucide-react';
 import { motion } from 'framer-motion';
 import kpiService from '../services/kpiService';
 import authService from '../services/authService';
@@ -60,6 +60,43 @@ function KPI() {
     }
     return total;
   };
+
+  const NUMERIC_FIELDS = [
+    'nbRelancesEnvoyees', 'mtRelancesEnvoyees', 'nbRelancesReglees', 'mtRelancesReglees',
+    'nbMisesEnDemeureEnvoyees', 'mtMisesEnDemeureEnvoyees', 'nbMisesEnDemeureReglees', 'mtMisesEnDemeureReglees',
+    'nbCoupures', 'mtCoupures', 'nbRetablissements', 'mtRetablissements',
+    'nbDossiersJuridiques', 'mtDossiersJuridiques',
+    'nbBranchements', 'nbCompteursRemplaces', 'nbControles'
+  ];
+
+  const categoryHasData = (catId) => {
+    const e = entriesByCategory[catId] || {};
+    return NUMERIC_FIELDS.some((f) => e[f] !== '' && e[f] != null);
+  };
+
+  const filledCategoriesCount = (sortedCategories || []).filter((c) => categoryHasData(c.CategorieId)).length;
+
+  const setToday = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    setFormData((prev) => ({ ...prev, dateKey: `${yyyy}-${mm}-${dd}` }));
+  };
+
+  const GridInput = ({ value, onChange, step = '1', type = 'number', placeholder = '', className = '', disabled = false, maxLength }) => (
+    <input
+      type={type}
+      min={type === 'number' ? '0' : undefined}
+      step={type === 'number' ? step : undefined}
+      value={value || ''}
+      onChange={onChange}
+      disabled={disabled}
+      placeholder={placeholder}
+      maxLength={maxLength}
+      className={`w-full min-w-[3.25rem] rounded-md border-0 bg-transparent px-1.5 py-1.5 text-center text-[11px] text-slate-800 outline-none transition focus:bg-water-50 focus:ring-2 focus:ring-water-400/50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-100 dark:focus:bg-slate-800 ${className}`}
+    />
+  );
 
   // Trie les catégories : Cat1 DOM (Ménages), Cat2 ADM (Admin), Cat3 COM (Artisans), Cat4 IND (Industriel)
   const sortCategories = (categories) => {
@@ -530,10 +567,10 @@ function KPI() {
           transition={{ duration: 0.6 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-400 mb-2">
-            Tableau de Bord
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-1">
+            Saisie KPI
           </h1>
-          <p className="text-gray-600 dark:text-slate-300 text-lg">Saisie et suivi des indicateurs de performance quotidiens</p>
+          <p className="text-gray-600 dark:text-slate-300">Indicateurs de performance quotidiens par agence et catégorie</p>
         </motion.div>
 
         {/* A. Section Objectifs Agence - EN HAUT */}
@@ -639,350 +676,324 @@ function KPI() {
         )}
 
         {/* Formulaire de saisie */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm mb-8">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 px-6 py-4 rounded-t-xl border-b border-gray-200 dark:border-slate-700">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-slate-100">📝 Saisie des données</h2>
-              <div className="flex items-center gap-2">
+        <div className="mb-8 overflow-hidden rounded-2xl border border-water-200/60 bg-white shadow-[0_8px_30px_-12px_rgba(2,132,199,0.2)] dark:border-slate-700 dark:bg-slate-900">
+          <div className="border-b border-water-100/80 bg-gradient-to-r from-water-50 via-white to-sky-50 px-5 py-4 dark:border-slate-700 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-water-500 to-water-700 text-white shadow-md shadow-water-500/25">
+                  <ClipboardList className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Saisie des données</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {filledCategoriesCount}/{sortedCategories.length || 0} catégorie(s) renseignée(s)
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
                 {hasExistingData && (
-                  <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Mode édition - Données existantes chargées</span>
-                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Édition
+                  </span>
                 )}
                 {isFormDisabled && (
-                  <div className="flex items-center space-x-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-sm font-medium">
-                    <AlertCircle className="h-4 w-4" />
-                    <span>Date à plus de 7 jours - Modification non autorisée</span>
-                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    Lecture seule (&gt; 7 jours)
+                  </span>
+                )}
+                {isReset && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-water-100 px-3 py-1 text-xs font-semibold text-water-700 dark:bg-water-900/30 dark:text-water-300">
+                    Formulaire réinitialisé
+                  </span>
                 )}
               </div>
             </div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-water-100 dark:bg-slate-700">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-water-500 to-sky-400 transition-all duration-500"
+                style={{ width: `${sortedCategories.length ? (filledCategoriesCount / sortedCategories.length) * 100 : 0}%` }}
+              />
+            </div>
           </div>
-          
-          <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Informations de base */}
-              <div className="space-y-3">
-                {(() => {
+
+          <form onSubmit={handleSubmit} className="space-y-5 p-5">
+            <div className="grid gap-4 rounded-2xl border border-water-100 bg-water-50/40 p-4 dark:border-slate-700 dark:bg-slate-800/40 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                  <Calendar className="h-3.5 w-3.5 text-water-600" />
+                  Date de saisie
+                </label>
+                <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <ModernDatePicker
+                      value={formData.dateKey}
+                      onChange={(date) => setFormData({ ...formData, dateKey: date })}
+                      placeholder="Sélectionner une date"
+                      disabled={false}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={setToday}
+                    className="shrink-0 rounded-xl border border-water-200 bg-white px-3 py-2 text-xs font-semibold text-water-700 transition hover:bg-water-50 dark:border-slate-600 dark:bg-slate-800 dark:text-water-300 dark:hover:bg-slate-700"
+                  >
+                    Aujourd&apos;hui
+                  </button>
+                </div>
+              </div>
+
+              {(() => {
                 const user = authService.getCurrentUser();
                 const isAdmin = (user?.role || '').toString() === 'Administrateur';
-                
                 if (isAdmin) {
                   return (
-                      <div className="space-y-1">
-                        <label className="flex items-center text-xs font-semibold text-gray-700 dark:text-slate-200 mb-1">
-                          <div className="p-1 bg-green-100 dark:bg-green-900/30 rounded mr-2">
-                            <Building2 className="h-3 w-3 text-green-600 dark:text-green-400" />
-                        </div>
-                        Agence *
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                        <Building2 className="h-3.5 w-3.5 text-emerald-600" />
+                        Agence
                       </label>
                       <select
                         value={formData.agenceId}
                         onChange={(e) => setFormData({ ...formData, agenceId: e.target.value })}
-                          className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md text-xs max-w-[200px] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full rounded-xl border-2 border-water-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 outline-none transition focus:border-water-400 focus:ring-2 focus:ring-water-400/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                         required
-                        disabled={isFormDisabled}
                       >
                         <option value="">Sélectionner une agence</option>
-                        {agences.map(agence => (
-                          <option key={agence.AgenceId} value={agence.AgenceId}>
-                            {agence.Nom_Agence}
-                          </option>
+                        {agences.map((agence) => (
+                          <option key={agence.AgenceId} value={agence.AgenceId}>{agence.Nom_Agence}</option>
                         ))}
                       </select>
                     </div>
                   );
-                } else {
-                  const userAgence = agences.find(a => Number(a.AgenceId) === Number(formData.agenceId));
-                  return (
-                      <div className="space-y-1">
-                        <label className="flex items-center text-xs font-semibold text-gray-700 dark:text-slate-200 mb-1">
-                          <div className="p-1 bg-green-100 dark:bg-green-900/30 rounded mr-2">
-                            <Building2 className="h-3 w-3 text-green-600 dark:text-green-400" />
-                        </div>
-                        Agence assignée
-                      </label>
-                        <div className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-800 dark:to-slate-800 text-gray-700 dark:text-slate-200 shadow-sm text-xs max-w-[200px]">
-                        {userAgence ? userAgence.Nom_Agence : 'Chargement...'}
-                      </div>
-                    </div>
-                  );
                 }
+                const userAgence = agences.find((a) => Number(a.AgenceId) === Number(formData.agenceId));
+                return (
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                      <Building2 className="h-3.5 w-3.5 text-emerald-600" />
+                      Agence assignée
+                    </label>
+                    <div className="rounded-xl border-2 border-water-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100">
+                      {userAgence ? userAgence.Nom_Agence : 'Chargement...'}
+                    </div>
+                  </div>
+                );
               })()}
 
-                <div className="space-y-1">
-                  <label className="flex items-center text-xs font-semibold text-gray-700 dark:text-slate-200 mb-1">
-                    <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded mr-2">
-                      <Calendar className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+              <div className="flex items-end">
+                <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-water-200/70 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-800">
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Affichage</span>
+                  <div className="inline-flex rounded-lg bg-water-50 p-0.5 dark:bg-slate-700">
+                    <button type="button" onClick={() => setViewMode('table')} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${viewMode === 'table' ? 'bg-water-600 text-white shadow-sm' : 'text-slate-600 hover:text-water-700 dark:text-slate-300'}`}>
+                      <Table className="h-3.5 w-3.5" /> Grille
+                    </button>
+                    <button type="button" onClick={() => setViewMode('cards')} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${viewMode === 'cards' ? 'bg-water-600 text-white shadow-sm' : 'text-slate-600 hover:text-water-700 dark:text-slate-300'}`}>
+                      <LayoutGrid className="h-3.5 w-3.5" /> Cartes
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-                    Date *
-                  </label>
-                  <ModernDatePicker
-                    value={formData.dateKey}
-                    onChange={(date) => setFormData({ ...formData, dateKey: date })}
-                    placeholder="Sélectionner une date"
-                    disabled={isFormDisabled}
-                  />
-                </div>
+
+            {!formData.agenceId && (
+              <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-300">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                Sélectionnez une agence pour commencer la saisie.
               </div>
+            )}
 
-              {/* Toggle vue: Grille Excel / Cartes */}
-              <div className="flex items-center justify-end gap-2 mb-4">
-                <span className="text-xs text-gray-500 dark:text-slate-400 font-medium">Vue :</span>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border ${viewMode === 'table' ? 'bg-blue-600 text-white border-blue-600 shadow' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-600 hover:border-blue-400'}`}
-                >
-                  <Table className="h-3.5 w-3.5" />
-                  Grille Excel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('cards')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border ${viewMode === 'cards' ? 'bg-blue-600 text-white border-blue-600 shadow' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-600 hover:border-blue-400'}`}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                  Cartes
-                </button>
-              </div>
-
-              {/* ─────────────── VUE GRILLE EXCEL ─────────────── */}
-              {viewMode === 'table' && (
-                <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
-                  <table style={{ borderCollapse: 'collapse', minWidth: '1100px', width: '100%', fontSize: '11px' }}>
-                    <thead>
-                      {/* Ligne 1 : En-têtes de groupes colorés */}
-                      <tr>
-                        <th rowSpan={2} style={{ background: '#D9E1F2', color: '#1a1a2e', border: '1px solid #b0b8cc', padding: '6px 8px', textAlign: 'center', fontWeight: 700, whiteSpace: 'nowrap', minWidth: '140px' }}>
-                          cat
-                        </th>
-                        <th colSpan={4} style={{ background: '#82C91E', color: '#fff', border: '1px solid #6aab12', padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>
-                          Relances Systématiques
-                        </th>
-                        <th colSpan={4} style={{ background: '#FFFF00', color: '#333', border: '1px solid #cccc00', padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>
-                          Mise en Demeure
-                        </th>
-                        <th colSpan={4} style={{ background: '#FFC000', color: '#fff', border: '1px solid #cc9900', padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>
-                          Activité Coupure
-                        </th>
-                        <th colSpan={2} style={{ background: '#FF0000', color: '#fff', border: '1px solid #cc0000', padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>
-                          Autre Activité
-                        </th>
-                        <th colSpan={4} style={{ background: '#8EA9DB', color: '#fff', border: '1px solid #6a85b8', padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>
-                          Gestion des Compteurs
-                        </th>
-                        <th rowSpan={2} style={{ background: '#ED7D31', color: '#fff', border: '1px solid #c4611e', padding: '5px 4px', textAlign: 'center', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          ENCAISSEMENT<br />Global
-                        </th>
-                      </tr>
-                      {/* Ligne 2 : Sous-colonnes */}
-                      <tr>
-                        {/* Relances Systématiques */}
-                        <th style={{ background: '#c5e87a', color: '#1a1a2e', border: '1px solid #82C91E', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>RS Nbre</th>
-                        <th style={{ background: '#c5e87a', color: '#1a1a2e', border: '1px solid #82C91E', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>RS Mts</th>
-                        <th style={{ background: '#c5e87a', color: '#1a1a2e', border: '1px solid #82C91E', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Encai ≥RS Nbre</th>
-                        <th style={{ background: '#c5e87a', color: '#1a1a2e', border: '1px solid #82C91E', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Encai ≥RS Mts</th>
-                        {/* Mise en Demeure */}
-                        <th style={{ background: '#ffffaa', color: '#333', border: '1px solid #cccc00', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>MeD Nbre</th>
-                        <th style={{ background: '#ffffaa', color: '#333', border: '1px solid #cccc00', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>MeD Mts</th>
-                        <th style={{ background: '#ffffaa', color: '#333', border: '1px solid #cccc00', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Encai ≥MeD Nbre</th>
-                        <th style={{ background: '#ffffaa', color: '#333', border: '1px solid #cccc00', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Encai ≥MeD Mts</th>
-                        {/* Activité Coupure */}
-                        <th style={{ background: '#ffe066', color: '#333', border: '1px solid #cc9900', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Coupures Nbre</th>
-                        <th style={{ background: '#ffe066', color: '#333', border: '1px solid #cc9900', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Coupures Mts</th>
-                        <th style={{ background: '#ffe066', color: '#333', border: '1px solid #cc9900', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Réouv. Nbre</th>
-                        <th style={{ background: '#ffe066', color: '#333', border: '1px solid #cc9900', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Réouv. Mts</th>
-                        {/* Autre Activité */}
-                        <th style={{ background: '#ff8080', color: '#fff', border: '1px solid #cc0000', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Dos. Cont. Nbre</th>
-                        <th style={{ background: '#ff8080', color: '#fff', border: '1px solid #cc0000', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Dos. Cont. Mts</th>
-                        {/* Gestion des Compteurs */}
-                        <th style={{ background: '#b8cce4', color: '#1a1a2e', border: '1px solid #8EA9DB', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Nouv. Branch.</th>
-                        <th style={{ background: '#b8cce4', color: '#1a1a2e', border: '1px solid #8EA9DB', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Sans Compt.</th>
-                        <th style={{ background: '#b8cce4', color: '#1a1a2e', border: '1px solid #8EA9DB', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Contrôles</th>
-                        <th style={{ background: '#b8cce4', color: '#1a1a2e', border: '1px solid #8EA9DB', padding: '4px 3px', textAlign: 'center', whiteSpace: 'nowrap' }}>Observation</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(sortedCategories || []).map((cat, idx) => {
-                        const e = entriesByCategory[cat.CategorieId] || {};
-                        const rowBg = idx % 2 === 0 ? '#f8fafc' : '#ffffff';
-                        const cellStyle = { border: '1px solid #d1d5db', padding: '2px 2px', background: rowBg };
-                        const inputStyle = {
-                          width: '100%', border: 'none', background: 'transparent',
-                          textAlign: 'center', padding: '3px 2px', fontSize: '11px',
-                          outline: 'none', color: 'inherit', minWidth: '52px'
-                        };
-                        const labelStyle = { border: '1px solid #d1d5db', padding: '5px 6px', background: '#eef2ff', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', fontSize: '11px' };
-                        return (
-                          <tr key={cat.CategorieId}>
-                            <td style={labelStyle}>{getCategoryLabel(cat)}</td>
-                            {/* Relances Systématiques */}
-                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbRelancesEnvoyees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbRelancesEnvoyees', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtRelancesEnvoyees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtRelancesEnvoyees', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbRelancesReglees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbRelancesReglees', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtRelancesReglees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtRelancesReglees', ev.target.value)} disabled={isFormDisabled} /></td>
-                            {/* Mise en Demeure */}
-                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbMisesEnDemeureEnvoyees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbMisesEnDemeureEnvoyees', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtMisesEnDemeureEnvoyees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtMisesEnDemeureEnvoyees', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbMisesEnDemeureReglees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbMisesEnDemeureReglees', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtMisesEnDemeureReglees || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtMisesEnDemeureReglees', ev.target.value)} disabled={isFormDisabled} /></td>
-                            {/* Activité Coupure */}
-                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbCoupures || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbCoupures', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtCoupures || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtCoupures', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbRetablissements || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbRetablissements', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtRetablissements || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtRetablissements', ev.target.value)} disabled={isFormDisabled} /></td>
-                            {/* Autre Activité */}
-                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbDossiersJuridiques || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbDossiersJuridiques', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="0.01" style={inputStyle} value={e.mtDossiersJuridiques || ''} onChange={ev => handleCellChange(cat.CategorieId, 'mtDossiersJuridiques', ev.target.value)} disabled={isFormDisabled} /></td>
-                            {/* Gestion des Compteurs */}
-                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbBranchements || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbBranchements', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbCompteursRemplaces || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbCompteursRemplaces', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={cellStyle}><input type="number" min="0" step="1" style={inputStyle} value={e.nbControles || ''} onChange={ev => handleCellChange(cat.CategorieId, 'nbControles', ev.target.value)} disabled={isFormDisabled} /></td>
-                            <td style={{ ...cellStyle, minWidth: '90px' }}><input type="text" style={{ ...inputStyle, textAlign: 'left', minWidth: '80px' }} value={e.observation || ''} onChange={ev => handleCellChange(cat.CategorieId, 'observation', ev.target.value)} maxLength={200} disabled={isFormDisabled} placeholder="obs..." /></td>
-                            {/* ENCAISSEMENT colonne vide par ligne (global en bas) */}
-                            <td style={{ border: '1px solid #d1d5db', background: '#fff7ed', padding: '4px', textAlign: 'center', color: '#9ca3af', fontSize: '10px' }}>—</td>
-                          </tr>
-                        );
-                      })}
-                      {/* Ligne Total */}
-                      <tr style={{ background: '#1e3a5f' }}>
-                        <td style={{ border: '1px solid #1e3a5f', padding: '5px 8px', color: '#fff', fontWeight: 700, fontSize: '12px' }}>Total</td>
-                        {[
-                          'nbRelancesEnvoyees','mtRelancesEnvoyees','nbRelancesReglees','mtRelancesReglees',
-                          'nbMisesEnDemeureEnvoyees','mtMisesEnDemeureEnvoyees','nbMisesEnDemeureReglees','mtMisesEnDemeureReglees',
-                          'nbCoupures','mtCoupures','nbRetablissements','mtRetablissements',
-                          'nbDossiersJuridiques','mtDossiersJuridiques',
-                          'nbBranchements','nbCompteursRemplaces','nbControles'
-                        ].map(field => (
-                          <td key={field} style={{ border: '1px solid #2d5a8e', padding: '5px 4px', color: '#fff', fontWeight: 700, textAlign: 'center', background: '#1e3a5f', fontSize: '11px' }}>
-                            {getSum(field)}
-                          </td>
-                        ))}
-                        {/* Observation total — vide */}
-                        <td style={{ border: '1px solid #2d5a8e', background: '#1e3a5f', padding: '5px 4px' }}></td>
-                        {/* Encaissement Global total */}
-                        <td style={{ border: '1px solid #c4611e', padding: '5px 4px', color: '#fff', fontWeight: 700, textAlign: 'center', background: '#ED7D31', fontSize: '11px' }}>
-                          {formData.encaissementJournalierGlobal
-                            ? parseFloat(formData.encaissementJournalierGlobal).toLocaleString('fr-FR', { minimumFractionDigits: 2 })
-                            : '—'}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* ─────────────── VUE CARTES ─────────────── */}
-              {viewMode === 'cards' && (
-                <div className="space-y-6">
-                    {(sortedCategories || []).map((cat, index) => {
+            {viewMode === 'table' && formData.agenceId && (
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+                <table className="w-full min-w-[1100px] border-collapse text-[11px]">
+                  <thead className="sticky top-0 z-10">
+                    <tr>
+                      <th rowSpan={2} className="border border-slate-200 bg-slate-100 px-3 py-2 text-center font-bold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200" style={{ minWidth: 150 }}>Catégorie</th>
+                      <th colSpan={4} className="border border-emerald-500/40 bg-emerald-500 px-2 py-2 text-center font-bold text-white">Relances</th>
+                      <th colSpan={4} className="border border-amber-400/40 bg-amber-400 px-2 py-2 text-center font-bold text-amber-950">Mise en demeure</th>
+                      <th colSpan={4} className="border border-orange-500/40 bg-orange-500 px-2 py-2 text-center font-bold text-white">Coupures</th>
+                      <th colSpan={2} className="border border-rose-500/40 bg-rose-500 px-2 py-2 text-center font-bold text-white">Contentieux</th>
+                      <th colSpan={4} className="border border-sky-500/40 bg-sky-500 px-2 py-2 text-center font-bold text-white">Compteurs</th>
+                    </tr>
+                    <tr>
+                      {['RS Nb', 'RS Mt', 'Enc. Nb', 'Enc. Mt'].map((h) => (
+                        <th key={h} className="border border-emerald-200 bg-emerald-50 px-1.5 py-1.5 text-center font-semibold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">{h}</th>
+                      ))}
+                      {['MeD Nb', 'MeD Mt', 'Enc. Nb', 'Enc. Mt'].map((h) => (
+                        <th key={`m-${h}`} className="border border-amber-200 bg-amber-50 px-1.5 py-1.5 text-center font-semibold text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">{h}</th>
+                      ))}
+                      {['Coup. Nb', 'Coup. Mt', 'Réouv. Nb', 'Réouv. Mt'].map((h) => (
+                        <th key={h} className="border border-orange-200 bg-orange-50 px-1.5 py-1.5 text-center font-semibold text-orange-900 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-200">{h}</th>
+                      ))}
+                      {['Dos. Nb', 'Dos. Mt'].map((h) => (
+                        <th key={h} className="border border-rose-200 bg-rose-50 px-1.5 py-1.5 text-center font-semibold text-rose-900 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200">{h}</th>
+                      ))}
+                      {['Branch.', 'Rempl.', 'Contrôles', 'Obs.'].map((h) => (
+                        <th key={h} className="border border-sky-200 bg-sky-50 px-1.5 py-1.5 text-center font-semibold text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(sortedCategories || []).map((cat, idx) => {
                       const e = entriesByCategory[cat.CategorieId] || {};
+                      const filled = categoryHasData(cat.CategorieId);
+                      const rowBg = idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/80 dark:bg-slate-800/40';
+                      const td = `border border-slate-200 p-0.5 dark:border-slate-700 ${rowBg}`;
                       return (
-                    <div key={cat.CategorieId} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200">
-                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-800 dark:to-slate-800 px-6 py-4 rounded-t-xl border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                        <h4 className="text-lg font-semibold text-gray-800 dark:text-slate-100">{getCategoryLabel(cat)}</h4>
-                        <button
-                          type="button"
-                          onClick={() => setCollapsedByCategory(prev => ({ ...prev, [cat.CategorieId]: !prev[cat.CategorieId] }))}
-                          className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 transition-colors"
-                        >
-                          {collapsedByCategory[cat.CategorieId] ? <><ChevronRight className="h-4 w-4" />Déplier</> : <><ChevronDown className="h-4 w-4" />Plier</>}
-                        </button>
-                      </div>
-                      <div className={collapsedByCategory[cat.CategorieId] ? 'hidden' : 'p-6'}>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                          <div className="space-y-3">
-                            <h5 className="font-semibold text-cyan-700 dark:text-cyan-400 text-sm border-b border-cyan-100 pb-1">Relances Systématiques</h5>
-                            <div className="grid grid-cols-2 gap-3">
-                              {[['nbRelancesEnvoyees','RS Nbre','1'],['mtRelancesEnvoyees','RS Montant','0.01'],['nbRelancesReglees','Encai≥RS Nbre','1'],['mtRelancesReglees','Encai≥RS Mts','0.01']].map(([f,l,s])=>(
-                                <div key={f}><label className="text-xs text-gray-500 mb-1 block">{l}</label><input type="number" min="0" step={s} value={e[f]||''} onChange={ev=>handleCellChange(cat.CategorieId,f,ev.target.value)} className="w-full border border-cyan-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500" disabled={isFormDisabled} /></div>
-                              ))}
+                        <tr key={cat.CategorieId}>
+                          <td className="border border-slate-200 bg-water-50 px-3 py-2 text-left font-semibold text-slate-700 dark:border-slate-700 dark:bg-water-950/30 dark:text-slate-200">
+                            <div className="flex items-center gap-2">
+                              <span className={`h-2 w-2 shrink-0 rounded-full ${filled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                              {getCategoryLabel(cat)}
                             </div>
-                          </div>
-                          <div className="space-y-3">
-                            <h5 className="font-semibold text-yellow-700 dark:text-yellow-400 text-sm border-b border-yellow-100 pb-1">Mise en Demeure</h5>
-                            <div className="grid grid-cols-2 gap-3">
-                              {[['nbMisesEnDemeureEnvoyees','MeD Nbre','1'],['mtMisesEnDemeureEnvoyees','MeD Montant','0.01'],['nbMisesEnDemeureReglees','Encai≥MeD Nbre','1'],['mtMisesEnDemeureReglees','Encai≥MeD Mts','0.01']].map(([f,l,s])=>(
-                                <div key={f}><label className="text-xs text-gray-500 mb-1 block">{l}</label><input type="number" min="0" step={s} value={e[f]||''} onChange={ev=>handleCellChange(cat.CategorieId,f,ev.target.value)} className="w-full border border-yellow-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-yellow-500" disabled={isFormDisabled} /></div>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="space-y-3">
-                            <h5 className="font-semibold text-orange-700 dark:text-orange-400 text-sm border-b border-orange-100 pb-1">Activité Coupure</h5>
-                            <div className="grid grid-cols-2 gap-3">
-                              {[['nbCoupures','Coupures Nbre','1'],['mtCoupures','Coupures Mts','0.01'],['nbRetablissements','Réouv. Nbre','1'],['mtRetablissements','Réouv. Mts','0.01']].map(([f,l,s])=>(
-                                <div key={f}><label className="text-xs text-gray-500 mb-1 block">{l}</label><input type="number" min="0" step={s} value={e[f]||''} onChange={ev=>handleCellChange(cat.CategorieId,f,ev.target.value)} className="w-full border border-orange-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500" disabled={isFormDisabled} /></div>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="space-y-3">
-                            <h5 className="font-semibold text-red-700 dark:text-red-400 text-sm border-b border-red-100 pb-1">Autre Activité (Contentieux)</h5>
-                            <div className="grid grid-cols-2 gap-3">
-                              {[['nbDossiersJuridiques','Dossiers Nbre','1'],['mtDossiersJuridiques','Dossiers Mts','0.01']].map(([f,l,s])=>(
-                                <div key={f}><label className="text-xs text-gray-500 mb-1 block">{l}</label><input type="number" min="0" step={s} value={e[f]||''} onChange={ev=>handleCellChange(cat.CategorieId,f,ev.target.value)} className="w-full border border-red-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500" disabled={isFormDisabled} /></div>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="space-y-3">
-                            <h5 className="font-semibold text-blue-700 dark:text-blue-400 text-sm border-b border-blue-100 pb-1">Gestion des Compteurs</h5>
-                            <div className="grid grid-cols-2 gap-3">
-                              {[['nbBranchements','Nouv. Branch.','1'],['nbCompteursRemplaces','Sans Compt.','1'],['nbControles','Contrôles','1']].map(([f,l,s])=>(
-                                <div key={f}><label className="text-xs text-gray-500 mb-1 block">{l}</label><input type="number" min="0" step={s} value={e[f]||''} onChange={ev=>handleCellChange(cat.CategorieId,f,ev.target.value)} className="w-full border border-blue-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={isFormDisabled} /></div>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs text-gray-500 font-medium">Observation</label>
-                            <textarea value={e.observation||''} onChange={ev=>handleCellChange(cat.CategorieId,'observation',ev.target.value)} className="w-full border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none" rows="3" maxLength="200" disabled={isFormDisabled} placeholder="Observation..." />
-                            <div className="text-right text-xs text-gray-400">{(e.observation||'').length}/200</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                          </td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.nbRelancesEnvoyees} onChange={(ev) => handleCellChange(cat.CategorieId, 'nbRelancesEnvoyees', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.mtRelancesEnvoyees} step="0.01" onChange={(ev) => handleCellChange(cat.CategorieId, 'mtRelancesEnvoyees', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.nbRelancesReglees} onChange={(ev) => handleCellChange(cat.CategorieId, 'nbRelancesReglees', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.mtRelancesReglees} step="0.01" onChange={(ev) => handleCellChange(cat.CategorieId, 'mtRelancesReglees', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.nbMisesEnDemeureEnvoyees} onChange={(ev) => handleCellChange(cat.CategorieId, 'nbMisesEnDemeureEnvoyees', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.mtMisesEnDemeureEnvoyees} step="0.01" onChange={(ev) => handleCellChange(cat.CategorieId, 'mtMisesEnDemeureEnvoyees', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.nbMisesEnDemeureReglees} onChange={(ev) => handleCellChange(cat.CategorieId, 'nbMisesEnDemeureReglees', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.mtMisesEnDemeureReglees} step="0.01" onChange={(ev) => handleCellChange(cat.CategorieId, 'mtMisesEnDemeureReglees', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.nbCoupures} onChange={(ev) => handleCellChange(cat.CategorieId, 'nbCoupures', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.mtCoupures} step="0.01" onChange={(ev) => handleCellChange(cat.CategorieId, 'mtCoupures', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.nbRetablissements} onChange={(ev) => handleCellChange(cat.CategorieId, 'nbRetablissements', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.mtRetablissements} step="0.01" onChange={(ev) => handleCellChange(cat.CategorieId, 'mtRetablissements', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.nbDossiersJuridiques} onChange={(ev) => handleCellChange(cat.CategorieId, 'nbDossiersJuridiques', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.mtDossiersJuridiques} step="0.01" onChange={(ev) => handleCellChange(cat.CategorieId, 'mtDossiersJuridiques', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.nbBranchements} onChange={(ev) => handleCellChange(cat.CategorieId, 'nbBranchements', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.nbCompteursRemplaces} onChange={(ev) => handleCellChange(cat.CategorieId, 'nbCompteursRemplaces', ev.target.value)} /></td>
+                          <td className={td}><GridInput disabled={isFormDisabled} value={e.nbControles} onChange={(ev) => handleCellChange(cat.CategorieId, 'nbControles', ev.target.value)} /></td>
+                          <td className={`${td} min-w-[90px]`}>
+                            <GridInput disabled={isFormDisabled} type="text" value={e.observation} placeholder="…" maxLength={200} className="!text-left" onChange={(ev) => handleCellChange(cat.CategorieId, 'observation', ev.target.value)} />
+                          </td>
+                        </tr>
                       );
                     })}
-                </div>
-              )}
+                    <tr className="bg-slate-800 text-white dark:bg-slate-950">
+                      <td className="border border-slate-700 px-3 py-2.5 font-bold">Total</td>
+                      {NUMERIC_FIELDS.map((field) => (
+                        <td key={field} className="border border-slate-700 px-1 py-2.5 text-center font-bold tabular-nums">{getSum(field)}</td>
+                      ))}
+                      <td className="border border-slate-700" />
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-              {/* Encaissement Journalier Global */}
-            <div className="border-t border-gray-200 dark:border-slate-700 pt-6">
-              <div className="space-y-2">
-                <label className="flex items-center text-sm font-semibold text-gray-700 dark:text-slate-200 mb-3">
-                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg mr-3">
-                      <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                    Encaissement Journalier Global
+            {viewMode === 'cards' && formData.agenceId && (
+              <div className="space-y-4">
+                {(sortedCategories || []).map((cat) => {
+                  const e = entriesByCategory[cat.CategorieId] || {};
+                  const filled = categoryHasData(cat.CategorieId);
+                  const sections = [
+                    { title: 'Relances', color: 'emerald', fields: [['nbRelancesEnvoyees', 'RS Nb', '1'], ['mtRelancesEnvoyees', 'RS Mt', '0.01'], ['nbRelancesReglees', 'Enc. Nb', '1'], ['mtRelancesReglees', 'Enc. Mt', '0.01']] },
+                    { title: 'Mise en demeure', color: 'amber', fields: [['nbMisesEnDemeureEnvoyees', 'MeD Nb', '1'], ['mtMisesEnDemeureEnvoyees', 'MeD Mt', '0.01'], ['nbMisesEnDemeureReglees', 'Enc. Nb', '1'], ['mtMisesEnDemeureReglees', 'Enc. Mt', '0.01']] },
+                    { title: 'Coupures', color: 'orange', fields: [['nbCoupures', 'Coup. Nb', '1'], ['mtCoupures', 'Coup. Mt', '0.01'], ['nbRetablissements', 'Réouv. Nb', '1'], ['mtRetablissements', 'Réouv. Mt', '0.01']] },
+                    { title: 'Contentieux', color: 'rose', fields: [['nbDossiersJuridiques', 'Dos. Nb', '1'], ['mtDossiersJuridiques', 'Dos. Mt', '0.01']] },
+                    { title: 'Compteurs', color: 'sky', fields: [['nbBranchements', 'Branch.', '1'], ['nbCompteursRemplaces', 'Rempl.', '1'], ['nbControles', 'Contrôles', '1']] },
+                  ];
+                  const colorMap = {
+                    emerald: 'border-emerald-200 bg-emerald-50/50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300',
+                    amber: 'border-amber-200 bg-amber-50/50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-300',
+                    orange: 'border-orange-200 bg-orange-50/50 text-orange-800 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-300',
+                    rose: 'border-rose-200 bg-rose-50/50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/20 dark:text-rose-300',
+                    sky: 'border-sky-200 bg-sky-50/50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-300',
+                  };
+                  return (
+                    <div key={cat.CategorieId} className={`overflow-hidden rounded-2xl border transition ${filled ? 'border-water-300 shadow-sm dark:border-water-700' : 'border-slate-200 dark:border-slate-700'}`}>
+                      <button
+                        type="button"
+                        onClick={() => setCollapsedByCategory((prev) => ({ ...prev, [cat.CategorieId]: !prev[cat.CategorieId] }))}
+                        className="flex w-full items-center justify-between bg-slate-50 px-5 py-3.5 text-left transition hover:bg-water-50/60 dark:bg-slate-800 dark:hover:bg-slate-800/80"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`h-2.5 w-2.5 rounded-full ${filled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">{getCategoryLabel(cat)}</h4>
+                          {filled && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">OK</span>}
+                        </div>
+                        {collapsedByCategory[cat.CategorieId] ? <ChevronRight className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                      </button>
+                      {!collapsedByCategory[cat.CategorieId] && (
+                        <div className="space-y-4 p-5">
+                          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                            {sections.map((sec) => (
+                              <div key={sec.title} className={`rounded-xl border p-3 ${colorMap[sec.color]}`}>
+                                <h5 className="mb-2 text-xs font-bold uppercase tracking-wide">{sec.title}</h5>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {sec.fields.map(([f, l, s]) => (
+                                    <div key={f}>
+                                      <label className="mb-1 block text-[10px] font-medium opacity-80">{l}</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step={s}
+                                        value={e[f] || ''}
+                                        onChange={(ev) => handleCellChange(cat.CategorieId, f, ev.target.value)}
+                                        disabled={isFormDisabled}
+                                        className="w-full rounded-lg border border-white/60 bg-white/90 px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-water-400/40 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 dark:border-slate-700 dark:bg-slate-800/40 lg:col-span-2 xl:col-span-1">
+                              <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Observation</label>
+                              <textarea
+                                value={e.observation || ''}
+                                onChange={(ev) => handleCellChange(cat.CategorieId, 'observation', ev.target.value)}
+                                rows={4}
+                                maxLength={200}
+                                disabled={isFormDisabled}
+                                placeholder="Notes..."
+                                className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-water-400/40 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900"
+                              />
+                              <div className="mt-1 text-right text-[10px] text-slate-400">{(e.observation || '').length}/200</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-2xl border border-water-200/80 bg-white/95 p-4 shadow-lg backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                  <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+                  Encaissement journalier global
                 </label>
-                  <div className="flex justify-start">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.encaissementJournalierGlobal}
-                  onChange={(e) => setFormData({ ...formData, encaissementJournalierGlobal: e.target.value })}
-                      className="w-64 border-2 border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 shadow-sm hover:shadow-md"
-                  placeholder="Montant de l'encaissement journalier global..."
-                  disabled={isFormDisabled}
-                />
+                <div className="relative max-w-sm">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.encaissementJournalierGlobal}
+                    onChange={(e) => setFormData({ ...formData, encaissementJournalierGlobal: e.target.value })}
+                    disabled={isFormDisabled}
+                    placeholder="0,00"
+                    className="w-full rounded-xl border-2 border-emerald-200 bg-emerald-50/30 py-2.5 pl-3 pr-14 text-base font-semibold tabular-nums text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-slate-100"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600/80">DA</span>
+                </div>
               </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-6">
               <button
                 type="submit"
-                disabled={isFormDisabled}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2 font-medium text-sm transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                disabled={isFormDisabled || !formData.agenceId || !formData.dateKey || loading}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-water-600 to-sky-600 px-6 py-3 text-sm font-bold text-white shadow-md shadow-water-500/25 transition hover:from-water-700 hover:to-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Save className="h-4 w-4" />
-                  Enregistrer les données
+                {loading ? 'Enregistrement…' : hasExistingData ? 'Mettre à jour' : 'Enregistrer'}
               </button>
             </div>
           </form>
-                      </div>
-                    </div>
+        </div>
+
 
         {/* B. Section Résumé Détaillé des Données - EN BAS */}
         {summary && (

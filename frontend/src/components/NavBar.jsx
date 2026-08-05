@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu, X, LayoutDashboard, Users, Building2, LogOut, LogIn, Bell, Crown,
-  Sparkles, FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText,
-  Settings, TrendingUp, KeyRound, Droplets
+  FolderOpen, BarChart3, Target, MapPin, ChevronDown, FileText,
+  Settings, TrendingUp, KeyRound
 } from 'lucide-react';
 import notificationsService from '../services/notificationsService';
 import ThemeToggle from './ThemeToggle';
@@ -237,9 +237,12 @@ const NavBar = () => {
             </button>
 
             <NavLink to="/dashboard" className="group flex min-w-0 items-center gap-3">
-              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-water-500 to-water-700 text-white shadow-md shadow-water-500/25 ring-1 ring-white/20 transition-transform duration-200 group-hover:scale-105">
-                <Droplets className="h-5 w-5" />
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 to-white/20" />
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-md shadow-water-500/15 ring-1 ring-water-200/60 transition-transform duration-200 group-hover:scale-105 dark:bg-slate-900 dark:ring-slate-700/60">
+                <img
+                  src={`${process.env.PUBLIC_URL}/ade.png`}
+                  alt="Logo ADE"
+                  className="h-8 w-8 object-contain"
+                />
               </div>
               <div className="min-w-0 hidden sm:block">
                 <div className="truncate text-sm font-bold tracking-tight text-slate-900 dark:text-white">ADE BRH</div>
